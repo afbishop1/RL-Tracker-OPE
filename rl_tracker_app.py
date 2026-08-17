@@ -496,43 +496,101 @@ with tab4:
         st.info("📭 No partnership data yet")
     else:
         partnerships = defaultdict(lambda: {"wins": 0, "losses": 0})
+        matchups = defaultdict(lambda: {"wins": 0, "losses": 0})
         
         for match_id, t1, t2, winner in all_matches:
             t1_list = t1.split(",")
             t2_list = t2.split(",")
             
-            # Track team 1 partnerships
+            # Get all partnerships for team 1 and team 2
+            t1_pairs = []
             for i in range(len(t1_list)):
                 for j in range(i+1, len(t1_list)):
                     pair = tuple(sorted([t1_list[i], t1_list[j]]))
+                    t1_pairs.append(pair)
                     if winner == 1:
                         partnerships[pair]["wins"] += 1
                     else:
                         partnerships[pair]["losses"] += 1
             
-            # Track team 2 partnerships
+            t2_pairs = []
             for i in range(len(t2_list)):
                 for j in range(i+1, len(t2_list)):
                     pair = tuple(sorted([t2_list[i], t2_list[j]]))
+                    t2_pairs.append(pair)
                     if winner == 2:
                         partnerships[pair]["wins"] += 1
                     else:
                         partnerships[pair]["losses"] += 1
+            
+            # Track matchups between partnerships
+            for t1_pair in t1_pairs:
+                for t2_pair in t2_pairs:
+                    matchup_key = (t1_pair, t2_pair)
+                    if winner == 1:
+                        matchups[matchup_key]["wins"] += 1
+                    else:
+                        matchups[matchup_key]["losses"] += 1
         
         part_data = []
         for (p1, p2), record in partnerships.items():
             total = record["wins"] + record["losses"]
             win_pct = (record["wins"] / total) * 100 if total > 0 else 0
             part_data.append({
-                "🤝 Partnership": f"{p1} + {p2}",
-                "🏆 Wins": record["wins"],
-                "💔 Losses": record["losses"],
-                "📊 Games": total,
-                "📈 Win %": f"{win_pct:.1f}%"
+                "partnership": (p1, p2),
+                "display": f"{p1} + {p2}",
+                "wins": record["wins"],
+                "losses": record["losses"],
+                "total": total,
+                "win_pct": win_pct
             })
         
-        df = pd.DataFrame(part_data)
-        df = df.sort_values("🏆 Wins", ascending=False)
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        # Sort by wins descending
+        part_data.sort(key=lambda x: x["wins"], reverse=True)
+        
+        # Display partnerships with matchup records
+        for partnership_info in part_data:
+            part_tuple = partnership_info["partnership"]
+            total = partnership_info["total"]
+            win_pct = partnership_info["win_pct"]
+            
+            # Create expander for this partnership
+            with st.expander(f"🤝 {partnership_info['display']} · {partnership_info['wins']}-{partnership_info['losses']} ({win_pct:.1f}%)", expanded=False):
+                st.markdown(f"**Overall: {partnership_info['wins']} Wins · {partnership_info['losses']} Losses · {win_pct:.1f}% Win Rate**")
+                st.divider()
+                st.markdown("**Head-to-Head vs Other Partnerships:**")
+                
+                # Find all matchups for this partnership
+                matchup_records = []
+                for (p1, p2), record in matchups.items():
+                    if p1 == part_tuple:
+                        opponent = p2
+                        opp_wins = record["losses"]
+                        opp_losses = record["wins"]
+                    elif p2 == part_tuple:
+                        opponent = p1
+                        opp_wins = record["wins"]
+                        opp_losses = record["losses"]
+                    else:
+                        continue
+                    
+                    h2h_total = opp_wins + opp_losses
+                    h2h_pct = (opp_wins / h2h_total) * 100 if h2h_total > 0 else 0
+                    matchup_records.append({
+                        "opponent": f"{opponent[0]} + {opponent[1]}",
+                        "wins": opp_wins,
+                        "losses": opp_losses,
+                        "total": h2h_total,
+                        "pct": h2h_pct
+                    })
+                
+                if matchup_records:
+                    # Sort by wins descending
+                    matchup_records.sort(key=lambda x: x["wins"], reverse=True)
+                    
+                    for matchup in matchup_records:
+                        st.markdown(f"vs **{matchup['opponent']}** · {matchup['wins']}-{matchup['losses']} ({matchup['pct']:.1f}%)")
+                else:
+                    st.markdown("*No matchup data yet*")
 
 conn.close()
