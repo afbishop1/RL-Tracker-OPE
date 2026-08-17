@@ -567,24 +567,37 @@ with tab3:
                 "avg_saves": avg_saves
             })
         
-        # Display overall stats table
-        display_data = []
+        # Display wins/losses table
+        wins_data = []
         for stat in stats_data:
-            display_data.append({
+            wins_data.append({
                 "🎮 Player": stat["player"],
                 "🏆 Wins": stat["wins"],
                 "💔 Losses": stat["losses"],
                 "📊 Games": stat["games"],
-                "📈 Win %": stat["win_pct"],
+                "📈 Win %": stat["win_pct"]
+            })
+        
+        df_wins = pd.DataFrame(wins_data)
+        df_wins = df_wins.sort_values("🏆 Wins", ascending=False)
+        st.dataframe(df_wins, use_container_width=True, hide_index=True)
+        
+        st.divider()
+        st.markdown("## Career Totals")
+        
+        # Display career totals
+        totals_data = []
+        for stat in sorted(stats_data, key=lambda x: x["wins"], reverse=True):
+            totals_data.append({
+                "🎮 Player": stat["player"],
                 "🎯 Score": stat["score"],
                 "⚽ Goals": stat["goals"],
                 "🎁 Assists": stat["assists"],
                 "🛡️ Saves": stat["saves"]
             })
         
-        df = pd.DataFrame(display_data)
-        df = df.sort_values("🏆 Wins", ascending=False)
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        df_totals = pd.DataFrame(totals_data)
+        st.dataframe(df_totals, use_container_width=True, hide_index=True)
         
         st.divider()
         st.markdown("## Per-Game Averages")
