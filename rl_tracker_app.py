@@ -380,15 +380,15 @@ with tab1:
                     
                     stat_col1, stat_col2, stat_col3 = st.columns(3)
                     with stat_col1:
-                        score = st.number_input(f"Score", min_value=0, key=f"g{game_num}_t1_s{i}_r{st.session_state.reset_counter}")
-                        goals = st.number_input(f"Goals", min_value=0, key=f"g{game_num}_t1_g{i}_r{st.session_state.reset_counter}")
+                        score = st.number_input(f"Score", min_value=0, value=None, key=f"g{game_num}_t1_s{i}_r{st.session_state.reset_counter}")
+                        goals = st.number_input(f"Goals", min_value=0, value=None, key=f"g{game_num}_t1_g{i}_r{st.session_state.reset_counter}")
                     with stat_col2:
-                        assists = st.number_input(f"Assists", min_value=0, key=f"g{game_num}_t1_a{i}_r{st.session_state.reset_counter}")
-                        saves = st.number_input(f"Saves", min_value=0, key=f"g{game_num}_t1_sv{i}_r{st.session_state.reset_counter}")
+                        assists = st.number_input(f"Assists", min_value=0, value=None, key=f"g{game_num}_t1_a{i}_r{st.session_state.reset_counter}")
+                        saves = st.number_input(f"Saves", min_value=0, value=None, key=f"g{game_num}_t1_sv{i}_r{st.session_state.reset_counter}")
                     with stat_col3:
-                        shots = st.number_input(f"Shots", min_value=0, key=f"g{game_num}_t1_sh{i}_r{st.session_state.reset_counter}")
+                        shots = st.number_input(f"Shots", min_value=0, value=None, key=f"g{game_num}_t1_sh{i}_r{st.session_state.reset_counter}")
                     
-                    team1_stats.append({"player": player_name, "score": score, "goals": goals, "assists": assists, "saves": saves, "shots": shots})
+                    team1_stats.append({"player": player_name, "score": score or 0, "goals": goals or 0, "assists": assists or 0, "saves": saves or 0, "shots": shots or 0})
                     st.markdown("---")
             
             with col2:
@@ -401,15 +401,15 @@ with tab1:
                     
                     stat_col1, stat_col2, stat_col3 = st.columns(3)
                     with stat_col1:
-                        score = st.number_input(f"Score", min_value=0, key=f"g{game_num}_t2_s{i}_r{st.session_state.reset_counter}")
-                        goals = st.number_input(f"Goals", min_value=0, key=f"g{game_num}_t2_g{i}_r{st.session_state.reset_counter}")
+                        score = st.number_input(f"Score", min_value=0, value=None, key=f"g{game_num}_t2_s{i}_r{st.session_state.reset_counter}")
+                        goals = st.number_input(f"Goals", min_value=0, value=None, key=f"g{game_num}_t2_g{i}_r{st.session_state.reset_counter}")
                     with stat_col2:
-                        assists = st.number_input(f"Assists", min_value=0, key=f"g{game_num}_t2_a{i}_r{st.session_state.reset_counter}")
-                        saves = st.number_input(f"Saves", min_value=0, key=f"g{game_num}_t2_sv{i}_r{st.session_state.reset_counter}")
+                        assists = st.number_input(f"Assists", min_value=0, value=None, key=f"g{game_num}_t2_a{i}_r{st.session_state.reset_counter}")
+                        saves = st.number_input(f"Saves", min_value=0, value=None, key=f"g{game_num}_t2_sv{i}_r{st.session_state.reset_counter}")
                     with stat_col3:
-                        shots = st.number_input(f"Shots", min_value=0, key=f"g{game_num}_t2_sh{i}_r{st.session_state.reset_counter}")
+                        shots = st.number_input(f"Shots", min_value=0, value=None, key=f"g{game_num}_t2_sh{i}_r{st.session_state.reset_counter}")
                     
-                    team2_stats.append({"player": player_name, "score": score, "goals": goals, "assists": assists, "saves": saves, "shots": shots})
+                    team2_stats.append({"player": player_name, "score": score or 0, "goals": goals or 0, "assists": assists or 0, "saves": saves or 0, "shots": shots or 0})
                     st.markdown("---")
             
             # Winner selection - show actual player names
