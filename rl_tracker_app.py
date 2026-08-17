@@ -103,7 +103,8 @@ st.markdown("""
         border: none;
         border-radius: 8px;
         font-weight: bold;
-        padding: 12px 30px;
+        font-size: 1.6em;
+        padding: 20px 40px;
         transition: transform 0.2s;
     }
     
