@@ -199,6 +199,8 @@ with tab1:
     st.divider()
     if st.button("🔄 Clear All", key="clear_all", use_container_width=True):
         st.session_state.reset_counter += 1
+        st.session_state.series_team1 = ["Choose Player"] * num_players
+        st.session_state.series_team2 = ["Choose Player"] * num_players
         st.rerun()
     st.divider()
     
@@ -391,8 +393,8 @@ with tab1:
             
             # Reset by incrementing counter - forces all widgets to get new keys
             st.session_state.reset_counter += 1
-            st.session_state.series_team1 = ["Choose Player"] * 3
-            st.session_state.series_team2 = ["Choose Player"] * 3
+            st.session_state.series_team1 = ["Choose Player"] * num_players
+            st.session_state.series_team2 = ["Choose Player"] * num_players
             
             st.balloons()
             st.success(f"✅ Series {current_series} Logged! 🎉")
