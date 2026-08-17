@@ -194,11 +194,13 @@ with tab1:
     # Clear All button
     st.divider()
     if st.button("🔄 Clear All", key="clear_all", use_container_width=True):
-        keys_to_delete = [key for key in list(st.session_state.keys()) if key.startswith('team') or key.startswith('g')]
+        # Delete all game and team related keys
+        keys_to_delete = [key for key in list(st.session_state.keys()) if key.startswith('team') or key.startswith('g') or key.startswith('series_team')]
         for key in keys_to_delete:
             del st.session_state[key]
-        st.session_state.series_team1 = None
-        st.session_state.series_team2 = None
+        # Reset team selections to default
+        st.session_state.series_team1 = ["Choose Player"] * 3
+        st.session_state.series_team2 = ["Choose Player"] * 3
         st.rerun()
     st.divider()
     
