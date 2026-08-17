@@ -103,8 +103,8 @@ st.markdown("""
         border: none;
         border-radius: 8px;
         font-weight: bold;
-        font-size: 1.2em;
-        padding: 12px 24px;
+        font-size: 1.6em;
+        padding: 20px 40px;
         transition: transform 0.2s;
     }
     
@@ -113,26 +113,19 @@ st.markdown("""
         box-shadow: 0 4px 15px rgba(255, 107, 0, 0.6);
     }
     
-    /* Blue styling for refresh button */
-    .refresh-btn-wrapper button {
+    /* Blue styling for refresh button - override orange */
+    .refresh-btn-wrapper .stButton>button {
         background: linear-gradient(90deg, var(--rl-blue) 0%, #4169E1 100%) !important;
-        box-shadow: none;
-        font-size: 1.6em !important;
-        padding: 20px 40px !important;
+        box-shadow: none !important;
     }
     
-    .refresh-btn-wrapper button:hover {
+    .refresh-btn-wrapper .stButton>button:hover {
         box-shadow: 0 4px 15px rgba(30, 144, 255, 0.6) !important;
     }
     
-    /* Orange styling for clear button (keep default orange from .stButton) */
-    .clear-btn-wrapper button:hover {
+    /* Clear button styling - keep orange */
+    .clear-btn-wrapper .stButton>button:hover {
         box-shadow: 0 4px 15px rgba(255, 107, 0, 0.6) !important;
-    }
-    
-    .clear-btn-wrapper button {
-        font-size: 1.6em !important;
-        padding: 20px 40px !important;
     }
     
     /* Style radio buttons - alternating orange and blue */
