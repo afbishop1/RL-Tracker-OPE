@@ -200,16 +200,6 @@ st.markdown('<div class="title-main">⚡ RL MATCH TRACKER ⚡</div>', unsafe_all
 st.markdown("OPE Gaming", unsafe_allow_html=True)
 st.divider()
 
-# Refresh Data button (on every page) - using Streamlit button
-col1, col2, col3 = st.columns([1, 1, 1])
-with col2:
-    st.markdown('<div class="refresh-btn-wrapper">', unsafe_allow_html=True)
-    if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_top"):
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-
-st.divider()
-
 # Create tabs
 tab1, tab2, tab3, tab4 = st.tabs(["🎯 Log Match", "📊 Series History", "🏆 Player Stats", "👥 Teams"])
 
@@ -233,12 +223,21 @@ with tab1:
     if 'reset_counter' not in st.session_state:
         st.session_state.reset_counter = 0
     
-    # Clear Players/Scores button (only on this tab)
-    st.markdown('<div class="clear-btn-wrapper">', unsafe_allow_html=True)
-    if st.button("🔄 Clear Players/Scores", use_container_width=True, key="clear_tab1"):
-        st.session_state.reset_counter = st.session_state.get('reset_counter', 0) + 1
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Refresh Data and Clear Players/Scores buttons (side by side)
+    refresh_col, clear_col = st.columns(2)
+    
+    with refresh_col:
+        st.markdown('<div class="refresh-btn-wrapper">', unsafe_allow_html=True)
+        if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_tab1"):
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    with clear_col:
+        st.markdown('<div class="clear-btn-wrapper">', unsafe_allow_html=True)
+        if st.button("🔄 Clear Players/Scores", use_container_width=True, key="clear_tab1"):
+            st.session_state.reset_counter = st.session_state.get('reset_counter', 0) + 1
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
     
     st.divider()
     # Get current series
@@ -442,6 +441,14 @@ with tab1:
 
 # ============ TAB 2: SERIES HISTORY ============
 with tab2:
+    # Refresh Data button
+    st.markdown('<div class="refresh-btn-wrapper">', unsafe_allow_html=True)
+    if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_tab2"):
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.divider()
+    
     c.execute("""SELECT series_number, best_of, match_number FROM matches 
                  GROUP BY series_number ORDER BY series_number DESC""")
     series_list = c.fetchall()
@@ -546,6 +553,14 @@ with tab2:
 
 # ============ TAB 3: PLAYER STATS ============
 with tab3:
+    # Refresh Data button
+    st.markdown('<div class="refresh-btn-wrapper">', unsafe_allow_html=True)
+    if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_tab3"):
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.divider()
+    
     c.execute("""SELECT DISTINCT player_name FROM player_stats ORDER BY player_name""")
     all_players = [row[0] for row in c.fetchall()]
     
@@ -657,6 +672,14 @@ with tab3:
 
 # ============ TAB 4: TEAMS ============
 with tab4:
+    # Refresh Data button
+    st.markdown('<div class="refresh-btn-wrapper">', unsafe_allow_html=True)
+    if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_tab4"):
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.divider()
+    
     c.execute("""SELECT id, team1_players, team2_players, winner FROM matches""")
     all_matches = c.fetchall()
     
