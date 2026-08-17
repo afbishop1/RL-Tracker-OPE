@@ -216,9 +216,14 @@ with tab1:
     st.markdown(f'<div style="background: linear-gradient(135deg, #CC5500 0%, #DD6600 100%); color: white; padding: 20px; border-radius: 12px; text-align: center; font-size: 1.6em; font-weight: bold; margin: 20px 0;">Series {current_series} - {best_of}</div>', unsafe_allow_html=True)
     
     # Initialize session state for player selections
-    if 'series_team1' not in st.session_state:
+    if ('series_team1' not in st.session_state or 
+        st.session_state.series_team1 is None or
+        len(st.session_state.series_team1) != num_players):
         st.session_state.series_team1 = [PLAYERS[0]] * num_players
-    if 'series_team2' not in st.session_state:
+    
+    if ('series_team2' not in st.session_state or 
+        st.session_state.series_team2 is None or
+        len(st.session_state.series_team2) != num_players):
         st.session_state.series_team2 = [PLAYERS[0]] * num_players
     
     # STEP 1: SELECT TEAMS
@@ -229,12 +234,20 @@ with tab1:
     with col1:
         st.markdown('<div style="text-align: center; font-size: 1.3em; color: #FF6B00; font-weight: bold; margin-bottom: 15px;">🟠 TEAM 1 🟠</div>', unsafe_allow_html=True)
         for i in range(num_players):
-            st.session_state.series_team1[i] = st.selectbox(f"Player {i+1}", PLAYERS, index=PLAYERS.index(st.session_state.series_team1[i]), key=f"team1_p{i}")
+            try:
+                current_index = PLAYERS.index(st.session_state.series_team1[i])
+            except (ValueError, IndexError):
+                current_index = 0
+            st.session_state.series_team1[i] = st.selectbox(f"Player {i+1}", PLAYERS, index=current_index, key=f"team1_p{i}")
     
     with col2:
         st.markdown('<div style="text-align: center; font-size: 1.3em; color: #1E90FF; font-weight: bold; margin-bottom: 15px;">🔵 TEAM 2 🔵</div>', unsafe_allow_html=True)
         for i in range(num_players):
-            st.session_state.series_team2[i] = st.selectbox(f"Player {i+1}", PLAYERS, index=PLAYERS.index(st.session_state.series_team2[i]), key=f"team2_p{i}")
+            try:
+                current_index = PLAYERS.index(st.session_state.series_team2[i])
+            except (ValueError, IndexError):
+                current_index = 0
+            st.session_state.series_team2[i] = st.selectbox(f"Player {i+1}", PLAYERS, index=current_index, key=f"team2_p{i}")
     
     st.divider()
     
