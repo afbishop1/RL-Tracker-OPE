@@ -98,34 +98,28 @@ st.markdown("""
     }
     
     .stButton>button {
-        background: linear-gradient(90deg, var(--rl-orange) 0%, #FF8C00 100%);
+        background: linear-gradient(90deg, var(--rl-orange) 0%, #FF8C00 100%) !important;
         color: white;
         border: none;
         border-radius: 8px;
         font-weight: bold;
-        font-size: 1.6em;
-        padding: 20px 40px;
+        font-size: 1.6em !important;
+        padding: 20px 40px !important;
         transition: transform 0.2s;
     }
     
     .stButton>button:hover {
         transform: scale(1.05);
-        box-shadow: 0 4px 15px rgba(255, 107, 0, 0.6);
-    }
-    
-    /* Blue styling for refresh button - override orange */
-    .refresh-btn-wrapper .stButton>button {
-        background: linear-gradient(90deg, var(--rl-blue) 0%, #4169E1 100%) !important;
-        box-shadow: none !important;
-    }
-    
-    .refresh-btn-wrapper .stButton>button:hover {
-        box-shadow: 0 4px 15px rgba(30, 144, 255, 0.6) !important;
-    }
-    
-    /* Clear button styling - keep orange */
-    .clear-btn-wrapper .stButton>button:hover {
         box-shadow: 0 4px 15px rgba(255, 107, 0, 0.6) !important;
+    }
+    
+    /* Blue styling for refresh button (first button in the main button row) */
+    div[data-testid="column"]:first-of-type .stButton>button {
+        background: linear-gradient(90deg, var(--rl-blue) 0%, #4169E1 100%) !important;
+    }
+    
+    div[data-testid="column"]:first-of-type .stButton>button:hover {
+        box-shadow: 0 4px 15px rgba(30, 144, 255, 0.6) !important;
     }
     
     /* Style radio buttons - alternating orange and blue */
@@ -204,17 +198,44 @@ st.divider()
 refresh_col, clear_col = st.columns(2)
 
 with refresh_col:
-    st.markdown('<div class="refresh-btn-wrapper">', unsafe_allow_html=True)
     if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_main"):
         st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
 
 with clear_col:
-    st.markdown('<div class="clear-btn-wrapper">', unsafe_allow_html=True)
     if st.button("🔄 Clear Players/Scores", use_container_width=True, key="clear_main"):
         st.session_state.reset_counter = st.session_state.get('reset_counter', 0) + 1
         st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
+
+# JavaScript to color the buttons after they load
+st.markdown("""
+<script>
+    setTimeout(function() {
+        let buttons = document.querySelectorAll('button');
+        let refreshBtn = null;
+        let clearBtn = null;
+        
+        // Find the refresh and clear buttons by their text content
+        buttons.forEach(btn => {
+            if (btn.textContent.includes('Refresh Data')) {
+                refreshBtn = btn;
+            }
+            if (btn.textContent.includes('Clear Players/Scores')) {
+                clearBtn = btn;
+            }
+        });
+        
+        // Apply blue to refresh button
+        if (refreshBtn) {
+            refreshBtn.style.background = 'linear-gradient(90deg, #1E90FF 0%, #4169E1 100%)';
+        }
+        
+        // Apply orange to clear button
+        if (clearBtn) {
+            clearBtn.style.background = 'linear-gradient(90deg, #FF6B00 0%, #FF8C00 100%)';
+        }
+    }, 100);
+</script>
+""", unsafe_allow_html=True)
 
 st.divider()
 
