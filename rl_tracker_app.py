@@ -172,6 +172,12 @@ def init_db():
                   saves INTEGER,
                   FOREIGN KEY(match_id) REFERENCES matches(id))''')
     
+    c.execute('''CREATE TABLE IF NOT EXISTS activity_log
+                 (id INTEGER PRIMARY KEY,
+                  timestamp TEXT,
+                  user_name TEXT,
+                  action TEXT)''')
+    
     conn.commit()
     return conn
 
@@ -183,6 +189,12 @@ PLAYERS = ["Killmesmallz", "See Me No Mor", "Bon Qwee Qwee", "CrabLegz19", "Gunz
 # Title
 st.markdown('<div class="title-main">⚡ RL MATCH TRACKER ⚡</div>', unsafe_allow_html=True)
 st.markdown("OPE Gaming", unsafe_allow_html=True)
+st.divider()
+
+# Current User Selection
+st.markdown("**👤 Who is using this right now?**")
+current_user = st.selectbox("Select your name", PLAYERS, key="current_user")
+
 st.divider()
 
 # Create tabs
@@ -467,6 +479,12 @@ with tab1:
             
             conn.commit()
             
+            # Log the action
+            c.execute("""INSERT INTO activity_log (timestamp, user_name, action)
+                        VALUES (?, ?, ?)""",
+                     (datetime.now().isoformat(), current_user, f"entered a game"))
+            conn.commit()
+            
             # Reset by incrementing counter - forces all widgets to get new keys
             st.session_state.reset_counter += 1
             st.session_state.series_team1 = ["Choose Player"] * num_players
@@ -566,6 +584,12 @@ with tab2:
                         if st.button("🗑️", key=f"delete_series_{series_num}", help="Delete this series"):
                             c.execute("DELETE FROM player_stats WHERE match_id IN (SELECT id FROM matches WHERE series_number = ?)", (series_num,))
                             c.execute("DELETE FROM matches WHERE series_number = ?", (series_num,))
+                            
+                            # Log the deletion
+                            c.execute("""INSERT INTO activity_log (timestamp, user_name, action)
+                                        VALUES (?, ?, ?)""",
+                                     (datetime.now().isoformat(), current_user, f"deleted a game"))
+                            
                             conn.commit()
                             st.success(f"Series {series_num} deleted!")
                             st.rerun()
@@ -612,6 +636,22 @@ with tab2:
                             st.markdown(f"**{row[0]}** · Score: {row[1]} Goals: {row[2]} Assists: {row[3]} Saves: {row[4]}")
             
             st.divider()
+    
+    # Activity Log
+    st.markdown("## 📋 Activity Log")
+    c.execute("""SELECT timestamp, user_name, action FROM activity_log ORDER BY timestamp DESC LIMIT 50""")
+    logs = c.fetchall()
+    
+    if not logs:
+        st.info("📭 No activity yet")
+    else:
+        for timestamp, user_name, action in logs:
+            # Format timestamp to be more readable
+            ts = datetime.fromisoformat(timestamp)
+            ts_str = ts.strftime("%m/%d %I:%M %p")
+            st.markdown(f"**{user_name}** {action} · {ts_str}")
+    
+    st.divider()
 
 # ============ TAB 3: PLAYER STATS ============
 with tab3:
