@@ -216,9 +216,10 @@ with tab1:
     st.markdown(f'<div style="background: linear-gradient(135deg, #CC5500 0%, #DD6600 100%); color: white; padding: 20px; border-radius: 12px; text-align: center; font-size: 1.6em; font-weight: bold; margin: 20px 0;">Series {current_series} - {best_of}</div>', unsafe_allow_html=True)
     
     # Initialize session state for player selections
-    if 'series_team1' not in st.session_state:
+    # Reinitialize if match type changes
+    if 'series_team1' not in st.session_state or len(st.session_state.series_team1) != num_players:
         st.session_state.series_team1 = [PLAYERS[0]] * num_players
-    if 'series_team2' not in st.session_state:
+    if 'series_team2' not in st.session_state or len(st.session_state.series_team2) != num_players:
         st.session_state.series_team2 = [PLAYERS[0]] * num_players
     
     # STEP 1: SELECT TEAMS
