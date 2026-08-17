@@ -194,16 +194,9 @@ with tab1:
     # Clear All button
     st.divider()
     if st.button("🔄 Clear All", key="clear_all", use_container_width=True):
-        # Delete ALL selectbox and game related keys
-        keys_to_delete = []
+        # Nuclear option: delete ALL session state
         for key in list(st.session_state.keys()):
-            if key.startswith('team1_p') or key.startswith('team2_p') or key.startswith('g') or key == 'series_team1' or key == 'series_team2':
-                keys_to_delete.append(key)
-        for key in keys_to_delete:
             del st.session_state[key]
-        # Reinitialize with Choose Player
-        st.session_state.series_team1 = ["Choose Player"] * 3
-        st.session_state.series_team2 = ["Choose Player"] * 3
         st.rerun()
     st.divider()
     
@@ -231,23 +224,18 @@ with tab1:
     # Series header
     st.markdown(f'<div style="background: linear-gradient(135deg, #CC5500 0%, #DD6600 100%); color: white; padding: 20px; border-radius: 12px; text-align: center; font-size: 1.6em; font-weight: bold; margin: 20px 0;">Series {current_series} - {best_of}</div>', unsafe_allow_html=True)
     
-    # Initialize session state for player selections
-    if ('series_team1' not in st.session_state or 
-        st.session_state.series_team1 is None or
-        len(st.session_state.series_team1) != num_players):
-        # Delete old selectbox widget keys when match type changes
-        keys_to_delete = [key for key in list(st.session_state.keys()) if key.startswith('team1_p') or key.startswith('team2_p')]
-        for key in keys_to_delete:
-            del st.session_state[key]
+    # Initialize session state for player selections - always use defaults
+    if 'series_team1' not in st.session_state:
         st.session_state.series_team1 = ["Choose Player"] * num_players
     
-    if ('series_team2' not in st.session_state or 
-        st.session_state.series_team2 is None or
-        len(st.session_state.series_team2) != num_players):
-        # Delete old selectbox widget keys when match type changes
-        keys_to_delete = [key for key in list(st.session_state.keys()) if key.startswith('team1_p') or key.startswith('team2_p')]
-        for key in keys_to_delete:
-            del st.session_state[key]
+    if 'series_team2' not in st.session_state:
+        st.session_state.series_team2 = ["Choose Player"] * num_players
+    
+    # Check if we need to reset due to match type change
+    if len(st.session_state.series_team1) != num_players:
+        st.session_state.series_team1 = ["Choose Player"] * num_players
+    
+    if len(st.session_state.series_team2) != num_players:
         st.session_state.series_team2 = ["Choose Player"] * num_players
     
     # STEP 1: SELECT TEAMS
@@ -395,15 +383,9 @@ with tab1:
             
             conn.commit()
             
-            # Reset ALL form state BEFORE showing success message
-            keys_to_delete = []
+            # Reset ALL form state - nuke everything and let it reinitialize
             for key in list(st.session_state.keys()):
-                if key.startswith('team1_p') or key.startswith('team2_p') or key.startswith('g') or key == 'series_team1' or key == 'series_team2':
-                    keys_to_delete.append(key)
-            for key in keys_to_delete:
                 del st.session_state[key]
-            st.session_state.series_team1 = ["Choose Player"] * 3
-            st.session_state.series_team2 = ["Choose Player"] * 3
             
             st.balloons()
             st.success(f"✅ Series {current_series} Logged! 🎉")
