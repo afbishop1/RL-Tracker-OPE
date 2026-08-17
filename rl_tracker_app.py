@@ -179,6 +179,16 @@ def init_db():
                   user_name TEXT,
                   action TEXT)''')
     
+    # Auto-migration: Add shots column if it doesn't exist
+    try:
+        c.execute("PRAGMA table_info(player_stats)")
+        columns = [row[1] for row in c.fetchall()]
+        if 'shots' not in columns:
+            c.execute("ALTER TABLE player_stats ADD COLUMN shots INTEGER DEFAULT 0")
+            conn.commit()
+    except Exception as e:
+        print(f"Migration error: {e}")
+    
     conn.commit()
     return conn
 
