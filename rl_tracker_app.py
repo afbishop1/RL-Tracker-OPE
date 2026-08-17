@@ -550,33 +550,75 @@ with tab4:
     if not all_matches:
         st.info("📭 No partnership data yet")
     else:
-        partnerships = defaultdict(lambda: {"wins": 0, "losses": 0})
-        matchups = defaultdict(lambda: defaultdict(lambda: {"wins": 0, "losses": 0}))
+        # Organize by match type
+        partnerships_by_type = {
+            "2v2": defaultdict(lambda: {"wins": 0, "losses": 0}),
+            "3v3": defaultdict(lambda: {"wins": 0, "losses": 0})
+        }
+        matchups_by_type = {
+            "2v2": defaultdict(lambda: defaultdict(lambda: {"wins": 0, "losses": 0})),
+            "3v3": defaultdict(lambda: defaultdict(lambda: {"wins": 0, "losses": 0}))
+        }
         
         for match_id, t1, t2, winner in all_matches:
             t1_list = t1.split(",")
             t2_list = t2.split(",")
             
-            # Get all partnerships for team 1 and team 2
-            t1_pairs = []
-            for i in range(len(t1_list)):
-                for j in range(i+1, len(t1_list)):
-                    pair = tuple(sorted([t1_list[i], t1_list[j]]))
-                    t1_pairs.append(pair)
-                    if winner == 1:
-                        partnerships[pair]["wins"] += 1
-                    else:
-                        partnerships[pair]["losses"] += 1
+            # Determine match type
+            if len(t1_list) == 1:
+                match_type = "1v1"
+            elif len(t1_list) == 2:
+                match_type = "2v2"
+            else:
+                match_type = "3v3"
             
-            t2_pairs = []
-            for i in range(len(t2_list)):
-                for j in range(i+1, len(t2_list)):
-                    pair = tuple(sorted([t2_list[i], t2_list[j]]))
-                    t2_pairs.append(pair)
-                    if winner == 2:
-                        partnerships[pair]["wins"] += 1
-                    else:
-                        partnerships[pair]["losses"] += 1
+            # Only track partnerships for 2v2 and 3v3
+            if match_type == "1v1":
+                continue
+            
+            partnerships = partnerships_by_type[match_type]
+            matchups = matchups_by_type[match_type]
+            
+            # Get all partnerships for team 1 and team 2
+            if match_type == "2v2":
+                # For 2v2: track 2-player pairs
+                t1_pairs = []
+                for i in range(len(t1_list)):
+                    for j in range(i+1, len(t1_list)):
+                        pair = tuple(sorted([t1_list[i], t1_list[j]]))
+                        t1_pairs.append(pair)
+                        if winner == 1:
+                            partnerships[pair]["wins"] += 1
+                        else:
+                            partnerships[pair]["losses"] += 1
+                
+                t2_pairs = []
+                for i in range(len(t2_list)):
+                    for j in range(i+1, len(t2_list)):
+                        pair = tuple(sorted([t2_list[i], t2_list[j]]))
+                        t2_pairs.append(pair)
+                        if winner == 2:
+                            partnerships[pair]["wins"] += 1
+                        else:
+                            partnerships[pair]["losses"] += 1
+            
+            elif match_type == "3v3":
+                # For 3v3: track full 3-player teams
+                t1_team = tuple(sorted(t1_list))
+                t2_team = tuple(sorted(t2_list))
+                
+                if winner == 1:
+                    partnerships[t1_team]["wins"] += 1
+                else:
+                    partnerships[t1_team]["losses"] += 1
+                
+                if winner == 2:
+                    partnerships[t2_team]["wins"] += 1
+                else:
+                    partnerships[t2_team]["losses"] += 1
+                
+                t1_pairs = [t1_team]
+                t2_pairs = [t2_team]
             
             # Track matchups between partnerships from each partnership's perspective
             for t1_pair in t1_pairs:
@@ -588,55 +630,70 @@ with tab4:
                         matchups[t1_pair][t2_pair]["losses"] += 1
                         matchups[t2_pair][t1_pair]["wins"] += 1
         
-        part_data = []
-        for (p1, p2), record in partnerships.items():
-            total = record["wins"] + record["losses"]
-            win_pct = (record["wins"] / total) * 100 if total > 0 else 0
-            part_data.append({
-                "partnership": (p1, p2),
-                "display": f"{p1} + {p2}",
-                "wins": record["wins"],
-                "losses": record["losses"],
-                "total": total,
-                "win_pct": win_pct
-            })
-        
-        # Sort by wins descending
-        part_data.sort(key=lambda x: x["wins"], reverse=True)
-        
-        # Display partnerships with matchup records
-        for partnership_info in part_data:
-            part_tuple = partnership_info["partnership"]
-            total = partnership_info["total"]
-            win_pct = partnership_info["win_pct"]
+        # Display by match type
+        for match_type in ["2v2", "3v3"]:
+            partnerships = partnerships_by_type[match_type]
+            matchups = matchups_by_type[match_type]
             
-            # Create expander for this partnership
-            with st.expander(f"🤝 {partnership_info['display']} · {partnership_info['wins']}-{partnership_info['losses']} ({win_pct:.1f}%)", expanded=False):
-                st.markdown(f"**Overall: {partnership_info['wins']} Wins · {partnership_info['losses']} Losses · {win_pct:.1f}% Win Rate**")
-                st.divider()
-                st.markdown("**Head-to-Head vs Other Partnerships:**")
+            st.markdown(f"## {match_type} Partnerships")
+            
+            if not partnerships:
+                st.info(f"📭 No {match_type} partnership data yet")
+            else:
+                part_data = []
+                for partnership_tuple, record in partnerships.items():
+                    total = record["wins"] + record["losses"]
+                    win_pct = (record["wins"] / total) * 100 if total > 0 else 0
+                    # Format display string based on number of players
+                    display = " + ".join(partnership_tuple)
+                    part_data.append({
+                        "partnership": partnership_tuple,
+                        "display": display,
+                        "wins": record["wins"],
+                        "losses": record["losses"],
+                        "total": total,
+                        "win_pct": win_pct
+                    })
                 
-                # Get all matchups for this partnership
-                matchup_records = []
-                if part_tuple in matchups:
-                    for opponent_pair, record in matchups[part_tuple].items():
-                        h2h_total = record["wins"] + record["losses"]
-                        h2h_pct = (record["wins"] / h2h_total) * 100 if h2h_total > 0 else 0
-                        matchup_records.append({
-                            "opponent": f"{opponent_pair[0]} + {opponent_pair[1]}",
-                            "wins": record["wins"],
-                            "losses": record["losses"],
-                            "total": h2h_total,
-                            "pct": h2h_pct
-                        })
+                # Sort by wins descending
+                part_data.sort(key=lambda x: x["wins"], reverse=True)
                 
-                if matchup_records:
-                    # Sort by wins descending
-                    matchup_records.sort(key=lambda x: x["wins"], reverse=True)
+                # Display partnerships with matchup records
+                for partnership_info in part_data:
+                    part_tuple = partnership_info["partnership"]
+                    total = partnership_info["total"]
+                    win_pct = partnership_info["win_pct"]
                     
-                    for matchup in matchup_records:
-                        st.markdown(f"vs **{matchup['opponent']}** · {matchup['wins']}-{matchup['losses']} ({matchup['pct']:.1f}%)")
-                else:
-                    st.markdown("*No matchup data yet*")
+                    # Create expander for this partnership
+                    with st.expander(f"🤝 {partnership_info['display']} · {partnership_info['wins']}-{partnership_info['losses']} ({win_pct:.1f}%)", expanded=False):
+                        st.markdown(f"**Overall: {partnership_info['wins']} Wins · {partnership_info['losses']} Losses · {win_pct:.1f}% Win Rate**")
+                        st.divider()
+                        st.markdown("**Head-to-Head vs Other Partnerships:**")
+                        
+                        # Get all matchups for this partnership
+                        matchup_records = []
+                        if part_tuple in matchups:
+                            for opponent_tuple, record in matchups[part_tuple].items():
+                                h2h_total = record["wins"] + record["losses"]
+                                h2h_pct = (record["wins"] / h2h_total) * 100 if h2h_total > 0 else 0
+                                opponent_display = " + ".join(opponent_tuple)
+                                matchup_records.append({
+                                    "opponent": opponent_display,
+                                    "wins": record["wins"],
+                                    "losses": record["losses"],
+                                    "total": h2h_total,
+                                    "pct": h2h_pct
+                                })
+                        
+                        if matchup_records:
+                            # Sort by wins descending
+                            matchup_records.sort(key=lambda x: x["wins"], reverse=True)
+                            
+                            for matchup in matchup_records:
+                                st.markdown(f"vs **{matchup['opponent']}** · {matchup['wins']}-{matchup['losses']} ({matchup['pct']:.1f}%)")
+                        else:
+                            st.markdown("*No matchup data yet*")
+                
+                st.divider()
 
 conn.close()
