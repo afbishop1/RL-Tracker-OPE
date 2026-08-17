@@ -191,12 +191,14 @@ with tab1:
         match_type = st.radio("Choose type", ["1v1", "2v2", "3v3"], horizontal=True, label_visibility="collapsed")
         num_players = int(match_type[0])
     
+    # Initialize reset counter
+    if 'reset_counter' not in st.session_state:
+        st.session_state.reset_counter = 0
+    
     # Clear All button
     st.divider()
     if st.button("🔄 Clear All", key="clear_all", use_container_width=True):
-        # Nuclear option: delete ALL session state
-        for key in list(st.session_state.keys()):
-            del st.session_state[key]
+        st.session_state.reset_counter += 1
         st.rerun()
     st.divider()
     
@@ -233,9 +235,13 @@ with tab1:
     
     # Check if we need to reset due to match type change
     if len(st.session_state.series_team1) != num_players:
+        st.session_state.reset_counter += 1
         st.session_state.series_team1 = ["Choose Player"] * num_players
+        st.session_state.series_team2 = ["Choose Player"] * num_players
     
-    if len(st.session_state.series_team2) != num_players:
+    elif len(st.session_state.series_team2) != num_players:
+        st.session_state.reset_counter += 1
+        st.session_state.series_team1 = ["Choose Player"] * num_players
         st.session_state.series_team2 = ["Choose Player"] * num_players
     
     # STEP 1: SELECT TEAMS
@@ -252,7 +258,7 @@ with tab1:
                 current_index = player_options.index(st.session_state.series_team1[i])
             except (ValueError, IndexError):
                 current_index = 0
-            st.session_state.series_team1[i] = st.selectbox(f"Player {i+1}", player_options, index=current_index, key=f"team1_p{i}")
+            st.session_state.series_team1[i] = st.selectbox(f"Player {i+1}", player_options, index=current_index, key=f"team1_p{i}_r{st.session_state.reset_counter}")
     
     with col2:
         st.markdown('<div style="text-align: center; font-size: 1.3em; color: #1E90FF; font-weight: bold; margin-bottom: 15px;">🔵 TEAM 2 🔵</div>', unsafe_allow_html=True)
@@ -261,7 +267,7 @@ with tab1:
                 current_index = player_options.index(st.session_state.series_team2[i])
             except (ValueError, IndexError):
                 current_index = 0
-            st.session_state.series_team2[i] = st.selectbox(f"Player {i+1}", player_options, index=current_index, key=f"team2_p{i}")
+            st.session_state.series_team2[i] = st.selectbox(f"Player {i+1}", player_options, index=current_index, key=f"team2_p{i}_r{st.session_state.reset_counter}")
     
     st.divider()
     
@@ -284,11 +290,11 @@ with tab1:
                     
                     stat_col1, stat_col2 = st.columns(2)
                     with stat_col1:
-                        score = st.number_input(f"Score", min_value=0, key=f"g{game_num}_t1_s{i}")
-                        goals = st.number_input(f"Goals", min_value=0, key=f"g{game_num}_t1_g{i}")
+                        score = st.number_input(f"Score", min_value=0, key=f"g{game_num}_t1_s{i}_r{st.session_state.reset_counter}")
+                        goals = st.number_input(f"Goals", min_value=0, key=f"g{game_num}_t1_g{i}_r{st.session_state.reset_counter}")
                     with stat_col2:
-                        assists = st.number_input(f"Assists", min_value=0, key=f"g{game_num}_t1_a{i}")
-                        saves = st.number_input(f"Saves", min_value=0, key=f"g{game_num}_t1_sv{i}")
+                        assists = st.number_input(f"Assists", min_value=0, key=f"g{game_num}_t1_a{i}_r{st.session_state.reset_counter}")
+                        saves = st.number_input(f"Saves", min_value=0, key=f"g{game_num}_t1_sv{i}_r{st.session_state.reset_counter}")
                     
                     team1_stats.append({"player": player_name, "score": score, "goals": goals, "assists": assists, "saves": saves})
                     st.markdown("---")
@@ -303,11 +309,11 @@ with tab1:
                     
                     stat_col1, stat_col2 = st.columns(2)
                     with stat_col1:
-                        score = st.number_input(f"Score", min_value=0, key=f"g{game_num}_t2_s{i}")
-                        goals = st.number_input(f"Goals", min_value=0, key=f"g{game_num}_t2_g{i}")
+                        score = st.number_input(f"Score", min_value=0, key=f"g{game_num}_t2_s{i}_r{st.session_state.reset_counter}")
+                        goals = st.number_input(f"Goals", min_value=0, key=f"g{game_num}_t2_g{i}_r{st.session_state.reset_counter}")
                     with stat_col2:
-                        assists = st.number_input(f"Assists", min_value=0, key=f"g{game_num}_t2_a{i}")
-                        saves = st.number_input(f"Saves", min_value=0, key=f"g{game_num}_t2_sv{i}")
+                        assists = st.number_input(f"Assists", min_value=0, key=f"g{game_num}_t2_a{i}_r{st.session_state.reset_counter}")
+                        saves = st.number_input(f"Saves", min_value=0, key=f"g{game_num}_t2_sv{i}_r{st.session_state.reset_counter}")
                     
                     team2_stats.append({"player": player_name, "score": score, "goals": goals, "assists": assists, "saves": saves})
                     st.markdown("---")
@@ -317,7 +323,7 @@ with tab1:
             with col_w1:
                 st.markdown("**Who won this game?**")
             with col_w2:
-                winner = st.radio("Select winner", ["Team 1", "Team 2"], horizontal=True, key=f"g{game_num}_winner", label_visibility="collapsed")
+                winner = st.radio("Select winner", ["Team 1", "Team 2"], horizontal=True, key=f"g{game_num}_winner_r{st.session_state.reset_counter}", label_visibility="collapsed")
             winner_num = 1 if winner == "Team 1" else 2
             
             series_games.append({
@@ -383,9 +389,10 @@ with tab1:
             
             conn.commit()
             
-            # Reset ALL form state - nuke everything and let it reinitialize
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
+            # Reset by incrementing counter - forces all widgets to get new keys
+            st.session_state.reset_counter += 1
+            st.session_state.series_team1 = ["Choose Player"] * 3
+            st.session_state.series_team2 = ["Choose Player"] * 3
             
             st.balloons()
             st.success(f"✅ Series {current_series} Logged! 🎉")
