@@ -205,30 +205,55 @@ with tab1:
     # JavaScript to color both buttons
     st.markdown("""
 <script>
-    const observer = new MutationObserver(() => {
+    function colorButtons() {
         let buttons = document.querySelectorAll('button');
+        let refreshFound = false;
+        let clearFound = false;
+        
         buttons.forEach(btn => {
             if (btn.textContent.includes('Refresh Data')) {
-                btn.style.cssText = 'background: linear-gradient(90deg, #1E90FF 0%, #4169E1 100%) !important; color: white !important; border: none !important; border-radius: 8px !important; font-weight: bold !important; font-size: 1.6em !important; padding: 20px 40px !important; transition: transform 0.2s !important;';
+                btn.style.background = 'linear-gradient(90deg, #1E90FF 0%, #4169E1 100%)';
+                btn.style.color = 'white';
+                btn.style.border = 'none';
+                btn.style.borderRadius = '8px';
+                btn.style.fontWeight = 'bold';
+                btn.style.fontSize = '1.6em';
+                btn.style.padding = '20px 40px';
+                btn.style.transition = 'transform 0.2s';
+                refreshFound = true;
             }
             if (btn.textContent.includes('Clear Players/Scores')) {
-                btn.style.cssText = 'background: linear-gradient(90deg, #FF6B00 0%, #FF8C00 100%) !important; color: white !important; border: none !important; border-radius: 8px !important; font-weight: bold !important; font-size: 1.6em !important; padding: 20px 40px !important; transition: transform 0.2s !important;';
+                btn.style.background = 'linear-gradient(90deg, #FF6B00 0%, #FF8C00 100%)';
+                btn.style.color = 'white';
+                btn.style.border = 'none';
+                btn.style.borderRadius = '8px';
+                btn.style.fontWeight = 'bold';
+                btn.style.fontSize = '1.6em';
+                btn.style.padding = '20px 40px';
+                btn.style.transition = 'transform 0.2s';
+                clearFound = true;
             }
         });
+        
+        return refreshFound && clearFound;
+    }
+    
+    // Try immediately
+    colorButtons();
+    
+    // Retry after short delay
+    setTimeout(colorButtons, 100);
+    setTimeout(colorButtons, 300);
+    setTimeout(colorButtons, 600);
+    setTimeout(colorButtons, 1000);
+    setTimeout(colorButtons, 2000);
+    
+    // Set up observer for future changes
+    const observer = new MutationObserver(() => {
+        colorButtons();
     });
     
     observer.observe(document.body, { childList: true, subtree: true });
-    
-    // Also run immediately
-    let buttons = document.querySelectorAll('button');
-    buttons.forEach(btn => {
-        if (btn.textContent.includes('Refresh Data')) {
-            btn.style.cssText = 'background: linear-gradient(90deg, #1E90FF 0%, #4169E1 100%) !important; color: white !important; border: none !important; border-radius: 8px !important; font-weight: bold !important; font-size: 1.6em !important; padding: 20px 40px !important; transition: transform 0.2s !important;';
-        }
-        if (btn.textContent.includes('Clear Players/Scores')) {
-            btn.style.cssText = 'background: linear-gradient(90deg, #FF6B00 0%, #FF8C00 100%) !important; color: white !important; border: none !important; border-radius: 8px !important; font-weight: bold !important; font-size: 1.6em !important; padding: 20px 40px !important; transition: transform 0.2s !important;';
-        }
-    });
 </script>
 """, unsafe_allow_html=True)
     
