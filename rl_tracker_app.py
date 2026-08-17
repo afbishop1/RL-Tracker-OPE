@@ -361,12 +361,16 @@ with tab1:
                              (match_id, stat["player"], 2, stat["score"], stat["goals"], stat["assists"], stat["saves"]))
             
             conn.commit()
-            st.balloons()
-            st.success(f"✅ Series {current_series} Logged! 🎉")
-            # Clear ALL session state for completely fresh page
-            keys_to_delete = [key for key in st.session_state.keys() if key.startswith('team') or key.startswith('g')]
+            
+            # Reset ALL form state BEFORE showing success message
+            keys_to_delete = [key for key in list(st.session_state.keys()) if key.startswith('team') or key.startswith('g')]
             for key in keys_to_delete:
                 del st.session_state[key]
+            st.session_state.series_team1 = None
+            st.session_state.series_team2 = None
+            
+            st.balloons()
+            st.success(f"✅ Series {current_series} Logged! 🎉")
             st.rerun()
 
 # ============ TAB 2: SERIES HISTORY ============
@@ -403,14 +407,14 @@ with tab2:
                     col1, col2 = st.columns(2)
                     
                     with col1:
-                        st.markdown("**Team 1**")
+                        st.markdown('<div style="text-align: center; font-size: 1.1em; color: #FF6B00; font-weight: bold;">🟠 TEAM 1 🟠</div>', unsafe_allow_html=True)
                         c.execute("""SELECT player_name, score, goals, assists, saves FROM player_stats 
                                      WHERE match_id = ? AND team = 1""", (match_id,))
                         for row in c.fetchall():
                             st.markdown(f"**{row[0]}** · Score: {row[1]} Goals: {row[2]} Assists: {row[3]} Saves: {row[4]}")
                     
                     with col2:
-                        st.markdown("**Team 2**")
+                        st.markdown('<div style="text-align: center; font-size: 1.1em; color: #1E90FF; font-weight: bold;">🔵 TEAM 2 🔵</div>', unsafe_allow_html=True)
                         c.execute("""SELECT player_name, score, goals, assists, saves FROM player_stats 
                                      WHERE match_id = ? AND team = 2""", (match_id,))
                         for row in c.fetchall():
