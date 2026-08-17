@@ -219,35 +219,37 @@ with tab1:
     if ('series_team1' not in st.session_state or 
         st.session_state.series_team1 is None or
         len(st.session_state.series_team1) != num_players):
-        st.session_state.series_team1 = [PLAYERS[0]] * num_players
+        st.session_state.series_team1 = ["Choose Player"] * num_players
     
     if ('series_team2' not in st.session_state or 
         st.session_state.series_team2 is None or
         len(st.session_state.series_team2) != num_players):
-        st.session_state.series_team2 = [PLAYERS[0]] * num_players
+        st.session_state.series_team2 = ["Choose Player"] * num_players
     
     # STEP 1: SELECT TEAMS
     st.markdown("## Step 1: Select Your Teams")
     
     col1, col2 = st.columns(2)
     
+    player_options = ["Choose Player"] + PLAYERS
+    
     with col1:
         st.markdown('<div style="text-align: center; font-size: 1.3em; color: #FF6B00; font-weight: bold; margin-bottom: 15px;">🟠 TEAM 1 🟠</div>', unsafe_allow_html=True)
         for i in range(num_players):
             try:
-                current_index = PLAYERS.index(st.session_state.series_team1[i])
+                current_index = player_options.index(st.session_state.series_team1[i])
             except (ValueError, IndexError):
                 current_index = 0
-            st.session_state.series_team1[i] = st.selectbox(f"Player {i+1}", PLAYERS, index=current_index, key=f"team1_p{i}")
+            st.session_state.series_team1[i] = st.selectbox(f"Player {i+1}", player_options, index=current_index, key=f"team1_p{i}")
     
     with col2:
         st.markdown('<div style="text-align: center; font-size: 1.3em; color: #1E90FF; font-weight: bold; margin-bottom: 15px;">🔵 TEAM 2 🔵</div>', unsafe_allow_html=True)
         for i in range(num_players):
             try:
-                current_index = PLAYERS.index(st.session_state.series_team2[i])
+                current_index = player_options.index(st.session_state.series_team2[i])
             except (ValueError, IndexError):
                 current_index = 0
-            st.session_state.series_team2[i] = st.selectbox(f"Player {i+1}", PLAYERS, index=current_index, key=f"team2_p{i}")
+            st.session_state.series_team2[i] = st.selectbox(f"Player {i+1}", player_options, index=current_index, key=f"team2_p{i}")
     
     st.divider()
     
@@ -323,7 +325,14 @@ with tab1:
         all_valid = True
         error_msg = ""
         
+        # Check if all players are selected (not "Choose Player")
+        if "Choose Player" in st.session_state.series_team1 or "Choose Player" in st.session_state.series_team2:
+            all_valid = False
+            error_msg = "Please select all players before logging the series!"
+        
         for game in series_games:
+            if not all_valid:
+                break
             # Check for duplicate players
             all_players_in_game = game["team1_players"] + game["team2_players"]
             if len(all_players_in_game) != len(set(all_players_in_game)):
