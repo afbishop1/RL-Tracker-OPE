@@ -113,24 +113,6 @@ st.markdown("""
         box-shadow: 0 4px 15px rgba(255, 107, 0, 0.6) !important;
     }
     
-    /* Blue styling for refresh button */
-    .refresh-btn-wrapper .stButton>button {
-        background: linear-gradient(90deg, #1E90FF 0%, #4169E1 100%) !important;
-    }
-    
-    .refresh-btn-wrapper .stButton>button:hover {
-        box-shadow: 0 4px 15px rgba(30, 144, 255, 0.6) !important;
-    }
-    
-    /* Orange styling for clear button */
-    .clear-btn-wrapper .stButton>button {
-        background: linear-gradient(90deg, #FF6B00 0%, #FF8C00 100%) !important;
-    }
-    
-    .clear-btn-wrapper .stButton>button:hover {
-        box-shadow: 0 4px 15px rgba(255, 107, 0, 0.6) !important;
-    }
-    
     /* Style radio buttons - alternating orange and blue */
     [data-testid="stRadio"] label:nth-child(1) input {
         accent-color: #FF6B00 !important;
@@ -203,21 +185,33 @@ st.markdown('<div class="title-main">⚡ RL MATCH TRACKER ⚡</div>', unsafe_all
 st.markdown("OPE Gaming", unsafe_allow_html=True)
 st.divider()
 
-# Refresh Data and Clear Players/Scores buttons (side by side) - before tabs
-refresh_col, clear_col = st.columns(2)
+# Refresh Data button (visible on all pages)
+if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_main"):
+    st.rerun()
 
-with refresh_col:
-    st.markdown('<div class="refresh-btn-wrapper">', unsafe_allow_html=True)
-    if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_main"):
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-
-with clear_col:
-    st.markdown('<div class="clear-btn-wrapper">', unsafe_allow_html=True)
-    if st.button("🔄 Clear Players/Scores", use_container_width=True, key="clear_main"):
-        st.session_state.reset_counter = st.session_state.get('reset_counter', 0) + 1
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
+# JavaScript to color refresh button blue
+st.markdown("""
+<script>
+    const observer = new MutationObserver(() => {
+        let buttons = document.querySelectorAll('button');
+        buttons.forEach(btn => {
+            if (btn.textContent.includes('Refresh Data')) {
+                btn.style.cssText = 'background: linear-gradient(90deg, #1E90FF 0%, #4169E1 100%) !important; color: white !important; border: none !important; border-radius: 8px !important; font-weight: bold !important; font-size: 1.6em !important; padding: 20px 40px !important; transition: transform 0.2s !important;';
+            }
+        });
+    });
+    
+    observer.observe(document.body, { childList: true, subtree: true });
+    
+    // Also run immediately
+    let buttons = document.querySelectorAll('button');
+    buttons.forEach(btn => {
+        if (btn.textContent.includes('Refresh Data')) {
+            btn.style.cssText = 'background: linear-gradient(90deg, #1E90FF 0%, #4169E1 100%) !important; color: white !important; border: none !important; border-radius: 8px !important; font-weight: bold !important; font-size: 1.6em !important; padding: 20px 40px !important; transition: transform 0.2s !important;';
+        }
+    });
+</script>
+""", unsafe_allow_html=True)
 
 st.divider()
 
@@ -226,6 +220,37 @@ tab1, tab2, tab3, tab4 = st.tabs(["🎯 Log Match", "📊 Series History", "🏆
 
 # ============ TAB 1: LOG MATCH ============
 with tab1:
+    # Clear Players/Scores button (only on this tab)
+    if st.button("🔄 Clear Players/Scores", use_container_width=True, key="clear_main"):
+        st.session_state.reset_counter = st.session_state.get('reset_counter', 0) + 1
+        st.rerun()
+    
+    # JavaScript to color the clear button orange
+    st.markdown("""
+<script>
+    const observer = new MutationObserver(() => {
+        let buttons = document.querySelectorAll('button');
+        buttons.forEach(btn => {
+            if (btn.textContent.includes('Clear Players/Scores')) {
+                btn.style.cssText = 'background: linear-gradient(90deg, #FF6B00 0%, #FF8C00 100%) !important; color: white !important; border: none !important; border-radius: 8px !important; font-weight: bold !important; font-size: 1.6em !important; padding: 20px 40px !important; transition: transform 0.2s !important;';
+            }
+        });
+    });
+    
+    observer.observe(document.body, { childList: true, subtree: true });
+    
+    // Also run immediately
+    let buttons = document.querySelectorAll('button');
+    buttons.forEach(btn => {
+        if (btn.textContent.includes('Clear Players/Scores')) {
+            btn.style.cssText = 'background: linear-gradient(90deg, #FF6B00 0%, #FF8C00 100%) !important; color: white !important; border: none !important; border-radius: 8px !important; font-weight: bold !important; font-size: 1.6em !important; padding: 20px 40px !important; transition: transform 0.2s !important;';
+        }
+    });
+</script>
+""", unsafe_allow_html=True)
+    
+    st.divider()
+    
     # Format and Match Type Selection
     col1, col2 = st.columns(2)
     
@@ -266,7 +291,7 @@ with tab1:
         current_series = 1
     
     # Series header
-    st.markdown(f'<div style="background: linear-gradient(135deg, #CC5500 0%, #DD6600 100%); color: white; padding: 20px; border-radius: 12px; text-align: center; font-size: 1.6em; font-weight: bold; margin: 20px 0;">Series {current_series} - {best_of}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="series-header">Series {current_series} - {best_of}</div>', unsafe_allow_html=True)
     
     # Initialize session state for player selections - always use defaults
     if 'series_team1' not in st.session_state:
