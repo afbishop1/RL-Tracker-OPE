@@ -103,8 +103,8 @@ st.markdown("""
         border: none;
         border-radius: 8px;
         font-weight: bold;
-        font-size: 1.6em;
-        padding: 20px 40px;
+        font-size: 1.2em;
+        padding: 12px 24px;
         transition: transform 0.2s;
     }
     
@@ -129,6 +129,8 @@ st.markdown("""
     [data-testid="stMetricValue"] {
         color: var(--rl-orange);
     }
+    
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -173,9 +175,36 @@ st.markdown('<div class="title-main">⚡ RL MATCH TRACKER ⚡</div>', unsafe_all
 st.markdown("OPE Gaming", unsafe_allow_html=True)
 st.divider()
 
-# Refresh button
-if st.button("🔄 Refresh Data", use_container_width=True):
-    st.rerun()
+# Refresh and Clear buttons (side by side)
+refresh_col, clear_col = st.columns(2)
+
+with refresh_col:
+    st.markdown("""
+    <style>
+        .refresh-btn {
+            background: linear-gradient(90deg, var(--rl-blue) 0%, #4169E1 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.2em;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+        .refresh-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(30, 144, 255, 0.6);
+        }
+    </style>
+    <button class="refresh-btn" onclick="location.reload()">🔄 Refresh Data</button>
+    """, unsafe_allow_html=True)
+
+with clear_col:
+    if st.button("🔄 Clear Players/Scores", use_container_width=True, key="clear_top"):
+        st.session_state.reset_counter = st.session_state.get('reset_counter', 0) + 1
+        st.rerun()
 
 st.divider()
 
@@ -201,15 +230,6 @@ with tab1:
     # Initialize reset counter
     if 'reset_counter' not in st.session_state:
         st.session_state.reset_counter = 0
-    
-    # Clear All button
-    st.divider()
-    if st.button("🔄 Clear All", key="clear_all", use_container_width=True):
-        st.session_state.reset_counter += 1
-        st.session_state.series_team1 = ["Choose Player"] * num_players
-        st.session_state.series_team2 = ["Choose Player"] * num_players
-        st.rerun()
-    st.divider()
     
     # Get current series
     c.execute("SELECT series_number, match_number, best_of FROM matches ORDER BY series_number DESC, match_number DESC LIMIT 1")
