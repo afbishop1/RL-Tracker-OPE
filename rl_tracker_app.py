@@ -185,27 +185,17 @@ st.markdown('<div class="title-main">⚡ RL MATCH TRACKER ⚡</div>', unsafe_all
 st.markdown("OPE Gaming", unsafe_allow_html=True)
 st.divider()
 
-# Refresh Data and Clear Players/Scores buttons (side by side) - before tabs
-refresh_col, clear_col = st.columns(2)
+# Clear Players/Scores button
+if st.button("🔄 Clear Players/Scores", use_container_width=True, key="clear_main"):
+    st.session_state.reset_counter = st.session_state.get('reset_counter', 0) + 1
+    st.rerun()
 
-with refresh_col:
-    if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_main"):
-        st.rerun()
-
-with clear_col:
-    if st.button("🔄 Clear Players/Scores", use_container_width=True, key="clear_main"):
-        st.session_state.reset_counter = st.session_state.get('reset_counter', 0) + 1
-        st.rerun()
-
-# JavaScript to color the buttons after they load
+# JavaScript to color the clear button
 st.markdown("""
 <script>
     const observer = new MutationObserver(() => {
         let buttons = document.querySelectorAll('button');
         buttons.forEach(btn => {
-            if (btn.textContent.includes('Refresh Data')) {
-                btn.style.cssText = 'background: linear-gradient(90deg, #1E90FF 0%, #4169E1 100%) !important; color: white !important; border: none !important; border-radius: 8px !important; font-weight: bold !important; font-size: 1.6em !important; padding: 20px 40px !important; transition: transform 0.2s !important;';
-            }
             if (btn.textContent.includes('Clear Players/Scores')) {
                 btn.style.cssText = 'background: linear-gradient(90deg, #FF6B00 0%, #FF8C00 100%) !important; color: white !important; border: none !important; border-radius: 8px !important; font-weight: bold !important; font-size: 1.6em !important; padding: 20px 40px !important; transition: transform 0.2s !important;';
             }
@@ -217,9 +207,6 @@ st.markdown("""
     // Also run immediately
     let buttons = document.querySelectorAll('button');
     buttons.forEach(btn => {
-        if (btn.textContent.includes('Refresh Data')) {
-            btn.style.cssText = 'background: linear-gradient(90deg, #1E90FF 0%, #4169E1 100%) !important; color: white !important; border: none !important; border-radius: 8px !important; font-weight: bold !important; font-size: 1.6em !important; padding: 20px 40px !important; transition: transform 0.2s !important;';
-        }
         if (btn.textContent.includes('Clear Players/Scores')) {
             btn.style.cssText = 'background: linear-gradient(90deg, #FF6B00 0%, #FF8C00 100%) !important; color: white !important; border: none !important; border-radius: 8px !important; font-weight: bold !important; font-size: 1.6em !important; padding: 20px 40px !important; transition: transform 0.2s !important;';
         }
