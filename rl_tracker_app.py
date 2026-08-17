@@ -185,54 +185,28 @@ st.markdown('<div class="title-main">⚡ RL MATCH TRACKER ⚡</div>', unsafe_all
 st.markdown("OPE Gaming", unsafe_allow_html=True)
 st.divider()
 
-# Refresh and Clear buttons (side by side)
-refresh_col, clear_col = st.columns(2)
-
-with refresh_col:
-    st.markdown("""
-    <style>
-        .refresh-btn {
-            background: linear-gradient(90deg, var(--rl-blue) 0%, #4169E1 100%);
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 1.2em;
-            cursor: pointer;
-            width: 100%;
-            transition: transform 0.2s;
-        }
-        .refresh-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 15px rgba(30, 144, 255, 0.6);
-        }
-    </style>
-    <button class="refresh-btn" onclick="location.reload()">🔄 Refresh Data</button>
-    """, unsafe_allow_html=True)
-
-with clear_col:
-    st.markdown("""
-    <style>
-        .clear-btn {
-            background: linear-gradient(90deg, var(--rl-orange) 0%, #FF8C00 100%);
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 1.2em;
-            cursor: pointer;
-            width: 100%;
-            transition: transform 0.2s;
-        }
-        .clear-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 15px rgba(255, 107, 0, 0.6);
-        }
-    </style>
-    <button class="clear-btn" onclick="location.reload()">🔄 Clear Players/Scores</button>
-    """, unsafe_allow_html=True)
+# Refresh Data button (on every page)
+st.markdown("""
+<style>
+    .refresh-btn {
+        background: linear-gradient(90deg, var(--rl-blue) 0%, #4169E1 100%);
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-weight: bold;
+        font-size: 1.2em;
+        cursor: pointer;
+        width: 100%;
+        transition: transform 0.2s;
+    }
+    .refresh-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 15px rgba(30, 144, 255, 0.6);
+    }
+</style>
+<button class="refresh-btn" onclick="location.reload()">🔄 Refresh Data</button>
+""", unsafe_allow_html=True)
 
 st.divider()
 
@@ -259,6 +233,30 @@ with tab1:
     if 'reset_counter' not in st.session_state:
         st.session_state.reset_counter = 0
     
+    # Clear Players/Scores button (only on this tab)
+    st.markdown("""
+    <style>
+        .clear-btn {
+            background: linear-gradient(90deg, var(--rl-orange) 0%, #FF8C00 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.2em;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+        .clear-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(255, 107, 0, 0.6);
+        }
+    </style>
+    <button class="clear-btn" onclick="location.reload()">🔄 Clear Players/Scores</button>
+    """, unsafe_allow_html=True)
+    
+    st.divider()
     # Get current series
     c.execute("SELECT series_number, match_number, best_of FROM matches ORDER BY series_number DESC, match_number DESC LIMIT 1")
     last_match = c.fetchone()
