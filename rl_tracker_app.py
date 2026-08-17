@@ -216,15 +216,9 @@ with tab1:
     st.markdown(f'<div style="background: linear-gradient(135deg, #CC5500 0%, #DD6600 100%); color: white; padding: 20px; border-radius: 12px; text-align: center; font-size: 1.6em; font-weight: bold; margin: 20px 0;">Series {current_series} - {best_of}</div>', unsafe_allow_html=True)
     
     # Initialize session state for player selections
-    # Reinitialize if match type changes or if it's None/doesn't exist
-    if ('series_team1' not in st.session_state or 
-        st.session_state.series_team1 is None or 
-        len(st.session_state.series_team1) != num_players):
+    if 'series_team1' not in st.session_state:
         st.session_state.series_team1 = [PLAYERS[0]] * num_players
-    
-    if ('series_team2' not in st.session_state or 
-        st.session_state.series_team2 is None or 
-        len(st.session_state.series_team2) != num_players):
+    if 'series_team2' not in st.session_state:
         st.session_state.series_team2 = [PLAYERS[0]] * num_players
     
     # STEP 1: SELECT TEAMS
@@ -301,8 +295,8 @@ with tab1:
             
             series_games.append({
                 "game_num": game_num,
-                "team1_players": st.session_state.series_team1.copy(),
-                "team2_players": st.session_state.series_team2.copy(),
+                "team1_players": st.session_state.series_team1,
+                "team2_players": st.session_state.series_team2,
                 "team1_stats": team1_stats,
                 "team2_stats": team2_stats,
                 "winner": winner_num
@@ -356,9 +350,10 @@ with tab1:
             conn.commit()
             st.balloons()
             st.success(f"✅ Series {current_series} Logged! 🎉")
-            # Clear session state for next series
-            st.session_state.series_team1 = None
-            st.session_state.series_team2 = None
+            # Clear ALL session state for completely fresh page
+            keys_to_delete = [key for key in st.session_state.keys() if key.startswith('team') or key.startswith('g')]
+            for key in keys_to_delete:
+                del st.session_state[key]
             st.rerun()
 
 # ============ TAB 2: SERIES HISTORY ============
@@ -390,30 +385,25 @@ with tab2:
                     match_id, sn, mn, b, ts, t1p, t2p, t1s, t2s, winner = match
                     winner_text = "Team 1 Won" if winner == 1 else "Team 2 Won" if winner == 2 else "Pending"
                     
-                    st.markdown(f'<div class="match-card">', unsafe_allow_html=True)
                     st.markdown(f"**Match {mn}: {winner_text} ({t1s} - {t2s})**")
                     
                     col1, col2 = st.columns(2)
                     
                     with col1:
-                        st.markdown('<div class="team-card">', unsafe_allow_html=True)
                         st.markdown("**Team 1**")
                         c.execute("""SELECT player_name, score, goals, assists, saves FROM player_stats 
                                      WHERE match_id = ? AND team = 1""", (match_id,))
                         for row in c.fetchall():
-                            st.markdown(f"  **{row[0]}** · Score: {row[1]} Goals: {row[2]} Assists: {row[3]} Saves: {row[4]}")
-                        st.markdown('</div>', unsafe_allow_html=True)
+                            st.markdown(f"**{row[0]}** · Score: {row[1]} Goals: {row[2]} Assists: {row[3]} Saves: {row[4]}")
                     
                     with col2:
-                        st.markdown('<div class="team-card team-2">', unsafe_allow_html=True)
                         st.markdown("**Team 2**")
                         c.execute("""SELECT player_name, score, goals, assists, saves FROM player_stats 
                                      WHERE match_id = ? AND team = 2""", (match_id,))
                         for row in c.fetchall():
-                            st.markdown(f"  **{row[0]}** · Score: {row[1]} Goals: {row[2]} Assists: {row[3]} Saves: {row[4]}")
-                        st.markdown('</div>', unsafe_allow_html=True)
+                            st.markdown(f"**{row[0]}** · Score: {row[1]} Goals: {row[2]} Assists: {row[3]} Saves: {row[4]}")
                     
-                    st.markdown('</div>', unsafe_allow_html=True)
+                    st.divider()
                 
                 st.divider()
                 
