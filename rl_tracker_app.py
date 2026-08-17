@@ -173,7 +173,7 @@ st.markdown("🎮 Shared · Real-time updates · OPE Gaming", unsafe_allow_html=
 st.divider()
 
 # Create tabs
-tab1, tab2, tab3, tab4 = st.tabs(["🎯 Log Match", "📊 Series History", "🏆 Player Stats", "🤝 Partnerships"])
+tab1, tab2, tab3, tab4 = st.tabs(["🎯 Log Match", "📊 Series History", "🏆 Player Stats", "👥 Teams"])
 
 # ============ TAB 1: LOG MATCH ============
 with tab1:
@@ -409,70 +409,100 @@ with tab2:
     if not series_list:
         st.info("📭 No matches logged yet")
     else:
+        # Organize series by match type
+        series_by_type = {"1v1": [], "2v2": [], "3v3": []}
+        
         for series_num, bo, last_match in series_list:
-            # Get first match to get player info
-            c.execute("""SELECT team1_players, team2_players FROM matches 
+            # Get first match to determine match type
+            c.execute("""SELECT team1_players FROM matches 
                          WHERE series_number = ? ORDER BY match_number LIMIT 1""", (series_num,))
             first_match = c.fetchone()
             
             if first_match:
-                t1_players = first_match[0]
-                t2_players = first_match[1]
-                player_info = f"({t1_players} vs {t2_players})"
+                t1_players = first_match[0].split(",")
+                num_players_in_series = len(t1_players)
+                if num_players_in_series == 1:
+                    match_type = "1v1"
+                elif num_players_in_series == 2:
+                    match_type = "2v2"
+                else:
+                    match_type = "3v3"
+                
+                series_by_type[match_type].append((series_num, bo, last_match))
+        
+        # Display by match type
+        for match_type in ["1v1", "2v2", "3v3"]:
+            st.markdown(f"## {match_type}")
+            
+            if not series_by_type[match_type]:
+                st.info(f"📭 No {match_type} series yet")
             else:
-                player_info = ""
-            
-            col1, col2 = st.columns([0.9, 0.1])
-            with col1:
-                expander = st.expander(f"📊 Series {series_num} - Best of {bo} {player_info}", expanded=False)
-            with col2:
-                if st.button("🗑️", key=f"delete_series_{series_num}", help="Delete this series"):
-                    c.execute("DELETE FROM player_stats WHERE match_id IN (SELECT id FROM matches WHERE series_number = ?)", (series_num,))
-                    c.execute("DELETE FROM matches WHERE series_number = ?", (series_num,))
-                    conn.commit()
-                    st.success(f"Series {series_num} deleted!")
-                    st.rerun()
-            
-            with expander:
-                c.execute("""SELECT * FROM matches WHERE series_number = ? ORDER BY match_number""", (series_num,))
-                matches = c.fetchall()
-                
-                for match in matches:
-                    match_id, sn, mn, b, ts, t1p, t2p, t1s, t2s, winner = match
-                    winner_text = "Team 1 Won" if winner == 1 else "Team 2 Won" if winner == 2 else "Pending"
+                for series_num, bo, last_match in series_by_type[match_type]:
+                    # Get player info
+                    c.execute("""SELECT team1_players, team2_players FROM matches 
+                                 WHERE series_number = ? ORDER BY match_number LIMIT 1""", (series_num,))
+                    first_match = c.fetchone()
                     
-                    st.markdown(f"**Match {mn}: {winner_text} ({t1s} - {t2s})**")
+                    if first_match:
+                        t1_players = first_match[0]
+                        t2_players = first_match[1]
+                        player_info = f"({t1_players} vs {t2_players})"
+                    else:
+                        player_info = ""
                     
-                    col1, col2 = st.columns(2)
-                    
+                    col1, col2 = st.columns([0.9, 0.1])
                     with col1:
-                        st.markdown('<div style="text-align: center; font-size: 1.1em; color: #FF6B00; font-weight: bold;">🟠 TEAM 1 🟠</div>', unsafe_allow_html=True)
-                        c.execute("""SELECT player_name, score, goals, assists, saves FROM player_stats 
-                                     WHERE match_id = ? AND team = 1""", (match_id,))
-                        for row in c.fetchall():
-                            st.markdown(f"**{row[0]}** · Score: {row[1]} Goals: {row[2]} Assists: {row[3]} Saves: {row[4]}")
-                    
+                        expander = st.expander(f"📊 Series {series_num} - Best of {bo} {player_info}", expanded=False)
                     with col2:
-                        st.markdown('<div style="text-align: center; font-size: 1.1em; color: #1E90FF; font-weight: bold;">🔵 TEAM 2 🔵</div>', unsafe_allow_html=True)
-                        c.execute("""SELECT player_name, score, goals, assists, saves FROM player_stats 
-                                     WHERE match_id = ? AND team = 2""", (match_id,))
+                        if st.button("🗑️", key=f"delete_series_{series_num}", help="Delete this series"):
+                            c.execute("DELETE FROM player_stats WHERE match_id IN (SELECT id FROM matches WHERE series_number = ?)", (series_num,))
+                            c.execute("DELETE FROM matches WHERE series_number = ?", (series_num,))
+                            conn.commit()
+                            st.success(f"Series {series_num} deleted!")
+                            st.rerun()
+                    
+                    with expander:
+                        c.execute("""SELECT * FROM matches WHERE series_number = ? ORDER BY match_number""", (series_num,))
+                        matches = c.fetchall()
+                        
+                        for match in matches:
+                            match_id, sn, mn, b, ts, t1p, t2p, t1s, t2s, winner = match
+                            winner_text = "Team 1 Won" if winner == 1 else "Team 2 Won" if winner == 2 else "Pending"
+                            
+                            st.markdown(f"**Match {mn}: {winner_text} ({t1s} - {t2s})**")
+                            
+                            col1, col2 = st.columns(2)
+                            
+                            with col1:
+                                st.markdown('<div style="text-align: center; font-size: 1.1em; color: #FF6B00; font-weight: bold;">🟠 TEAM 1 🟠</div>', unsafe_allow_html=True)
+                                c.execute("""SELECT player_name, score, goals, assists, saves FROM player_stats 
+                                             WHERE match_id = ? AND team = 1""", (match_id,))
+                                for row in c.fetchall():
+                                    st.markdown(f"**{row[0]}** · Score: {row[1]} Goals: {row[2]} Assists: {row[3]} Saves: {row[4]}")
+                            
+                            with col2:
+                                st.markdown('<div style="text-align: center; font-size: 1.1em; color: #1E90FF; font-weight: bold;">🔵 TEAM 2 🔵</div>', unsafe_allow_html=True)
+                                c.execute("""SELECT player_name, score, goals, assists, saves FROM player_stats 
+                                             WHERE match_id = ? AND team = 2""", (match_id,))
+                                for row in c.fetchall():
+                                    st.markdown(f"**{row[0]}** · Score: {row[1]} Goals: {row[2]} Assists: {row[3]} Saves: {row[4]}")
+                            
+                            st.divider()
+                        
+                        st.divider()
+                        
+                        # Series totals
+                        st.markdown("### Series Totals")
+                        c.execute("""SELECT player_name, SUM(score), SUM(goals), SUM(assists), SUM(saves) 
+                                     FROM player_stats 
+                                     WHERE match_id IN (SELECT id FROM matches WHERE series_number = ?)
+                                     GROUP BY player_name
+                                     ORDER BY SUM(score) DESC""", (series_num,))
+                        
                         for row in c.fetchall():
                             st.markdown(f"**{row[0]}** · Score: {row[1]} Goals: {row[2]} Assists: {row[3]} Saves: {row[4]}")
-                    
-                    st.divider()
-                
-                st.divider()
-                
-                # Series totals
-                st.markdown("### Series Totals")
-                c.execute("""SELECT player_name, SUM(score), SUM(goals), SUM(assists), SUM(saves) 
-                             FROM player_stats 
-                             WHERE match_id IN (SELECT id FROM matches WHERE series_number = ?)
-                             GROUP BY player_name
-                             ORDER BY SUM(score) DESC""", (series_num,))
-                
-                for row in c.fetchall():
-                    st.markdown(f"**{row[0]}** · Score: {row[1]} Goals: {row[2]} Assists: {row[3]} Saves: {row[4]}")
+            
+            st.divider()
 
 # ============ TAB 3: PLAYER STATS ============
 with tab3:
@@ -572,7 +602,7 @@ with tab3:
         df_avg = pd.DataFrame(avg_data)
         st.dataframe(df_avg, use_container_width=True, hide_index=True)
 
-# ============ TAB 4: PARTNERSHIPS ============
+# ============ TAB 4: TEAMS ============
 with tab4:
     c.execute("""SELECT id, team1_players, team2_players, winner FROM matches""")
     all_matches = c.fetchall()
@@ -665,10 +695,10 @@ with tab4:
             partnerships = partnerships_by_type[match_type]
             matchups = matchups_by_type[match_type]
             
-            st.markdown(f"## {match_type} Partnerships")
+            st.markdown(f"## {match_type} Teams")
             
             if not partnerships:
-                st.info(f"📭 No {match_type} partnership data yet")
+                st.info(f"📭 No {match_type} team data yet")
             else:
                 part_data = []
                 for partnership_tuple, record in partnerships.items():
