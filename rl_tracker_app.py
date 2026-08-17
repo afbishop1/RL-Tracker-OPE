@@ -202,9 +202,27 @@ with refresh_col:
     """, unsafe_allow_html=True)
 
 with clear_col:
-    if st.button("🔄 Clear Players/Scores", use_container_width=True, key="clear_top"):
-        st.session_state.reset_counter = st.session_state.get('reset_counter', 0) + 1
-        st.rerun()
+    st.markdown("""
+    <style>
+        .clear-btn {
+            background: linear-gradient(90deg, var(--rl-orange) 0%, #FF8C00 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.2em;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+        .clear-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(255, 107, 0, 0.6);
+        }
+    </style>
+    <button class="clear-btn" onclick="location.reload()">🔄 Clear Players/Scores</button>
+    """, unsafe_allow_html=True)
 
 st.divider()
 
