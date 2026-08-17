@@ -185,20 +185,25 @@ st.markdown('<div class="title-main">⚡ RL MATCH TRACKER ⚡</div>', unsafe_all
 st.markdown("OPE Gaming", unsafe_allow_html=True)
 st.divider()
 
-# Refresh Data and Clear Players/Scores buttons (side by side) - above tabs
-refresh_col, clear_col = st.columns(2)
+# Create tabs
+tab1, tab2, tab3, tab4 = st.tabs(["🎯 Log Match", "📊 Series History", "🏆 Player Stats", "👥 Teams"])
 
-with refresh_col:
-    if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_main"):
-        st.rerun()
-
-with clear_col:
-    if st.button("🔄 Clear Players/Scores", use_container_width=True, key="clear_main"):
-        st.session_state.reset_counter = st.session_state.get('reset_counter', 0) + 1
-        st.rerun()
-
-# JavaScript to color both buttons
-st.markdown("""
+# ============ TAB 1: LOG MATCH ============
+with tab1:
+    # Refresh Data and Clear Players/Scores buttons (side by side)
+    refresh_col, clear_col = st.columns(2)
+    
+    with refresh_col:
+        if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_tab1"):
+            st.rerun()
+    
+    with clear_col:
+        if st.button("🔄 Clear Players/Scores", use_container_width=True, key="clear_main"):
+            st.session_state.reset_counter = st.session_state.get('reset_counter', 0) + 1
+            st.rerun()
+    
+    # JavaScript to color both buttons
+    st.markdown("""
 <script>
     function colorButtons() {
         let buttons = document.querySelectorAll('button');
@@ -251,14 +256,9 @@ st.markdown("""
     observer.observe(document.body, { childList: true, subtree: true });
 </script>
 """, unsafe_allow_html=True)
-
-st.divider()
-
-# Create tabs
-tab1, tab2, tab3, tab4 = st.tabs(["🎯 Log Match", "📊 Series History", "🏆 Player Stats", "👥 Teams"])
-
-# ============ TAB 1: LOG MATCH ============
-with tab1:
+    
+    st.divider()
+    
     # Format and Match Type Selection
     col1, col2 = st.columns(2)
     
@@ -481,6 +481,35 @@ with tab2:
     if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_tab2"):
         st.rerun()
     
+    # JavaScript to color refresh button blue
+    st.markdown("""
+<script>
+    function colorRefreshButton() {
+        let buttons = document.querySelectorAll('button');
+        buttons.forEach(btn => {
+            if (btn.textContent.includes('Refresh Data')) {
+                btn.style.background = 'linear-gradient(90deg, #1E90FF 0%, #4169E1 100%)';
+                btn.style.color = 'white';
+                btn.style.border = 'none';
+                btn.style.borderRadius = '8px';
+                btn.style.fontWeight = 'bold';
+                btn.style.fontSize = '1.6em';
+                btn.style.padding = '20px 40px';
+                btn.style.transition = 'transform 0.2s';
+            }
+        });
+    }
+    
+    colorRefreshButton();
+    setTimeout(colorRefreshButton, 100);
+    setTimeout(colorRefreshButton, 300);
+    setTimeout(colorRefreshButton, 600);
+    
+    const observer = new MutationObserver(colorRefreshButton);
+    observer.observe(document.body, { childList: true, subtree: true });
+</script>
+""", unsafe_allow_html=True)
+    
     st.divider()
     c.execute("""SELECT series_number, best_of, match_number FROM matches 
                  GROUP BY series_number ORDER BY series_number DESC""")
@@ -588,6 +617,35 @@ with tab2:
 with tab3:
     if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_tab3"):
         st.rerun()
+    
+    # JavaScript to color refresh button blue
+    st.markdown("""
+<script>
+    function colorRefreshButton() {
+        let buttons = document.querySelectorAll('button');
+        buttons.forEach(btn => {
+            if (btn.textContent.includes('Refresh Data')) {
+                btn.style.background = 'linear-gradient(90deg, #1E90FF 0%, #4169E1 100%)';
+                btn.style.color = 'white';
+                btn.style.border = 'none';
+                btn.style.borderRadius = '8px';
+                btn.style.fontWeight = 'bold';
+                btn.style.fontSize = '1.6em';
+                btn.style.padding = '20px 40px';
+                btn.style.transition = 'transform 0.2s';
+            }
+        });
+    }
+    
+    colorRefreshButton();
+    setTimeout(colorRefreshButton, 100);
+    setTimeout(colorRefreshButton, 300);
+    setTimeout(colorRefreshButton, 600);
+    
+    const observer = new MutationObserver(colorRefreshButton);
+    observer.observe(document.body, { childList: true, subtree: true });
+</script>
+""", unsafe_allow_html=True)
     
     st.divider()
     c.execute("""SELECT DISTINCT player_name FROM player_stats ORDER BY player_name""")
@@ -703,6 +761,35 @@ with tab3:
 with tab4:
     if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_tab4"):
         st.rerun()
+    
+    # JavaScript to color refresh button blue
+    st.markdown("""
+<script>
+    function colorRefreshButton() {
+        let buttons = document.querySelectorAll('button');
+        buttons.forEach(btn => {
+            if (btn.textContent.includes('Refresh Data')) {
+                btn.style.background = 'linear-gradient(90deg, #1E90FF 0%, #4169E1 100%)';
+                btn.style.color = 'white';
+                btn.style.border = 'none';
+                btn.style.borderRadius = '8px';
+                btn.style.fontWeight = 'bold';
+                btn.style.fontSize = '1.6em';
+                btn.style.padding = '20px 40px';
+                btn.style.transition = 'transform 0.2s';
+            }
+        });
+    }
+    
+    colorRefreshButton();
+    setTimeout(colorRefreshButton, 100);
+    setTimeout(colorRefreshButton, 300);
+    setTimeout(colorRefreshButton, 600);
+    
+    const observer = new MutationObserver(colorRefreshButton);
+    observer.observe(document.body, { childList: true, subtree: true });
+</script>
+""", unsafe_allow_html=True)
     
     st.divider()
     c.execute("""SELECT id, team1_players, team2_players, winner FROM matches""")
