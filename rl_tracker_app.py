@@ -117,6 +117,8 @@ st.markdown("""
     .refresh-btn-wrapper button {
         background: linear-gradient(90deg, var(--rl-blue) 0%, #4169E1 100%) !important;
         box-shadow: none;
+        font-size: 1.6em !important;
+        padding: 20px 40px !important;
     }
     
     .refresh-btn-wrapper button:hover {
@@ -126,6 +128,11 @@ st.markdown("""
     /* Orange styling for clear button (keep default orange from .stButton) */
     .clear-btn-wrapper button:hover {
         box-shadow: 0 4px 15px rgba(255, 107, 0, 0.6) !important;
+    }
+    
+    .clear-btn-wrapper button {
+        font-size: 1.6em !important;
+        padding: 20px 40px !important;
     }
     
     /* Style radio buttons - alternating orange and blue */
@@ -200,6 +207,24 @@ st.markdown('<div class="title-main">⚡ RL MATCH TRACKER ⚡</div>', unsafe_all
 st.markdown("OPE Gaming", unsafe_allow_html=True)
 st.divider()
 
+# Refresh Data and Clear Players/Scores buttons (side by side) - before tabs
+refresh_col, clear_col = st.columns(2)
+
+with refresh_col:
+    st.markdown('<div class="refresh-btn-wrapper">', unsafe_allow_html=True)
+    if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_main"):
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+with clear_col:
+    st.markdown('<div class="clear-btn-wrapper">', unsafe_allow_html=True)
+    if st.button("🔄 Clear Players/Scores", use_container_width=True, key="clear_main"):
+        st.session_state.reset_counter = st.session_state.get('reset_counter', 0) + 1
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+st.divider()
+
 # Create tabs
 tab1, tab2, tab3, tab4 = st.tabs(["🎯 Log Match", "📊 Series History", "🏆 Player Stats", "👥 Teams"])
 
@@ -223,23 +248,6 @@ with tab1:
     if 'reset_counter' not in st.session_state:
         st.session_state.reset_counter = 0
     
-    # Refresh Data and Clear Players/Scores buttons (side by side)
-    refresh_col, clear_col = st.columns(2)
-    
-    with refresh_col:
-        st.markdown('<div class="refresh-btn-wrapper">', unsafe_allow_html=True)
-        if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_tab1"):
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-    with clear_col:
-        st.markdown('<div class="clear-btn-wrapper">', unsafe_allow_html=True)
-        if st.button("🔄 Clear Players/Scores", use_container_width=True, key="clear_tab1"):
-            st.session_state.reset_counter = st.session_state.get('reset_counter', 0) + 1
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.divider()
     # Get current series
     c.execute("SELECT series_number, match_number, best_of FROM matches ORDER BY series_number DESC, match_number DESC LIMIT 1")
     last_match = c.fetchone()
@@ -441,14 +449,6 @@ with tab1:
 
 # ============ TAB 2: SERIES HISTORY ============
 with tab2:
-    # Refresh Data button
-    st.markdown('<div class="refresh-btn-wrapper">', unsafe_allow_html=True)
-    if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_tab2"):
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.divider()
-    
     c.execute("""SELECT series_number, best_of, match_number FROM matches 
                  GROUP BY series_number ORDER BY series_number DESC""")
     series_list = c.fetchall()
@@ -553,14 +553,6 @@ with tab2:
 
 # ============ TAB 3: PLAYER STATS ============
 with tab3:
-    # Refresh Data button
-    st.markdown('<div class="refresh-btn-wrapper">', unsafe_allow_html=True)
-    if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_tab3"):
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.divider()
-    
     c.execute("""SELECT DISTINCT player_name FROM player_stats ORDER BY player_name""")
     all_players = [row[0] for row in c.fetchall()]
     
@@ -672,14 +664,6 @@ with tab3:
 
 # ============ TAB 4: TEAMS ============
 with tab4:
-    # Refresh Data button
-    st.markdown('<div class="refresh-btn-wrapper">', unsafe_allow_html=True)
-    if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_tab4"):
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.divider()
-    
     c.execute("""SELECT id, team1_players, team2_players, winner FROM matches""")
     all_matches = c.fetchall()
     
