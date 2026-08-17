@@ -113,6 +113,16 @@ st.markdown("""
         box-shadow: 0 4px 15px rgba(255, 107, 0, 0.6);
     }
     
+    /* Style radio buttons - alternating orange and blue */
+    [data-testid="stRadio"] label:nth-child(1) input {
+        accent-color: #FF6B00 !important;
+    }
+    
+    [data-testid="stRadio"] label:nth-child(2) input,
+    [data-testid="stRadio"] label:nth-child(3) input {
+        accent-color: #1E90FF !important;
+    }
+    
     .tab-content {
         background-color: var(--rl-darker);
     }
@@ -365,13 +375,16 @@ with tab1:
                     team2_stats.append({"player": player_name, "score": score, "goals": goals, "assists": assists, "saves": saves})
                     st.markdown("---")
             
-            # Winner selection
+            # Winner selection - show actual player names
+            team1_display = " + ".join(st.session_state.series_team1)
+            team2_display = " + ".join(st.session_state.series_team2)
+            
             col_w1, col_w2 = st.columns(2)
             with col_w1:
                 st.markdown("**Who won this game?**")
             with col_w2:
-                winner = st.radio("Select winner", ["Team 1", "Team 2"], horizontal=True, key=f"g{game_num}_winner_r{st.session_state.reset_counter}", label_visibility="collapsed")
-            winner_num = 1 if winner == "Team 1" else 2
+                winner = st.radio("Select winner", [team1_display, team2_display], horizontal=True, key=f"g{game_num}_winner_r{st.session_state.reset_counter}", label_visibility="collapsed")
+            winner_num = 1 if winner == team1_display else 2
             
             series_games.append({
                 "game_num": game_num,
