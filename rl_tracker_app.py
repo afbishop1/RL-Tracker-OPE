@@ -191,11 +191,13 @@ st.markdown('<div class="title-main">⚡ RL MATCH TRACKER ⚡</div>', unsafe_all
 st.markdown("OPE Gaming", unsafe_allow_html=True)
 st.divider()
 
-# Current User Selection
-st.markdown("**👤 Who is using this right now?**")
-current_user = st.selectbox("Select your name", PLAYERS, key="current_user")
-
-st.divider()
+# Initialize session state for confirmations
+if 'confirm_submit' not in st.session_state:
+    st.session_state.confirm_submit = False
+if 'confirm_delete' not in st.session_state:
+    st.session_state.confirm_delete = False
+if 'delete_series_num' not in st.session_state:
+    st.session_state.delete_series_num = None
 
 # Create tabs
 tab1, tab2, tab3, tab4 = st.tabs(["🎯 Log Match", "📊 Series History", "🏆 Player Stats", "👥 Teams"])
@@ -428,71 +430,92 @@ with tab1:
     st.divider()
     
     # Submit button
-    if st.button("🎮 LOG SERIES 🎮", key="submit_series", use_container_width=True):
-        # Validate games
-        all_valid = True
-        error_msg = ""
+    col1, col2 = st.columns([0.7, 0.3])
+    with col1:
+        submit_clicked = st.button("🎮 LOG SERIES 🎮", key="submit_series", use_container_width=True)
+    
+    # If submit clicked, ask for user
+    if submit_clicked:
+        st.session_state.confirm_submit = True
+    
+    if st.session_state.get("confirm_submit", False):
+        st.divider()
+        st.markdown("### 👤 Who is entering this game?")
+        confirming_user = st.selectbox("Select your name", PLAYERS, key="confirm_user_selectbox")
         
-        # Check if all players are selected (not "Choose Player")
-        if "Choose Player" in st.session_state.series_team1 or "Choose Player" in st.session_state.series_team2:
-            all_valid = False
-            error_msg = "Please select all players before logging the series!"
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("✅ Confirm", use_container_width=True, key="confirm_btn"):
+                # Validate games
+                all_valid = True
+                error_msg = ""
+                
+                # Check if all players are selected (not "Choose Player")
+                if "Choose Player" in st.session_state.series_team1 or "Choose Player" in st.session_state.series_team2:
+                    all_valid = False
+                    error_msg = "Please select all players before logging the series!"
+                
+                for game in series_games:
+                    if not all_valid:
+                        break
+                    # Check for duplicate players
+                    all_players_in_game = game["team1_players"] + game["team2_players"]
+                    if len(all_players_in_game) != len(set(all_players_in_game)):
+                        all_valid = False
+                        error_msg = f"Game {game['game_num']}: Each player can only be on one team!"
+                        break
+                
+                if not all_valid:
+                    st.error(error_msg)
+                else:
+                    # Insert all games
+                    for game in series_games:
+                        t1_total = sum(p["score"] for p in game["team1_stats"])
+                        t2_total = sum(p["score"] for p in game["team2_stats"])
+                        
+                        c.execute("""INSERT INTO matches 
+                                    (series_number, match_number, best_of, timestamp, team1_players, team2_players, team1_score, team2_score, winner)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                                 (current_series, game["game_num"], bo_num, datetime.now().isoformat(), 
+                                  ",".join(game["team1_players"]), ",".join(game["team2_players"]), 
+                                  t1_total, t2_total, game["winner"]))
+                        
+                        match_id = c.lastrowid
+                        
+                        # Insert player stats for team 1
+                        for i, stat in enumerate(game["team1_stats"]):
+                            c.execute("""INSERT INTO player_stats (match_id, player_name, team, score, goals, assists, saves)
+                                        VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                                     (match_id, stat["player"], 1, stat["score"], stat["goals"], stat["assists"], stat["saves"]))
+                        
+                        # Insert player stats for team 2
+                        for i, stat in enumerate(game["team2_stats"]):
+                            c.execute("""INSERT INTO player_stats (match_id, player_name, team, score, goals, assists, saves)
+                                        VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                                     (match_id, stat["player"], 2, stat["score"], stat["goals"], stat["assists"], stat["saves"]))
+                    
+                    conn.commit()
+                    
+                    # Log the action
+                    c.execute("""INSERT INTO activity_log (timestamp, user_name, action)
+                                VALUES (?, ?, ?)""",
+                             (datetime.now().isoformat(), confirming_user, f"entered a game"))
+                    conn.commit()
+                    
+                    # Reset by incrementing counter - forces all widgets to get new keys
+                    st.session_state.reset_counter += 1
+                    st.session_state.series_team1 = ["Choose Player"] * num_players
+                    st.session_state.series_team2 = ["Choose Player"] * num_players
+                    st.session_state.confirm_submit = False
+                    
+                    st.balloons()
+                    st.success(f"✅ Series {current_series} Logged by {confirming_user}! 🎉")
+                    st.rerun()
         
-        for game in series_games:
-            if not all_valid:
-                break
-            # Check for duplicate players
-            all_players_in_game = game["team1_players"] + game["team2_players"]
-            if len(all_players_in_game) != len(set(all_players_in_game)):
-                all_valid = False
-                error_msg = f"Game {game['game_num']}: Each player can only be on one team!"
-                break
-        
-        if not all_valid:
-            st.error(error_msg)
-        else:
-            # Insert all games
-            for game in series_games:
-                t1_total = sum(p["score"] for p in game["team1_stats"])
-                t2_total = sum(p["score"] for p in game["team2_stats"])
-                
-                c.execute("""INSERT INTO matches 
-                            (series_number, match_number, best_of, timestamp, team1_players, team2_players, team1_score, team2_score, winner)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                         (current_series, game["game_num"], bo_num, datetime.now().isoformat(), 
-                          ",".join(game["team1_players"]), ",".join(game["team2_players"]), 
-                          t1_total, t2_total, game["winner"]))
-                
-                match_id = c.lastrowid
-                
-                # Insert player stats for team 1
-                for i, stat in enumerate(game["team1_stats"]):
-                    c.execute("""INSERT INTO player_stats (match_id, player_name, team, score, goals, assists, saves)
-                                VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                             (match_id, stat["player"], 1, stat["score"], stat["goals"], stat["assists"], stat["saves"]))
-                
-                # Insert player stats for team 2
-                for i, stat in enumerate(game["team2_stats"]):
-                    c.execute("""INSERT INTO player_stats (match_id, player_name, team, score, goals, assists, saves)
-                                VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                             (match_id, stat["player"], 2, stat["score"], stat["goals"], stat["assists"], stat["saves"]))
-            
-            conn.commit()
-            
-            # Log the action
-            c.execute("""INSERT INTO activity_log (timestamp, user_name, action)
-                        VALUES (?, ?, ?)""",
-                     (datetime.now().isoformat(), current_user, f"entered a game"))
-            conn.commit()
-            
-            # Reset by incrementing counter - forces all widgets to get new keys
-            st.session_state.reset_counter += 1
-            st.session_state.series_team1 = ["Choose Player"] * num_players
-            st.session_state.series_team2 = ["Choose Player"] * num_players
-            
-            st.balloons()
-            st.success(f"✅ Series {current_series} Logged! 🎉")
-            st.rerun()
+        with col2:
+            if st.button("❌ Cancel", use_container_width=True, key="cancel_btn"):
+                st.session_state.confirm_submit = False
+                st.rerun()
 
 # ============ TAB 2: SERIES HISTORY ============
 with tab2:
@@ -582,17 +605,37 @@ with tab2:
                         expander = st.expander(f"📊 Series {series_num} - Best of {bo} {player_info}", expanded=False)
                     with col2:
                         if st.button("🗑️", key=f"delete_series_{series_num}", help="Delete this series"):
-                            c.execute("DELETE FROM player_stats WHERE match_id IN (SELECT id FROM matches WHERE series_number = ?)", (series_num,))
-                            c.execute("DELETE FROM matches WHERE series_number = ?", (series_num,))
-                            
-                            # Log the deletion
-                            c.execute("""INSERT INTO activity_log (timestamp, user_name, action)
-                                        VALUES (?, ?, ?)""",
-                                     (datetime.now().isoformat(), current_user, f"deleted a game"))
-                            
-                            conn.commit()
-                            st.success(f"Series {series_num} deleted!")
-                            st.rerun()
+                            st.session_state.confirm_delete = True
+                            st.session_state.delete_series_num = series_num
+                    
+                    # Show delete confirmation dialog
+                    if st.session_state.get("confirm_delete", False) and st.session_state.get("delete_series_num") == series_num:
+                        st.divider()
+                        st.markdown(f"### 👤 Who is deleting Series {series_num}?")
+                        deleting_user = st.selectbox("Select your name", PLAYERS, key=f"delete_user_{series_num}")
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if st.button("✅ Confirm Delete", use_container_width=True, key=f"confirm_delete_{series_num}"):
+                                c.execute("DELETE FROM player_stats WHERE match_id IN (SELECT id FROM matches WHERE series_number = ?)", (series_num,))
+                                c.execute("DELETE FROM matches WHERE series_number = ?", (series_num,))
+                                
+                                # Log the deletion
+                                c.execute("""INSERT INTO activity_log (timestamp, user_name, action)
+                                            VALUES (?, ?, ?)""",
+                                         (datetime.now().isoformat(), deleting_user, f"deleted a game"))
+                                
+                                conn.commit()
+                                st.session_state.confirm_delete = False
+                                st.session_state.delete_series_num = None
+                                st.success(f"Series {series_num} deleted by {deleting_user}!")
+                                st.rerun()
+                        
+                        with col2:
+                            if st.button("❌ Cancel", use_container_width=True, key=f"cancel_delete_{series_num}"):
+                                st.session_state.confirm_delete = False
+                                st.session_state.delete_series_num = None
+                                st.rerun()
                     
                     with expander:
                         c.execute("""SELECT * FROM matches WHERE series_number = ? ORDER BY match_number""", (series_num,))
