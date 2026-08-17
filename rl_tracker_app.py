@@ -113,6 +113,21 @@ st.markdown("""
         box-shadow: 0 4px 15px rgba(255, 107, 0, 0.6);
     }
     
+    /* Blue styling for refresh button */
+    .refresh-btn-wrapper button {
+        background: linear-gradient(90deg, var(--rl-blue) 0%, #4169E1 100%) !important;
+        box-shadow: none;
+    }
+    
+    .refresh-btn-wrapper button:hover {
+        box-shadow: 0 4px 15px rgba(30, 144, 255, 0.6) !important;
+    }
+    
+    /* Orange styling for clear button (keep default orange from .stButton) */
+    .clear-btn-wrapper button:hover {
+        box-shadow: 0 4px 15px rgba(255, 107, 0, 0.6) !important;
+    }
+    
     /* Style radio buttons - alternating orange and blue */
     [data-testid="stRadio"] label:nth-child(1) input {
         accent-color: #FF6B00 !important;
@@ -185,28 +200,13 @@ st.markdown('<div class="title-main">⚡ RL MATCH TRACKER ⚡</div>', unsafe_all
 st.markdown("OPE Gaming", unsafe_allow_html=True)
 st.divider()
 
-# Refresh Data button (on every page)
-st.markdown("""
-<style>
-    .refresh-btn {
-        background: linear-gradient(90deg, var(--rl-blue) 0%, #4169E1 100%);
-        color: white;
-        padding: 12px 24px;
-        border: none;
-        border-radius: 8px;
-        font-weight: bold;
-        font-size: 1.2em;
-        cursor: pointer;
-        width: 100%;
-        transition: transform 0.2s;
-    }
-    .refresh-btn:hover {
-        transform: scale(1.05);
-        box-shadow: 0 4px 15px rgba(30, 144, 255, 0.6);
-    }
-</style>
-<button class="refresh-btn" onclick="location.reload()">🔄 Refresh Data</button>
-""", unsafe_allow_html=True)
+# Refresh Data button (on every page) - using Streamlit button
+col1, col2, col3 = st.columns([1, 1, 1])
+with col2:
+    st.markdown('<div class="refresh-btn-wrapper">', unsafe_allow_html=True)
+    if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_top"):
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
 st.divider()
 
@@ -234,27 +234,11 @@ with tab1:
         st.session_state.reset_counter = 0
     
     # Clear Players/Scores button (only on this tab)
-    st.markdown("""
-    <style>
-        .clear-btn {
-            background: linear-gradient(90deg, var(--rl-orange) 0%, #FF8C00 100%);
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 1.2em;
-            cursor: pointer;
-            width: 100%;
-            transition: transform 0.2s;
-        }
-        .clear-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 15px rgba(255, 107, 0, 0.6);
-        }
-    </style>
-    <button class="clear-btn" onclick="location.reload()">🔄 Clear Players/Scores</button>
-    """, unsafe_allow_html=True)
+    st.markdown('<div class="clear-btn-wrapper">', unsafe_allow_html=True)
+    if st.button("🔄 Clear Players/Scores", use_container_width=True, key="clear_tab1"):
+        st.session_state.reset_counter = st.session_state.get('reset_counter', 0) + 1
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
     
     st.divider()
     # Get current series
