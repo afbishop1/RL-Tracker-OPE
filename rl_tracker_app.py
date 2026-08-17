@@ -470,6 +470,16 @@ with tab3:
             c.execute("""SELECT SUM(score), SUM(goals), SUM(assists), SUM(saves) FROM player_stats 
                          WHERE player_name = ?""", (player,))
             score, goals, assists, saves = c.fetchone()
+            score = score or 0
+            goals = goals or 0
+            assists = assists or 0
+            saves = saves or 0
+            
+            # Calculate averages
+            avg_score = score / games if games > 0 else 0
+            avg_goals = goals / games if games > 0 else 0
+            avg_assists = assists / games if games > 0 else 0
+            avg_saves = saves / games if games > 0 else 0
             
             stats_data.append({
                 "🎮 Player": player,
@@ -477,10 +487,14 @@ with tab3:
                 "💔 Losses": losses,
                 "📊 Games": games,
                 "📈 Win %": f"{win_pct:.1f}%",
-                "🎯 Score": score or 0,
-                "⚽ Goals": goals or 0,
-                "🎁 Assists": assists or 0,
-                "🛡️ Saves": saves or 0
+                "🎯 Score": score,
+                "⚽ Goals": goals,
+                "🎁 Assists": assists,
+                "🛡️ Saves": saves,
+                "📍 Avg Score": f"{avg_score:.1f}",
+                "⚽ Avg Goals": f"{avg_goals:.2f}",
+                "🎁 Avg Assists": f"{avg_assists:.2f}",
+                "🛡️ Avg Saves": f"{avg_saves:.2f}"
             })
         
         df = pd.DataFrame(stats_data)
@@ -496,7 +510,7 @@ with tab4:
         st.info("📭 No partnership data yet")
     else:
         partnerships = defaultdict(lambda: {"wins": 0, "losses": 0})
-        matchups = defaultdict(lambda: {"wins": 0, "losses": 0})
+        matchups = defaultdict(lambda: defaultdict(lambda: {"wins": 0, "losses": 0}))
         
         for match_id, t1, t2, winner in all_matches:
             t1_list = t1.split(",")
@@ -523,14 +537,15 @@ with tab4:
                     else:
                         partnerships[pair]["losses"] += 1
             
-            # Track matchups between partnerships
+            # Track matchups between partnerships from each partnership's perspective
             for t1_pair in t1_pairs:
                 for t2_pair in t2_pairs:
-                    matchup_key = (t1_pair, t2_pair)
                     if winner == 1:
-                        matchups[matchup_key]["wins"] += 1
+                        matchups[t1_pair][t2_pair]["wins"] += 1
+                        matchups[t2_pair][t1_pair]["losses"] += 1
                     else:
-                        matchups[matchup_key]["losses"] += 1
+                        matchups[t1_pair][t2_pair]["losses"] += 1
+                        matchups[t2_pair][t1_pair]["wins"] += 1
         
         part_data = []
         for (p1, p2), record in partnerships.items():
@@ -560,29 +575,19 @@ with tab4:
                 st.divider()
                 st.markdown("**Head-to-Head vs Other Partnerships:**")
                 
-                # Find all matchups for this partnership
+                # Get all matchups for this partnership
                 matchup_records = []
-                for (p1, p2), record in matchups.items():
-                    if p1 == part_tuple:
-                        opponent = p2
-                        opp_wins = record["losses"]
-                        opp_losses = record["wins"]
-                    elif p2 == part_tuple:
-                        opponent = p1
-                        opp_wins = record["wins"]
-                        opp_losses = record["losses"]
-                    else:
-                        continue
-                    
-                    h2h_total = opp_wins + opp_losses
-                    h2h_pct = (opp_wins / h2h_total) * 100 if h2h_total > 0 else 0
-                    matchup_records.append({
-                        "opponent": f"{opponent[0]} + {opponent[1]}",
-                        "wins": opp_wins,
-                        "losses": opp_losses,
-                        "total": h2h_total,
-                        "pct": h2h_pct
-                    })
+                if part_tuple in matchups:
+                    for opponent_pair, record in matchups[part_tuple].items():
+                        h2h_total = record["wins"] + record["losses"]
+                        h2h_pct = (record["wins"] / h2h_total) * 100 if h2h_total > 0 else 0
+                        matchup_records.append({
+                            "opponent": f"{opponent_pair[0]} + {opponent_pair[1]}",
+                            "wins": record["wins"],
+                            "losses": record["losses"],
+                            "total": h2h_total,
+                            "pct": h2h_pct
+                        })
                 
                 if matchup_records:
                     # Sort by wins descending
