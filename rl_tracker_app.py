@@ -185,25 +185,20 @@ st.markdown('<div class="title-main">⚡ RL MATCH TRACKER ⚡</div>', unsafe_all
 st.markdown("OPE Gaming", unsafe_allow_html=True)
 st.divider()
 
-# Create tabs
-tab1, tab2, tab3, tab4 = st.tabs(["🎯 Log Match", "📊 Series History", "🏆 Player Stats", "👥 Teams"])
+# Refresh Data and Clear Players/Scores buttons (side by side) - above tabs
+refresh_col, clear_col = st.columns(2)
 
-# ============ TAB 1: LOG MATCH ============
-with tab1:
-    # Refresh Data and Clear Players/Scores buttons (side by side)
-    refresh_col, clear_col = st.columns(2)
-    
-    with refresh_col:
-        if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_tab"):
-            st.rerun()
-    
-    with clear_col:
-        if st.button("🔄 Clear Players/Scores", use_container_width=True, key="clear_main"):
-            st.session_state.reset_counter = st.session_state.get('reset_counter', 0) + 1
-            st.rerun()
-    
-    # JavaScript to color both buttons
-    st.markdown("""
+with refresh_col:
+    if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_main"):
+        st.rerun()
+
+with clear_col:
+    if st.button("🔄 Clear Players/Scores", use_container_width=True, key="clear_main"):
+        st.session_state.reset_counter = st.session_state.get('reset_counter', 0) + 1
+        st.rerun()
+
+# JavaScript to color both buttons
+st.markdown("""
 <script>
     function colorButtons() {
         let buttons = document.querySelectorAll('button');
@@ -256,9 +251,14 @@ with tab1:
     observer.observe(document.body, { childList: true, subtree: true });
 </script>
 """, unsafe_allow_html=True)
-    
-    st.divider()
-    
+
+st.divider()
+
+# Create tabs
+tab1, tab2, tab3, tab4 = st.tabs(["🎯 Log Match", "📊 Series History", "🏆 Player Stats", "👥 Teams"])
+
+# ============ TAB 1: LOG MATCH ============
+with tab1:
     # Format and Match Type Selection
     col1, col2 = st.columns(2)
     
@@ -478,6 +478,10 @@ with tab1:
 
 # ============ TAB 2: SERIES HISTORY ============
 with tab2:
+    if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_tab2"):
+        st.rerun()
+    
+    st.divider()
     c.execute("""SELECT series_number, best_of, match_number FROM matches 
                  GROUP BY series_number ORDER BY series_number DESC""")
     series_list = c.fetchall()
@@ -582,6 +586,10 @@ with tab2:
 
 # ============ TAB 3: PLAYER STATS ============
 with tab3:
+    if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_tab3"):
+        st.rerun()
+    
+    st.divider()
     c.execute("""SELECT DISTINCT player_name FROM player_stats ORDER BY player_name""")
     all_players = [row[0] for row in c.fetchall()]
     
@@ -693,6 +701,10 @@ with tab3:
 
 # ============ TAB 4: TEAMS ============
 with tab4:
+    if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_tab4"):
+        st.rerun()
+    
+    st.divider()
     c.execute("""SELECT id, team1_players, team2_players, winner FROM matches""")
     all_matches = c.fetchall()
     
