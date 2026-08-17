@@ -299,7 +299,7 @@ with tab1:
     player_options = ["Choose Player"] + PLAYERS
     
     with col1:
-        st.markdown('<div style="text-align: center; font-size: 1.3em; color: #FF6B00; font-weight: bold; margin-bottom: 15px;">🟠 TEAM 1 🟠</div>', unsafe_allow_html=True)
+        st.markdown('<div style="text-align: center; font-size: 1.3em; color: #FF6B00; font-weight: bold; margin-bottom: 15px;">TEAM 1</div>', unsafe_allow_html=True)
         for i in range(num_players):
             try:
                 current_index = player_options.index(st.session_state.series_team1[i])
@@ -308,7 +308,7 @@ with tab1:
             st.session_state.series_team1[i] = st.selectbox(f"Player {i+1}", player_options, index=current_index, key=f"team1_p{i}_r{st.session_state.reset_counter}")
     
     with col2:
-        st.markdown('<div style="text-align: center; font-size: 1.3em; color: #1E90FF; font-weight: bold; margin-bottom: 15px;">🔵 TEAM 2 🔵</div>', unsafe_allow_html=True)
+        st.markdown('<div style="text-align: center; font-size: 1.3em; color: #1E90FF; font-weight: bold; margin-bottom: 15px;">TEAM 2</div>', unsafe_allow_html=True)
         for i in range(num_players):
             try:
                 current_index = player_options.index(st.session_state.series_team2[i])
@@ -328,7 +328,7 @@ with tab1:
             col1, col2 = st.columns(2)
             
             with col1:
-                st.markdown('<div style="text-align: center; font-size: 1.2em; color: #FF6B00; font-weight: bold; margin-bottom: 10px;">🟠 TEAM 1</div>', unsafe_allow_html=True)
+                st.markdown('<div style="text-align: center; font-size: 1.2em; color: #FF6B00; font-weight: bold; margin-bottom: 10px;">TEAM 1</div>', unsafe_allow_html=True)
                 team1_stats = []
                 
                 for i in range(num_players):
@@ -347,7 +347,7 @@ with tab1:
                     st.markdown("---")
             
             with col2:
-                st.markdown('<div style="text-align: center; font-size: 1.2em; color: #1E90FF; font-weight: bold; margin-bottom: 10px;">🔵 TEAM 2</div>', unsafe_allow_html=True)
+                st.markdown('<div style="text-align: center; font-size: 1.2em; color: #1E90FF; font-weight: bold; margin-bottom: 10px;">TEAM 2</div>', unsafe_allow_html=True)
                 team2_stats = []
                 
                 for i in range(num_players):
@@ -519,14 +519,14 @@ with tab2:
                             col1, col2 = st.columns(2)
                             
                             with col1:
-                                st.markdown('<div style="text-align: center; font-size: 1.1em; color: #FF6B00; font-weight: bold;">🟠 TEAM 1 🟠</div>', unsafe_allow_html=True)
+                                st.markdown('<div style="text-align: center; font-size: 1.1em; color: #FF6B00; font-weight: bold;">TEAM 1</div>', unsafe_allow_html=True)
                                 c.execute("""SELECT player_name, score, goals, assists, saves FROM player_stats 
                                              WHERE match_id = ? AND team = 1""", (match_id,))
                                 for row in c.fetchall():
                                     st.markdown(f"**{row[0]}** · Score: {row[1]} Goals: {row[2]} Assists: {row[3]} Saves: {row[4]}")
                             
                             with col2:
-                                st.markdown('<div style="text-align: center; font-size: 1.1em; color: #1E90FF; font-weight: bold;">🔵 TEAM 2 🔵</div>', unsafe_allow_html=True)
+                                st.markdown('<div style="text-align: center; font-size: 1.1em; color: #1E90FF; font-weight: bold;">TEAM 2</div>', unsafe_allow_html=True)
                                 c.execute("""SELECT player_name, score, goals, assists, saves FROM player_stats 
                                              WHERE match_id = ? AND team = 2""", (match_id,))
                                 for row in c.fetchall():
