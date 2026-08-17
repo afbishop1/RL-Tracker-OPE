@@ -170,6 +170,7 @@ def init_db():
                   goals INTEGER,
                   assists INTEGER,
                   saves INTEGER,
+                  shots INTEGER,
                   FOREIGN KEY(match_id) REFERENCES matches(id))''')
     
     c.execute('''CREATE TABLE IF NOT EXISTS activity_log
@@ -377,15 +378,17 @@ with tab1:
                     player_name = st.session_state.series_team1[i]
                     st.markdown(f"**{player_name}**")
                     
-                    stat_col1, stat_col2 = st.columns(2)
+                    stat_col1, stat_col2, stat_col3 = st.columns(3)
                     with stat_col1:
                         score = st.number_input(f"Score", min_value=0, key=f"g{game_num}_t1_s{i}_r{st.session_state.reset_counter}")
                         goals = st.number_input(f"Goals", min_value=0, key=f"g{game_num}_t1_g{i}_r{st.session_state.reset_counter}")
                     with stat_col2:
                         assists = st.number_input(f"Assists", min_value=0, key=f"g{game_num}_t1_a{i}_r{st.session_state.reset_counter}")
                         saves = st.number_input(f"Saves", min_value=0, key=f"g{game_num}_t1_sv{i}_r{st.session_state.reset_counter}")
+                    with stat_col3:
+                        shots = st.number_input(f"Shots", min_value=0, key=f"g{game_num}_t1_sh{i}_r{st.session_state.reset_counter}")
                     
-                    team1_stats.append({"player": player_name, "score": score, "goals": goals, "assists": assists, "saves": saves})
+                    team1_stats.append({"player": player_name, "score": score, "goals": goals, "assists": assists, "saves": saves, "shots": shots})
                     st.markdown("---")
             
             with col2:
@@ -396,15 +399,17 @@ with tab1:
                     player_name = st.session_state.series_team2[i]
                     st.markdown(f"**{player_name}**")
                     
-                    stat_col1, stat_col2 = st.columns(2)
+                    stat_col1, stat_col2, stat_col3 = st.columns(3)
                     with stat_col1:
                         score = st.number_input(f"Score", min_value=0, key=f"g{game_num}_t2_s{i}_r{st.session_state.reset_counter}")
                         goals = st.number_input(f"Goals", min_value=0, key=f"g{game_num}_t2_g{i}_r{st.session_state.reset_counter}")
                     with stat_col2:
                         assists = st.number_input(f"Assists", min_value=0, key=f"g{game_num}_t2_a{i}_r{st.session_state.reset_counter}")
                         saves = st.number_input(f"Saves", min_value=0, key=f"g{game_num}_t2_sv{i}_r{st.session_state.reset_counter}")
+                    with stat_col3:
+                        shots = st.number_input(f"Shots", min_value=0, key=f"g{game_num}_t2_sh{i}_r{st.session_state.reset_counter}")
                     
-                    team2_stats.append({"player": player_name, "score": score, "goals": goals, "assists": assists, "saves": saves})
+                    team2_stats.append({"player": player_name, "score": score, "goals": goals, "assists": assists, "saves": saves, "shots": shots})
                     st.markdown("---")
             
             # Winner selection - show actual player names
@@ -484,15 +489,15 @@ with tab1:
                         
                         # Insert player stats for team 1
                         for i, stat in enumerate(game["team1_stats"]):
-                            c.execute("""INSERT INTO player_stats (match_id, player_name, team, score, goals, assists, saves)
-                                        VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                                     (match_id, stat["player"], 1, stat["score"], stat["goals"], stat["assists"], stat["saves"]))
+                            c.execute("""INSERT INTO player_stats (match_id, player_name, team, score, goals, assists, saves, shots)
+                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                                     (match_id, stat["player"], 1, stat["score"], stat["goals"], stat["assists"], stat["saves"], stat["shots"]))
                         
                         # Insert player stats for team 2
                         for i, stat in enumerate(game["team2_stats"]):
-                            c.execute("""INSERT INTO player_stats (match_id, player_name, team, score, goals, assists, saves)
-                                        VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                                     (match_id, stat["player"], 2, stat["score"], stat["goals"], stat["assists"], stat["saves"]))
+                            c.execute("""INSERT INTO player_stats (match_id, player_name, team, score, goals, assists, saves, shots)
+                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                                     (match_id, stat["player"], 2, stat["score"], stat["goals"], stat["assists"], stat["saves"], stat["shots"]))
                     
                     conn.commit()
                     
@@ -651,17 +656,17 @@ with tab2:
                             
                             with col1:
                                 st.markdown('<div style="text-align: center; font-size: 1.1em; color: #FF6B00; font-weight: bold;">TEAM 1</div>', unsafe_allow_html=True)
-                                c.execute("""SELECT player_name, score, goals, assists, saves FROM player_stats 
+                                c.execute("""SELECT player_name, score, goals, assists, saves, shots FROM player_stats 
                                              WHERE match_id = ? AND team = 1""", (match_id,))
                                 for row in c.fetchall():
-                                    st.markdown(f"**{row[0]}** · Score: {row[1]} Goals: {row[2]} Assists: {row[3]} Saves: {row[4]}")
+                                    st.markdown(f"**{row[0]}** · Score: {row[1]} Goals: {row[2]} Assists: {row[3]} Saves: {row[4]} Shots: {row[5]}")
                             
                             with col2:
                                 st.markdown('<div style="text-align: center; font-size: 1.1em; color: #1E90FF; font-weight: bold;">TEAM 2</div>', unsafe_allow_html=True)
-                                c.execute("""SELECT player_name, score, goals, assists, saves FROM player_stats 
+                                c.execute("""SELECT player_name, score, goals, assists, saves, shots FROM player_stats 
                                              WHERE match_id = ? AND team = 2""", (match_id,))
                                 for row in c.fetchall():
-                                    st.markdown(f"**{row[0]}** · Score: {row[1]} Goals: {row[2]} Assists: {row[3]} Saves: {row[4]}")
+                                    st.markdown(f"**{row[0]}** · Score: {row[1]} Goals: {row[2]} Assists: {row[3]} Saves: {row[4]} Shots: {row[5]}")
                             
                             st.divider()
                         
@@ -669,14 +674,14 @@ with tab2:
                         
                         # Series totals
                         st.markdown("### Series Totals")
-                        c.execute("""SELECT player_name, SUM(score), SUM(goals), SUM(assists), SUM(saves) 
+                        c.execute("""SELECT player_name, SUM(score), SUM(goals), SUM(assists), SUM(saves), SUM(shots) 
                                      FROM player_stats 
                                      WHERE match_id IN (SELECT id FROM matches WHERE series_number = ?)
                                      GROUP BY player_name
                                      ORDER BY SUM(score) DESC""", (series_num,))
                         
                         for row in c.fetchall():
-                            st.markdown(f"**{row[0]}** · Score: {row[1]} Goals: {row[2]} Assists: {row[3]} Saves: {row[4]}")
+                            st.markdown(f"**{row[0]}** · Score: {row[1]} Goals: {row[2]} Assists: {row[3]} Saves: {row[4]} Shots: {row[5]}")
             
             st.divider()
     
@@ -761,19 +766,21 @@ with tab3:
                 win_pct = 0
             
             # Get totals
-            c.execute("""SELECT SUM(score), SUM(goals), SUM(assists), SUM(saves) FROM player_stats 
+            c.execute("""SELECT SUM(score), SUM(goals), SUM(assists), SUM(saves), SUM(shots) FROM player_stats 
                          WHERE player_name = ?""", (player,))
-            score, goals, assists, saves = c.fetchone()
+            score, goals, assists, saves, shots = c.fetchone()
             score = score or 0
             goals = goals or 0
             assists = assists or 0
             saves = saves or 0
+            shots = shots or 0
             
             # Calculate averages
             avg_score = score / games if games > 0 else 0
             avg_goals = goals / games if games > 0 else 0
             avg_assists = assists / games if games > 0 else 0
             avg_saves = saves / games if games > 0 else 0
+            avg_shots = shots / games if games > 0 else 0
             
             stats_data.append({
                 "player": player,
@@ -785,10 +792,12 @@ with tab3:
                 "goals": goals,
                 "assists": assists,
                 "saves": saves,
+                "shots": shots,
                 "avg_score": avg_score,
                 "avg_goals": avg_goals,
                 "avg_assists": avg_assists,
-                "avg_saves": avg_saves
+                "avg_saves": avg_saves,
+                "avg_shots": avg_shots
             })
         
         # Display wins/losses table
@@ -817,7 +826,8 @@ with tab3:
                 "🎯 Score": stat["score"],
                 "⚽ Goals": stat["goals"],
                 "🎁 Assists": stat["assists"],
-                "🛡️ Saves": stat["saves"]
+                "🛡️ Saves": stat["saves"],
+                "🔫 Shots": stat["shots"]
             })
         
         df_totals = pd.DataFrame(totals_data)
@@ -834,7 +844,8 @@ with tab3:
                 "📍 Avg Score": f"{stat['avg_score']:.1f}",
                 "⚽ Avg Goals": f"{stat['avg_goals']:.2f}",
                 "🎁 Avg Assists": f"{stat['avg_assists']:.2f}",
-                "🛡️ Avg Saves": f"{stat['avg_saves']:.2f}"
+                "🛡️ Avg Saves": f"{stat['avg_saves']:.2f}",
+                "🔫 Avg Shots": f"{stat['avg_shots']:.2f}"
             })
         
         df_avg = pd.DataFrame(avg_data)
