@@ -704,10 +704,15 @@ with tab2:
     if not logs:
         st.info("📭 No activity yet")
     else:
+        eastern = pytz.timezone('US/Eastern')
         for timestamp, user_name, action in logs:
-            # Format timestamp to be more readable
+            # Format timestamp to be more readable - convert from UTC to Eastern
             ts = datetime.fromisoformat(timestamp)
-            ts_str = ts.strftime("%m/%d %I:%M %p")
+            # Assume stored timestamp is UTC and localize it
+            ts_utc = pytz.UTC.localize(ts) if ts.tzinfo is None else ts
+            # Convert to Eastern
+            ts_eastern = ts_utc.astimezone(eastern)
+            ts_str = ts_eastern.strftime("%m/%d %I:%M %p")
             st.markdown(f"**{user_name}** {action} · {ts_str}")
     
     st.divider()
