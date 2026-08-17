@@ -226,6 +226,10 @@ with tab1:
     # Store all games for this series
     series_games = []
     
+    # Initialize session state for player selections if not exists
+    if 'series_players' not in st.session_state:
+        st.session_state.series_players = {}
+    
     # Show game inputs
     for game_num in range(1, max_games + 1):
         with st.expander(f"Game {game_num}", expanded=(game_num==1)):
@@ -238,16 +242,32 @@ with tab1:
                 
                 for i in range(num_players):
                     st.markdown(f'<div class="player-input-card">', unsafe_allow_html=True)
-                    player = st.selectbox(f"Player {i+1}", PLAYERS, key=f"g{game_num}_t1_p{i}", label_visibility="collapsed")
+                    
+                    # Get default value from session state if it exists
+                    default_idx = 0
+                    session_key = f"t1_p{i}"
+                    if session_key in st.session_state.series_players:
+                        default_player = st.session_state.series_players[session_key]
+                        if default_player in PLAYERS:
+                            default_idx = PLAYERS.index(default_player)
+                    
+                    player = st.selectbox(f"Player {i+1}", PLAYERS, index=default_idx, key=f"g{game_num}_t1_p{i}", label_visibility="collapsed")
+                    
+                    # Store in session state
+                    st.session_state.series_players[session_key] = player
                     team1_players.append(player)
                     
                     # Stats in columns with labels
                     stat_col1, stat_col2 = st.columns(2)
                     with stat_col1:
+                        st.markdown("**Score**")
                         score = st.number_input(f"Score", min_value=0, key=f"g{game_num}_t1_s{i}", label_visibility="collapsed")
+                        st.markdown("**Goals**")
                         goals = st.number_input(f"Goals", min_value=0, key=f"g{game_num}_t1_g{i}", label_visibility="collapsed")
                     with stat_col2:
+                        st.markdown("**Assists**")
                         assists = st.number_input(f"Assists", min_value=0, key=f"g{game_num}_t1_a{i}", label_visibility="collapsed")
+                        st.markdown("**Saves**")
                         saves = st.number_input(f"Saves", min_value=0, key=f"g{game_num}_t1_sv{i}", label_visibility="collapsed")
                     
                     st.markdown('</div>', unsafe_allow_html=True)
@@ -260,16 +280,32 @@ with tab1:
                 
                 for i in range(num_players):
                     st.markdown(f'<div class="player-input-card">', unsafe_allow_html=True)
-                    player = st.selectbox(f"Player {i+1}", PLAYERS, key=f"g{game_num}_t2_p{i}", label_visibility="collapsed")
+                    
+                    # Get default value from session state if it exists
+                    default_idx = 0
+                    session_key = f"t2_p{i}"
+                    if session_key in st.session_state.series_players:
+                        default_player = st.session_state.series_players[session_key]
+                        if default_player in PLAYERS:
+                            default_idx = PLAYERS.index(default_player)
+                    
+                    player = st.selectbox(f"Player {i+1}", PLAYERS, index=default_idx, key=f"g{game_num}_t2_p{i}", label_visibility="collapsed")
+                    
+                    # Store in session state
+                    st.session_state.series_players[session_key] = player
                     team2_players.append(player)
                     
                     # Stats in columns with labels
                     stat_col1, stat_col2 = st.columns(2)
                     with stat_col1:
+                        st.markdown("**Score**")
                         score = st.number_input(f"Score", min_value=0, key=f"g{game_num}_t2_s{i}", label_visibility="collapsed")
+                        st.markdown("**Goals**")
                         goals = st.number_input(f"Goals", min_value=0, key=f"g{game_num}_t2_g{i}", label_visibility="collapsed")
                     with stat_col2:
+                        st.markdown("**Assists**")
                         assists = st.number_input(f"Assists", min_value=0, key=f"g{game_num}_t2_a{i}", label_visibility="collapsed")
+                        st.markdown("**Saves**")
                         saves = st.number_input(f"Saves", min_value=0, key=f"g{game_num}_t2_sv{i}", label_visibility="collapsed")
                     
                     st.markdown('</div>', unsafe_allow_html=True)
@@ -338,6 +374,8 @@ with tab1:
             conn.commit()
             st.balloons()
             st.success(f"✅ Series {current_series} Logged! 🎉")
+            # Clear session state for next series
+            st.session_state.series_players = {}
             st.rerun()
 
 # ============ TAB 2: SERIES HISTORY ============
@@ -350,7 +388,18 @@ with tab2:
         st.info("📭 No matches logged yet")
     else:
         for series_num, bo, last_match in series_list:
-            with st.expander(f"📊 Series {series_num} - Best of {bo}", expanded=False):
+            col1, col2 = st.columns([0.9, 0.1])
+            with col1:
+                expander = st.expander(f"📊 Series {series_num} - Best of {bo}", expanded=False)
+            with col2:
+                if st.button("🗑️", key=f"delete_series_{series_num}", help="Delete this series"):
+                    c.execute("DELETE FROM player_stats WHERE match_id IN (SELECT id FROM matches WHERE series_number = ?)", (series_num,))
+                    c.execute("DELETE FROM matches WHERE series_number = ?", (series_num,))
+                    conn.commit()
+                    st.success(f"Series {series_num} deleted!")
+                    st.rerun()
+            
+            with expander:
                 c.execute("""SELECT * FROM matches WHERE series_number = ? ORDER BY match_number""", (series_num,))
                 matches = c.fetchall()
                 
