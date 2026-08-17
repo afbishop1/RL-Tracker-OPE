@@ -482,24 +482,56 @@ with tab3:
             avg_saves = saves / games if games > 0 else 0
             
             stats_data.append({
-                "🎮 Player": player,
-                "🏆 Wins": wins,
-                "💔 Losses": losses,
-                "📊 Games": games,
-                "📈 Win %": f"{win_pct:.1f}%",
-                "🎯 Score": score,
-                "⚽ Goals": goals,
-                "🎁 Assists": assists,
-                "🛡️ Saves": saves,
-                "📍 Avg Score": f"{avg_score:.1f}",
-                "⚽ Avg Goals": f"{avg_goals:.2f}",
-                "🎁 Avg Assists": f"{avg_assists:.2f}",
-                "🛡️ Avg Saves": f"{avg_saves:.2f}"
+                "player": player,
+                "wins": wins,
+                "losses": losses,
+                "games": games,
+                "win_pct": f"{win_pct:.1f}%",
+                "score": score,
+                "goals": goals,
+                "assists": assists,
+                "saves": saves,
+                "avg_score": avg_score,
+                "avg_goals": avg_goals,
+                "avg_assists": avg_assists,
+                "avg_saves": avg_saves
             })
         
-        df = pd.DataFrame(stats_data)
+        # Display overall stats table
+        display_data = []
+        for stat in stats_data:
+            display_data.append({
+                "🎮 Player": stat["player"],
+                "🏆 Wins": stat["wins"],
+                "💔 Losses": stat["losses"],
+                "📊 Games": stat["games"],
+                "📈 Win %": stat["win_pct"],
+                "🎯 Score": stat["score"],
+                "⚽ Goals": stat["goals"],
+                "🎁 Assists": stat["assists"],
+                "🛡️ Saves": stat["saves"]
+            })
+        
+        df = pd.DataFrame(display_data)
         df = df.sort_values("🏆 Wins", ascending=False)
         st.dataframe(df, use_container_width=True, hide_index=True)
+        
+        st.divider()
+        st.markdown("## Per-Game Averages")
+        
+        # Display averages
+        avg_data = []
+        for stat in sorted(stats_data, key=lambda x: x["wins"], reverse=True):
+            avg_data.append({
+                "🎮 Player": stat["player"],
+                "📍 Avg Score": f"{stat['avg_score']:.1f}",
+                "⚽ Avg Goals": f"{stat['avg_goals']:.2f}",
+                "🎁 Avg Assists": f"{stat['avg_assists']:.2f}",
+                "🛡️ Avg Saves": f"{stat['avg_saves']:.2f}"
+            })
+        
+        df_avg = pd.DataFrame(avg_data)
+        st.dataframe(df_avg, use_container_width=True, hide_index=True)
 
 # ============ TAB 4: PARTNERSHIPS ============
 with tab4:
