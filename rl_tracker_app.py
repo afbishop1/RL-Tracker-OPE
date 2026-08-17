@@ -170,7 +170,7 @@ PLAYERS = ["Killmesmallz", "See Me No Mor", "Bon Qwee Qwee", "CrabLegz19", "Gunz
 
 # Title
 st.markdown('<div class="title-main">⚡ RL MATCH TRACKER ⚡</div>', unsafe_allow_html=True)
-st.markdown("🎮 Shared · Real-time updates · OPE Gaming", unsafe_allow_html=True)
+st.markdown("OPE Gaming", unsafe_allow_html=True)
 st.divider()
 
 # Create tabs
