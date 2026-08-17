@@ -191,6 +191,17 @@ with tab1:
         match_type = st.radio("Choose type", ["1v1", "2v2", "3v3"], horizontal=True, label_visibility="collapsed")
         num_players = int(match_type[0])
     
+    # Clear All button
+    st.divider()
+    if st.button("🔄 Clear All", key="clear_all", use_container_width=True):
+        keys_to_delete = [key for key in list(st.session_state.keys()) if key.startswith('team') or key.startswith('g')]
+        for key in keys_to_delete:
+            del st.session_state[key]
+        st.session_state.series_team1 = None
+        st.session_state.series_team2 = None
+        st.rerun()
+    st.divider()
+    
     # Get current series
     c.execute("SELECT series_number, match_number, best_of FROM matches ORDER BY series_number DESC, match_number DESC LIMIT 1")
     last_match = c.fetchone()
@@ -392,9 +403,21 @@ with tab2:
         st.info("📭 No matches logged yet")
     else:
         for series_num, bo, last_match in series_list:
+            # Get first match to get player info
+            c.execute("""SELECT team1_players, team2_players FROM matches 
+                         WHERE series_number = ? ORDER BY match_number LIMIT 1""", (series_num,))
+            first_match = c.fetchone()
+            
+            if first_match:
+                t1_players = first_match[0]
+                t2_players = first_match[1]
+                player_info = f"({t1_players} vs {t2_players})"
+            else:
+                player_info = ""
+            
             col1, col2 = st.columns([0.9, 0.1])
             with col1:
-                expander = st.expander(f"📊 Series {series_num} - Best of {bo}", expanded=False)
+                expander = st.expander(f"📊 Series {series_num} - Best of {bo} {player_info}", expanded=False)
             with col2:
                 if st.button("🗑️", key=f"delete_series_{series_num}", help="Delete this series"):
                     c.execute("DELETE FROM player_stats WHERE match_id IN (SELECT id FROM matches WHERE series_number = ?)", (series_num,))
