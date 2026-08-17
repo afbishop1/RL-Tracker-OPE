@@ -185,36 +185,6 @@ st.markdown('<div class="title-main">⚡ RL MATCH TRACKER ⚡</div>', unsafe_all
 st.markdown("OPE Gaming", unsafe_allow_html=True)
 st.divider()
 
-# Refresh Data button (visible on all pages)
-if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_main"):
-    st.rerun()
-
-# JavaScript to color refresh button blue
-st.markdown("""
-<script>
-    const observer = new MutationObserver(() => {
-        let buttons = document.querySelectorAll('button');
-        buttons.forEach(btn => {
-            if (btn.textContent.includes('Refresh Data')) {
-                btn.style.cssText = 'background: linear-gradient(90deg, #1E90FF 0%, #4169E1 100%) !important; color: white !important; border: none !important; border-radius: 8px !important; font-weight: bold !important; font-size: 1.6em !important; padding: 20px 40px !important; transition: transform 0.2s !important;';
-            }
-        });
-    });
-    
-    observer.observe(document.body, { childList: true, subtree: true });
-    
-    // Also run immediately
-    let buttons = document.querySelectorAll('button');
-    buttons.forEach(btn => {
-        if (btn.textContent.includes('Refresh Data')) {
-            btn.style.cssText = 'background: linear-gradient(90deg, #1E90FF 0%, #4169E1 100%) !important; color: white !important; border: none !important; border-radius: 8px !important; font-weight: bold !important; font-size: 1.6em !important; padding: 20px 40px !important; transition: transform 0.2s !important;';
-        }
-    });
-</script>
-""", unsafe_allow_html=True)
-
-st.divider()
-
 # Create tabs
 tab1, tab2, tab3, tab4 = st.tabs(["🎯 Log Match", "📊 Series History", "🏆 Player Stats", "👥 Teams"])
 
