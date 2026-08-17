@@ -1,0 +1,5 @@
+rl_matches.db
+__pycache__/
+*.pyc
+.DS_Store
+.env
