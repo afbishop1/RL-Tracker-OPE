@@ -1421,59 +1421,6 @@ with tab3:
         df_avg = pd.DataFrame(avg_data)
         left_aligned_table(df_avg)
         st.divider()
-        # ====================================================
-        # 1V1 HEAD-TO-HEAD
-        # ====================================================
-        st.markdown("## 1v1 Head-to-Head")
-        
-        # Get all 1v1 matches
-        c.execute("""
-            SELECT id, team1_players, team2_players, winner
-            FROM matches
-            WHERE 
-                (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', ''))) = 0
-        """)
-        one_v_one_matches = c.fetchall()
-        
-        if not one_v_one_matches:
-            st.info("📭 No 1v1 matches yet")
-        else:
-            # Build head-to-head records
-            h2h_records = defaultdict(lambda: defaultdict(lambda: {"wins": 0, "losses": 0}))
-            
-            for match_id, t1, t2, winner in one_v_one_matches:
-                p1 = t1.strip()
-                p2 = t2.strip()
-                
-                if winner == 1:
-                    h2h_records[p1][p2]["wins"] += 1
-                    h2h_records[p2][p1]["losses"] += 1
-                elif winner == 2:
-                    h2h_records[p2][p1]["wins"] += 1
-                    h2h_records[p1][p2]["losses"] += 1
-            
-            # Display for each player
-            for player in all_players_list:
-                if player not in h2h_records or not h2h_records[player]:
-                    continue
-                    
-                with st.expander(f"🎮 {player}", expanded=False):
-                    h2h_data = []
-                    for opponent, record in h2h_records[player].items():
-                        total = record["wins"] + record["losses"]
-                        win_pct = (record["wins"] / total * 100) if total > 0 else 0
-                        h2h_data.append({
-                            "🎮 Opponent": opponent,
-                            "🏆 Wins": record["wins"],
-                            "💔 Losses": record["losses"],
-                            "📊 Total": total,
-                            "📈 Win %": f"{win_pct:.1f}%"
-                        })
-                    
-                    h2h_data.sort(key=lambda x: x["🏆 Wins"], reverse=True)
-                    df_h2h = pd.DataFrame(h2h_data)
-                    left_aligned_table(df_h2h)
-        st.divider()
 # ============================================================
 # TAB 4 - TEAMS
 # ============================================================
@@ -1484,6 +1431,66 @@ with tab4:
         key="refresh_tab4"
     ):
         st.rerun()
+    st.divider()
+    # ====================================================
+    # 1V1 HEAD-TO-HEAD
+    # ====================================================
+    st.markdown("## 1v1 Head-to-Head")
+    
+    c.execute("""
+        SELECT id, team1_players, team2_players, winner
+        FROM matches
+        WHERE 
+            (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', ''))) = 0
+    """)
+    one_v_one_matches = c.fetchall()
+    
+    if not one_v_one_matches:
+        st.info("📭 No 1v1 matches yet")
+    else:
+        # Build head-to-head records
+        h2h_records = defaultdict(lambda: defaultdict(lambda: {"wins": 0, "losses": 0}))
+        
+        for match_id, t1, t2, winner in one_v_one_matches:
+            p1 = t1.strip()
+            p2 = t2.strip()
+            
+            if winner == 1:
+                h2h_records[p1][p2]["wins"] += 1
+                h2h_records[p2][p1]["losses"] += 1
+            elif winner == 2:
+                h2h_records[p2][p1]["wins"] += 1
+                h2h_records[p1][p2]["losses"] += 1
+        
+        # Display for each player
+        c.execute("""
+            SELECT DISTINCT player_name
+            FROM player_stats
+            ORDER BY player_name
+        """)
+        all_players_with_stats = [row[0] for row in c.fetchall()]
+        
+        for player in all_players_with_stats:
+            if player not in h2h_records or not h2h_records[player]:
+                continue
+                
+            with st.expander(f"🎮 {player}", expanded=False):
+                h2h_data = []
+                for opponent, record in h2h_records[player].items():
+                    total = record["wins"] + record["losses"]
+                    win_pct = (record["wins"] / total * 100) if total > 0 else 0
+                    h2h_data.append({
+                        "🎮 Opponent": opponent,
+                        "🏆 Wins": record["wins"],
+                        "💔 Losses": record["losses"],
+                        "📊 Total": total,
+                        "📈 Win %": f"{win_pct:.1f}%"
+                    })
+                
+                h2h_data.sort(key=lambda x: x["🏆 Wins"], reverse=True)
+                df_h2h = pd.DataFrame(h2h_data)
+                left_aligned_table(df_h2h)
+    
     st.divider()
     c.execute("""
         SELECT
