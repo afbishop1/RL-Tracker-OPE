@@ -21,6 +21,7 @@ st.set_page_config(
 
 st.markdown("""
 <style>
+
     :root {
         --rl-orange: #FF6B00;
         --rl-blue: #1E90FF;
@@ -151,84 +152,31 @@ st.markdown("""
     }
 
     /* ========================================================
-       LEFT ALIGNED PLAYER STATS TABLES
+       SERIES HISTORY TEAM / PLAYER STAT DISPLAY
        ======================================================== */
 
-    .rl-table-wrapper {
+    .history-team-column {
         width: 100%;
-        overflow-x: auto;
-        margin-bottom: 20px;
+        text-align: center;
     }
 
-    .rl-stats-table {
-        width: 100%;
-        border-collapse: collapse;
-        background: #0f1428;
-        color: #E8EAED;
-        font-size: 16px;
-        text-align: left !important;
-    }
-
-    .rl-stats-table th {
-        background: #1a1f3a;
-        color: #E8EAED;
+    .history-team-title {
+        text-align: center;
+        font-size: 1.1em;
         font-weight: bold;
-        padding: 12px 15px;
-        border: 1px solid #303653;
-        text-align: left !important;
-        white-space: nowrap;
+        margin-bottom: 12px;
     }
 
-    .rl-stats-table td {
-        padding: 12px 15px;
-        border: 1px solid #303653;
-        text-align: left !important;
-        vertical-align: middle;
-        white-space: nowrap;
-    }
-
-    .rl-stats-table tr:hover {
-        background: rgba(30, 144, 255, 0.08);
-    }
-
-    .rl-stats-table th *,
-    .rl-stats-table td * {
-        text-align: left !important;
+    .history-player-stats {
+        width: 100%;
+        text-align: center;
+        font-weight: bold;
+        margin-bottom: 20px;
+        line-height: 1.6;
     }
 
 </style>
 """, unsafe_allow_html=True)
-
-# ============================================================
-# LEFT-ALIGNED TABLE FUNCTION
-# ============================================================
-
-def left_aligned_table(df):
-    """
-    Displays a pandas DataFrame as an HTML table with
-    every header and cell left-aligned.
-    """
-
-    if df.empty:
-        st.info("No data available")
-        return
-
-    html = df.to_html(
-        index=False,
-        escape=False,
-        classes="rl-stats-table",
-        border=0
-    )
-
-    st.markdown(
-        f"""
-        <div class="rl-table-wrapper">
-            {html}
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
 
 # ============================================================
 # DATABASE SETUP
@@ -237,10 +185,9 @@ def left_aligned_table(df):
 def init_db():
 
     conn = sqlite3.connect("rl_matches.db")
-
     c = conn.cursor()
 
-    c.execute("""
+    c.execute('''
         CREATE TABLE IF NOT EXISTS matches
         (
             id INTEGER PRIMARY KEY,
@@ -254,9 +201,9 @@ def init_db():
             team2_score INTEGER,
             winner INTEGER
         )
-    """)
+    ''')
 
-    c.execute("""
+    c.execute('''
         CREATE TABLE IF NOT EXISTS player_stats
         (
             id INTEGER PRIMARY KEY,
@@ -271,9 +218,9 @@ def init_db():
             excuse_used INTEGER,
             FOREIGN KEY(match_id) REFERENCES matches(id)
         )
-    """)
+    ''')
 
-    c.execute("""
+    c.execute('''
         CREATE TABLE IF NOT EXISTS activity_log
         (
             id INTEGER PRIMARY KEY,
@@ -281,26 +228,25 @@ def init_db():
             user_name TEXT,
             action TEXT
         )
-    """)
+    ''')
 
-    # Auto migration
+    # Auto-migration
     try:
 
         c.execute("PRAGMA table_info(player_stats)")
-
         columns = [row[1] for row in c.fetchall()]
 
-        if "shots" not in columns:
+        if 'shots' not in columns:
             c.execute(
                 "ALTER TABLE player_stats ADD COLUMN shots INTEGER DEFAULT 0"
             )
+            conn.commit()
 
-        if "excuse_used" not in columns:
+        if 'excuse_used' not in columns:
             c.execute(
                 "ALTER TABLE player_stats ADD COLUMN excuse_used INTEGER DEFAULT 0"
             )
-
-        conn.commit()
+            conn.commit()
 
     except Exception as e:
         print(f"Migration error: {e}")
@@ -313,11 +259,6 @@ def init_db():
 conn = init_db()
 c = conn.cursor()
 
-
-# ============================================================
-# PLAYERS
-# ============================================================
-
 PLAYERS = [
     "Killmesmallz",
     "See Me No Mor",
@@ -327,7 +268,6 @@ PLAYERS = [
     "BucciXman",
     "SirLagz54"
 ]
-
 
 # ============================================================
 # TITLE
@@ -342,37 +282,32 @@ st.markdown("OPE Gaming", unsafe_allow_html=True)
 
 st.divider()
 
-
 # ============================================================
 # SESSION STATE
 # ============================================================
 
-if "confirm_submit" not in st.session_state:
+if 'confirm_submit' not in st.session_state:
     st.session_state.confirm_submit = False
 
-if "confirm_delete" not in st.session_state:
+if 'confirm_delete' not in st.session_state:
     st.session_state.confirm_delete = False
 
-if "delete_series_num" not in st.session_state:
+if 'delete_series_num' not in st.session_state:
     st.session_state.delete_series_num = None
 
-if "reset_counter" not in st.session_state:
+if 'reset_counter' not in st.session_state:
     st.session_state.reset_counter = 0
-
 
 # ============================================================
 # TABS
 # ============================================================
 
-tab1, tab2, tab3, tab4 = st.tabs(
-    [
-        "🎯 Log Match",
-        "📊 Series History",
-        "🏆 Player Stats",
-        "👥 Teams"
-    ]
-)
-
+tab1, tab2, tab3, tab4 = st.tabs([
+    "🎯 Log Match",
+    "📊 Series History",
+    "🏆 Player Stats",
+    "👥 Teams"
+])
 
 # ============================================================
 # TAB 1 - LOG MATCH
@@ -399,16 +334,16 @@ with tab1:
             key="clear_main"
         ):
 
-            st.session_state.reset_counter += 1
-
-            st.session_state.series_team1 = ["Choose Player"] * 3
-            st.session_state.series_team2 = ["Choose Player"] * 3
+            st.session_state.reset_counter = (
+                st.session_state.get('reset_counter', 0) + 1
+            )
 
             st.rerun()
 
     # Button coloring
     st.markdown("""
     <script>
+
         function colorButtons() {
 
             let buttons = document.querySelectorAll('button');
@@ -426,7 +361,7 @@ with tab1:
                     btn.style.fontWeight = 'bold';
                     btn.style.fontSize = '1.6em';
                     btn.style.padding = '20px 40px';
-
+                    btn.style.transition = 'transform 0.2s';
                 }
 
                 if (btn.textContent.includes('Clear Players/Scores')) {
@@ -440,9 +375,11 @@ with tab1:
                     btn.style.fontWeight = 'bold';
                     btn.style.fontSize = '1.6em';
                     btn.style.padding = '20px 40px';
-
+                    btn.style.transition = 'transform 0.2s';
                 }
+
             });
+
         }
 
         colorButtons();
@@ -451,9 +388,11 @@ with tab1:
         setTimeout(colorButtons, 300);
         setTimeout(colorButtons, 600);
         setTimeout(colorButtons, 1000);
+        setTimeout(colorButtons, 2000);
 
-        const observer =
-            new MutationObserver(colorButtons);
+        const observer = new MutationObserver(() => {
+            colorButtons();
+        });
 
         observer.observe(
             document.body,
@@ -462,13 +401,14 @@ with tab1:
                 subtree: true
             }
         );
+
     </script>
     """, unsafe_allow_html=True)
 
     st.divider()
 
     # --------------------------------------------------------
-    # FORMAT
+    # FORMAT / MATCH TYPE
     # --------------------------------------------------------
 
     col1, col2 = st.columns(2)
@@ -485,7 +425,6 @@ with tab1:
         )
 
         bo_num = 3 if best_of == "Best of 3" else 5
-
         max_games = bo_num
 
     with col2:
@@ -527,7 +466,10 @@ with tab1:
 
         wins_in_series = c.fetchone()[0]
 
-        wins_needed = 2 if last_bo == 3 else 3
+        if last_bo == 3:
+            wins_needed = 2
+        else:
+            wins_needed = 3
 
         if wins_in_series >= wins_needed:
             current_series = last_series + 1
@@ -538,51 +480,53 @@ with tab1:
         current_series = 1
 
     st.markdown(
-        f'<div class="series-header">Series {current_series} - {best_of}</div>',
+        f'<div class="series-header">'
+        f'Series {current_series} - {best_of}'
+        f'</div>',
         unsafe_allow_html=True
     )
 
     # --------------------------------------------------------
-    # TEAM SESSION STATE
+    # PLAYER SELECTION STATE
     # --------------------------------------------------------
 
-    if "series_team1" not in st.session_state:
-        st.session_state.series_team1 = [
-            "Choose Player"
-        ] * num_players
+    if 'series_team1' not in st.session_state:
+        st.session_state.series_team1 = (
+            ["Choose Player"] * num_players
+        )
 
-    if "series_team2" not in st.session_state:
-        st.session_state.series_team2 = [
-            "Choose Player"
-        ] * num_players
+    if 'series_team2' not in st.session_state:
+        st.session_state.series_team2 = (
+            ["Choose Player"] * num_players
+        )
 
     if len(st.session_state.series_team1) != num_players:
 
         st.session_state.reset_counter += 1
 
-        st.session_state.series_team1 = [
-            "Choose Player"
-        ] * num_players
+        st.session_state.series_team1 = (
+            ["Choose Player"] * num_players
+        )
 
-        st.session_state.series_team2 = [
-            "Choose Player"
-        ] * num_players
+        st.session_state.series_team2 = (
+            ["Choose Player"] * num_players
+        )
 
     elif len(st.session_state.series_team2) != num_players:
 
         st.session_state.reset_counter += 1
 
-        st.session_state.series_team1 = [
-            "Choose Player"
-        ] * num_players
+        st.session_state.series_team1 = (
+            ["Choose Player"] * num_players
+        )
 
-        st.session_state.series_team2 = [
-            "Choose Player"
-        ] * num_players
+        st.session_state.series_team2 = (
+            ["Choose Player"] * num_players
+        )
 
-    # --------------------------------------------------------
-    # SELECT TEAMS
-    # --------------------------------------------------------
+    # ========================================================
+    # STEP 1 - SELECT TEAMS
+    # ========================================================
 
     st.markdown("## Step 1: Select Your Teams")
 
@@ -601,7 +545,7 @@ with tab1:
                 font-weight:bold;
                 margin-bottom:15px;
             ">
-            TEAM 1
+                TEAM 1
             </div>
             """,
             unsafe_allow_html=True
@@ -634,7 +578,7 @@ with tab1:
                 font-weight:bold;
                 margin-bottom:15px;
             ">
-            TEAM 2
+                TEAM 2
             </div>
             """,
             unsafe_allow_html=True
@@ -658,9 +602,9 @@ with tab1:
 
     st.divider()
 
-    # --------------------------------------------------------
-    # GAME STATS
-    # --------------------------------------------------------
+    # ========================================================
+    # STEP 2 - GAME STATS
+    # ========================================================
 
     st.markdown("## Step 2: Add Stats for Each Game")
 
@@ -675,7 +619,10 @@ with tab1:
 
             col1, col2 = st.columns(2)
 
+            # ------------------------------------------------
             # TEAM 1
+            # ------------------------------------------------
+
             with col1:
 
                 st.markdown(
@@ -687,7 +634,7 @@ with tab1:
                         font-weight:bold;
                         margin-bottom:10px;
                     ">
-                    TEAM 1
+                        TEAM 1
                     </div>
                     """,
                     unsafe_allow_html=True
@@ -760,7 +707,10 @@ with tab1:
 
                     st.markdown("---")
 
+            # ------------------------------------------------
             # TEAM 2
+            # ------------------------------------------------
+
             with col2:
 
                 st.markdown(
@@ -772,7 +722,7 @@ with tab1:
                         font-weight:bold;
                         margin-bottom:10px;
                     ">
-                    TEAM 2
+                        TEAM 2
                     </div>
                     """,
                     unsafe_allow_html=True
@@ -845,7 +795,10 @@ with tab1:
 
                     st.markdown("---")
 
+            # ------------------------------------------------
             # WINNER
+            # ------------------------------------------------
+
             team1_display = " + ".join(
                 st.session_state.series_team1
             )
@@ -873,8 +826,8 @@ with tab1:
 
             series_games.append({
                 "game_num": game_num,
-                "team1_players": st.session_state.series_team1.copy(),
-                "team2_players": st.session_state.series_team2.copy(),
+                "team1_players": st.session_state.series_team1,
+                "team2_players": st.session_state.series_team2,
                 "team1_stats": team1_stats,
                 "team2_stats": team2_stats,
                 "winner": winner_num
@@ -882,9 +835,9 @@ with tab1:
 
     st.divider()
 
-    # --------------------------------------------------------
-    # SUBMIT
-    # --------------------------------------------------------
+    # ========================================================
+    # SUBMIT SERIES
+    # ========================================================
 
     col1, col2 = st.columns([0.7, 0.3])
 
@@ -924,7 +877,6 @@ with tab1:
                 all_valid = True
                 error_msg = ""
 
-                # Check players
                 if (
                     "Choose Player" in st.session_state.series_team1
                     or
@@ -932,12 +884,10 @@ with tab1:
                 ):
 
                     all_valid = False
-
                     error_msg = (
                         "Please select all players before logging the series!"
                     )
 
-                # Check duplicates
                 for game in series_games:
 
                     if not all_valid:
@@ -945,8 +895,7 @@ with tab1:
 
                     all_players_in_game = (
                         game["team1_players"]
-                        +
-                        game["team2_players"]
+                        + game["team2_players"]
                     )
 
                     if len(all_players_in_game) != len(
@@ -1008,7 +957,7 @@ with tab1:
 
                         match_id = c.lastrowid
 
-                        # Team 1 stats
+                        # Team 1 player stats
                         for stat in game["team1_stats"]:
 
                             c.execute("""
@@ -1037,7 +986,7 @@ with tab1:
                                 int(stat["excuse_used"])
                             ))
 
-                        # Team 2 stats
+                        # Team 2 player stats
                         for stat in game["team2_stats"]:
 
                             c.execute("""
@@ -1068,7 +1017,6 @@ with tab1:
 
                     conn.commit()
 
-                    # Activity log
                     c.execute("""
                         INSERT INTO activity_log
                         (
@@ -1087,21 +1035,21 @@ with tab1:
 
                     st.session_state.reset_counter += 1
 
-                    st.session_state.series_team1 = [
-                        "Choose Player"
-                    ] * num_players
+                    st.session_state.series_team1 = (
+                        ["Choose Player"] * num_players
+                    )
 
-                    st.session_state.series_team2 = [
-                        "Choose Player"
-                    ] * num_players
+                    st.session_state.series_team2 = (
+                        ["Choose Player"] * num_players
+                    )
 
                     st.session_state.confirm_submit = False
 
                     st.balloons()
 
                     st.success(
-                        f"✅ Series {current_series} Logged by "
-                        f"{confirming_user}! 🎉"
+                        f"✅ Series {current_series} "
+                        f"Logged by {confirming_user}! 🎉"
                     )
 
                     st.rerun()
@@ -1131,6 +1079,55 @@ with tab2:
         key="refresh_tab2"
     ):
         st.rerun()
+
+    st.markdown("""
+    <script>
+
+        function colorRefreshButton() {
+
+            let buttons = document.querySelectorAll('button');
+
+            buttons.forEach(btn => {
+
+                if (btn.textContent.includes('Refresh Data')) {
+
+                    btn.style.background =
+                        'linear-gradient(90deg, #1E90FF 0%, #4169E1 100%)';
+
+                    btn.style.color = 'white';
+                    btn.style.border = 'none';
+                    btn.style.borderRadius = '8px';
+                    btn.style.fontWeight = 'bold';
+                    btn.style.fontSize = '1.6em';
+                    btn.style.padding = '20px 40px';
+                    btn.style.transition = 'transform 0.2s';
+
+                }
+
+            });
+
+        }
+
+        colorRefreshButton();
+
+        setTimeout(colorRefreshButton, 100);
+        setTimeout(colorRefreshButton, 300);
+        setTimeout(colorRefreshButton, 600);
+
+        const observer = new MutationObserver(
+            colorRefreshButton
+        );
+
+        observer.observe(
+            document.body,
+            {
+                childList: true,
+                subtree: true
+            }
+        );
+
+    </script>
+    """, unsafe_allow_html=True)
 
     st.divider()
 
@@ -1184,19 +1181,29 @@ with tab2:
                     (series_num, bo, last_match)
                 )
 
+        # ----------------------------------------------------
+        # DISPLAY EACH MATCH TYPE
+        # ----------------------------------------------------
+
         for match_type in ["1v1", "2v2", "3v3"]:
 
             st.markdown(f"## {match_type}")
 
             if not series_by_type[match_type]:
 
-                st.info(f"📭 No {match_type} series yet")
+                st.info(
+                    f"📭 No {match_type} series yet"
+                )
 
             else:
 
-                for series_num, bo, last_match in series_by_type[
-                    match_type
-                ]:
+                for series_num, bo, last_match in (
+                    series_by_type[match_type]
+                ):
+
+                    # ----------------------------------------
+                    # GET PLAYER INFO
+                    # ----------------------------------------
 
                     c.execute("""
                         SELECT team1_players, team2_players
@@ -1223,9 +1230,12 @@ with tab2:
                     else:
 
                         player_info = ""
-
                         t1_list = []
                         t2_list = []
+
+                    # ----------------------------------------
+                    # SERIES RECORD
+                    # ----------------------------------------
 
                     c.execute("""
                         SELECT winner, COUNT(*)
@@ -1247,29 +1257,24 @@ with tab2:
                         elif winner == 2:
                             t2_wins = count
 
+                    # ----------------------------------------
+                    # SERIES WINNER
+                    # ----------------------------------------
+
                     if t1_wins > t2_wins:
 
                         series_winner = " + ".join(t1_list)
-
-                        series_record = (
-                            f"{t1_wins}-{t2_wins}"
-                        )
+                        series_record = f"{t1_wins}-{t2_wins}"
 
                     elif t2_wins > t1_wins:
 
                         series_winner = " + ".join(t2_list)
-
-                        series_record = (
-                            f"{t2_wins}-{t1_wins}"
-                        )
+                        series_record = f"{t2_wins}-{t1_wins}"
 
                     else:
 
                         series_winner = "Tied"
-
-                        series_record = (
-                            f"{t1_wins}-{t2_wins}"
-                        )
+                        series_record = f"{t1_wins}-{t2_wins}"
 
                     col1, col2 = st.columns([0.9, 0.1])
 
@@ -1292,10 +1297,11 @@ with tab2:
                         ):
 
                             st.session_state.confirm_delete = True
+                            st.session_state.delete_series_num = series_num
 
-                            st.session_state.delete_series_num = (
-                                series_num
-                            )
+                    # ----------------------------------------
+                    # DELETE CONFIRMATION
+                    # ----------------------------------------
 
                     if (
                         st.session_state.get(
@@ -1362,12 +1368,11 @@ with tab2:
                                 conn.commit()
 
                                 st.session_state.confirm_delete = False
-
                                 st.session_state.delete_series_num = None
 
                                 st.success(
-                                    f"Series {series_num} deleted "
-                                    f"by {deleting_user}!"
+                                    f"Series {series_num} "
+                                    f"deleted by {deleting_user}!"
                                 )
 
                                 st.rerun()
@@ -1381,10 +1386,13 @@ with tab2:
                             ):
 
                                 st.session_state.confirm_delete = False
-
                                 st.session_state.delete_series_num = None
 
                                 st.rerun()
+
+                    # ====================================================
+                    # SERIES EXPANDER
+                    # ====================================================
 
                     with expander:
 
@@ -1415,6 +1423,10 @@ with tab2:
                             t1_players = t1p.split(",")
                             t2_players = t2p.split(",")
 
+                            # ----------------------------------------
+                            # WINNER TEXT
+                            # ----------------------------------------
+
                             if winner == 1:
 
                                 winner_text = (
@@ -1432,6 +1444,10 @@ with tab2:
                             else:
 
                                 winner_text = "Pending"
+
+                            # ----------------------------------------
+                            # TOTAL GOALS
+                            # ----------------------------------------
 
                             c.execute("""
                                 SELECT SUM(goals)
@@ -1451,24 +1467,40 @@ with tab2:
 
                             t2_goals = c.fetchone()[0] or 0
 
+                            # ----------------------------------------
+                            # MATCH HEADER
+                            # ----------------------------------------
+
                             st.markdown(
-                                f"**Match {mn}: {winner_text} "
+                                f"**Match {mn}: "
+                                f"{winner_text} "
                                 f"({t1_goals} - {t2_goals})**"
                             )
 
+                            # ====================================================
+                            # THIS IS THE IMPORTANT UPDATED SECTION
+                            # TEAM 1 AND TEAM 2 + PLAYER STATS ARE CENTERED
+                            # ====================================================
+
                             col1, col2 = st.columns(2)
+
+                            # ------------------------------------------------
+                            # TEAM 1
+                            # ------------------------------------------------
 
                             with col1:
 
                                 st.markdown(
                                     """
-                                    <div style="
-                                        text-align:center;
-                                        font-size:1.1em;
-                                        color:#FF6B00;
-                                        font-weight:bold;
-                                    ">
-                                    TEAM 1
+                                    <div class="history-team-column">
+
+                                        <div
+                                            class="history-team-title"
+                                            style="color:#FF6B00;"
+                                        >
+                                            TEAM 1
+                                        </div>
+
                                     </div>
                                     """,
                                     unsafe_allow_html=True
@@ -1487,28 +1519,43 @@ with tab2:
                                     AND team = 1
                                 """, (match_id,))
 
-                                for row in c.fetchall():
+                                team1_rows = c.fetchall()
+
+                                for row in team1_rows:
 
                                     st.markdown(
-                                        f"**{row[0]}** · "
-                                        f"Score: {row[1]} "
-                                        f"Goals: {row[2]} "
-                                        f"Assists: {row[3]} "
-                                        f"Saves: {row[4]} "
-                                        f"Shots: {row[5]}"
+                                        f"""
+                                        <div
+                                            class="history-player-stats"
+                                        >
+                                            {row[0]}
+                                            · Score: {row[1]}
+                                            · Goals: {row[2]}
+                                            · Assists: {row[3]}
+                                            · Saves: {row[4]}
+                                            · Shots: {row[5]}
+                                        </div>
+                                        """,
+                                        unsafe_allow_html=True
                                     )
+
+                            # ------------------------------------------------
+                            # TEAM 2
+                            # ------------------------------------------------
 
                             with col2:
 
                                 st.markdown(
                                     """
-                                    <div style="
-                                        text-align:center;
-                                        font-size:1.1em;
-                                        color:#1E90FF;
-                                        font-weight:bold;
-                                    ">
-                                    TEAM 2
+                                    <div class="history-team-column">
+
+                                        <div
+                                            class="history-team-title"
+                                            style="color:#1E90FF;"
+                                        >
+                                            TEAM 2
+                                        </div>
+
                                     </div>
                                     """,
                                     unsafe_allow_html=True
@@ -1527,18 +1574,31 @@ with tab2:
                                     AND team = 2
                                 """, (match_id,))
 
-                                for row in c.fetchall():
+                                team2_rows = c.fetchall()
+
+                                for row in team2_rows:
 
                                     st.markdown(
-                                        f"**{row[0]}** · "
-                                        f"Score: {row[1]} "
-                                        f"Goals: {row[2]} "
-                                        f"Assists: {row[3]} "
-                                        f"Saves: {row[4]} "
-                                        f"Shots: {row[5]}"
+                                        f"""
+                                        <div
+                                            class="history-player-stats"
+                                        >
+                                            {row[0]}
+                                            · Score: {row[1]}
+                                            · Goals: {row[2]}
+                                            · Assists: {row[3]}
+                                            · Saves: {row[4]}
+                                            · Shots: {row[5]}
+                                        </div>
+                                        """,
+                                        unsafe_allow_html=True
                                     )
 
                             st.divider()
+
+                        # ====================================================
+                        # SERIES TOTALS
+                        # ====================================================
 
                         st.markdown("### Series Totals")
 
@@ -1574,7 +1634,10 @@ with tab2:
 
             st.divider()
 
-    # Activity Log
+    # ========================================================
+    # ACTIVITY LOG
+    # ========================================================
+
     st.markdown("## 📋 Activity Log")
 
     c.execute("""
@@ -1611,7 +1674,8 @@ with tab2:
             )
 
             st.markdown(
-                f"**{user_name}** {action} · {ts_str}"
+                f"**{user_name}** "
+                f"{action} · {ts_str}"
             )
 
     st.divider()
@@ -1629,6 +1693,55 @@ with tab3:
         key="refresh_tab3"
     ):
         st.rerun()
+
+    st.markdown("""
+    <script>
+
+        function colorRefreshButton() {
+
+            let buttons = document.querySelectorAll('button');
+
+            buttons.forEach(btn => {
+
+                if (btn.textContent.includes('Refresh Data')) {
+
+                    btn.style.background =
+                        'linear-gradient(90deg, #1E90FF 0%, #4169E1 100%)';
+
+                    btn.style.color = 'white';
+                    btn.style.border = 'none';
+                    btn.style.borderRadius = '8px';
+                    btn.style.fontWeight = 'bold';
+                    btn.style.fontSize = '1.6em';
+                    btn.style.padding = '20px 40px';
+                    btn.style.transition = 'transform 0.2s';
+
+                }
+
+            });
+
+        }
+
+        colorRefreshButton();
+
+        setTimeout(colorRefreshButton, 100);
+        setTimeout(colorRefreshButton, 300);
+        setTimeout(colorRefreshButton, 600);
+
+        const observer = new MutationObserver(
+            colorRefreshButton
+        );
+
+        observer.observe(
+            document.body,
+            {
+                childList: true,
+                subtree: true
+            }
+        );
+
+    </script>
+    """, unsafe_allow_html=True)
 
     st.divider()
 
@@ -1650,7 +1763,7 @@ with tab3:
     else:
 
         # ----------------------------------------------------
-        # GET STATS BY MATCH TYPE
+        # MATCH TYPE STAT FUNCTION
         # ----------------------------------------------------
 
         def get_stats_by_match_type(
@@ -1693,12 +1806,7 @@ with tab3:
                     WHERE id = ?
                 """, (match_id,))
 
-                result = c.fetchone()
-
-                if not result:
-                    continue
-
-                t1_players, t2_players = result
+                t1_players, t2_players = c.fetchone()
 
                 if len(t1_players.split(",")) != players_count:
                     continue
@@ -1707,19 +1815,20 @@ with tab3:
 
                 if (
                     winner == 1
-                    and
-                    player in t1_players
+                    and player in t1_players
                 ):
+
                     wins += 1
 
                 elif (
                     winner == 2
-                    and
-                    player in t2_players
+                    and player in t2_players
                 ):
+
                     wins += 1
 
                 else:
+
                     losses += 1
 
             games = wins + losses
@@ -1733,8 +1842,7 @@ with tab3:
             if match_ids:
 
                 placeholders = ",".join(
-                    "?"
-                    * len(match_ids)
+                    "?" * len(match_ids)
                 )
 
                 c.execute(
@@ -1747,10 +1855,8 @@ with tab3:
                         SUM(shots),
                         SUM(excuse_used)
                     FROM player_stats
-                    WHERE
-                        player_name = ?
-                        AND
-                        match_id IN ({placeholders})
+                    WHERE player_name = ?
+                    AND match_id IN ({placeholders})
                     """,
                     [player] + match_ids
                 )
@@ -1838,7 +1944,7 @@ with tab3:
             }
 
         # ----------------------------------------------------
-        # OVERALL CAREER STATS
+        # OVERALL STATS
         # ----------------------------------------------------
 
         overall_stats = {}
@@ -1921,6 +2027,42 @@ with tab3:
             shots = shots or 0
             excuses = excuses or 0
 
+            avg_score = (
+                score / games
+                if games > 0
+                else 0
+            )
+
+            avg_goals = (
+                goals / games
+                if games > 0
+                else 0
+            )
+
+            avg_assists = (
+                assists / games
+                if games > 0
+                else 0
+            )
+
+            avg_saves = (
+                saves / games
+                if games > 0
+                else 0
+            )
+
+            avg_shots = (
+                shots / games
+                if games > 0
+                else 0
+            )
+
+            avg_excuses = (
+                excuses / games
+                if games > 0
+                else 0
+            )
+
             overall_stats[player] = {
                 "wins": wins,
                 "losses": losses,
@@ -1932,16 +2074,16 @@ with tab3:
                 "saves": saves,
                 "shots": shots,
                 "excuses": excuses,
-                "avg_score": score / games if games else 0,
-                "avg_goals": goals / games if games else 0,
-                "avg_assists": assists / games if games else 0,
-                "avg_saves": saves / games if games else 0,
-                "avg_shots": shots / games if games else 0,
-                "avg_excuses": excuses / games if games else 0
+                "avg_score": avg_score,
+                "avg_goals": avg_goals,
+                "avg_assists": avg_assists,
+                "avg_saves": avg_saves,
+                "avg_shots": avg_shots,
+                "avg_excuses": avg_excuses
             }
 
         # ====================================================
-        # OVERALL CAREER STATS TABLE
+        # OVERALL CAREER STATS
         # ====================================================
 
         st.markdown("## 🎮 Overall Career Stats")
@@ -1967,8 +2109,11 @@ with tab3:
             ascending=False
         )
 
-        # LEFT ALIGNED
-        left_aligned_table(df_wins)
+        st.dataframe(
+            df_wins,
+            use_container_width=True,
+            hide_index=True
+        )
 
         st.divider()
 
@@ -2000,8 +2145,11 @@ with tab3:
 
         df_totals = pd.DataFrame(totals_data)
 
-        # LEFT ALIGNED
-        left_aligned_table(df_totals)
+        st.dataframe(
+            df_totals,
+            use_container_width=True,
+            hide_index=True
+        )
 
         st.divider()
 
@@ -2009,7 +2157,9 @@ with tab3:
         # PER GAME AVERAGES
         # ====================================================
 
-        st.markdown("### Per-Game Averages (All Matches)")
+        st.markdown(
+            "### Per-Game Averages (All Matches)"
+        )
 
         avg_data = []
 
@@ -2033,8 +2183,11 @@ with tab3:
 
         df_avg = pd.DataFrame(avg_data)
 
-        # LEFT ALIGNED
-        left_aligned_table(df_avg)
+        st.dataframe(
+            df_avg,
+            use_container_width=True,
+            hide_index=True
+        )
 
         st.divider()
 
@@ -2074,60 +2227,60 @@ with tab3:
                 else:
 
                     # Wins / Losses
-                    wins_data = []
-
-                    for player in players_with_type:
-
-                        stat = match_type_stats[player]
-
-                        wins_data.append({
+                    wins_data = [
+                        {
                             "🎮 Player": player,
-                            "🏆 Wins": stat["wins"],
-                            "💔 Losses": stat["losses"],
-                            "📊 Games": stat["games"],
-                            "📈 Win %": stat["win_pct"]
-                        })
+                            "🏆 Wins": match_type_stats[player]["wins"],
+                            "💔 Losses": match_type_stats[player]["losses"],
+                            "📊 Games": match_type_stats[player]["games"],
+                            "📈 Win %": match_type_stats[player]["win_pct"]
+                        }
+                        for player in players_with_type
+                    ]
 
-                    df_wins = pd.DataFrame(wins_data)
-
-                    df_wins = df_wins.sort_values(
+                    df_wins = pd.DataFrame(
+                        wins_data
+                    ).sort_values(
                         "🏆 Wins",
                         ascending=False
                     )
 
-                    # LEFT ALIGNED
-                    left_aligned_table(df_wins)
+                    st.dataframe(
+                        df_wins,
+                        use_container_width=True,
+                        hide_index=True
+                    )
 
                     st.divider()
 
-                    # Career totals
-                    totals_data = []
-
-                    for player in sorted(
-                        players_with_type,
-                        key=lambda p:
-                        match_type_stats[p]["wins"],
-                        reverse=True
-                    ):
-
-                        stat = match_type_stats[player]
-
-                        totals_data.append({
+                    # Career Totals
+                    totals_data = [
+                        {
                             "🎮 Player": player,
-                            "🎯 Score": stat["score"],
-                            "⚽ Goals": stat["goals"],
-                            "🎁 Assists": stat["assists"],
-                            "🛡️ Saves": stat["saves"],
-                            "🔫 Shots": stat["shots"],
-                            "🤥 Excuses": stat["excuses"]
-                        })
+                            "🎯 Score": match_type_stats[player]["score"],
+                            "⚽ Goals": match_type_stats[player]["goals"],
+                            "🎁 Assists": match_type_stats[player]["assists"],
+                            "🛡️ Saves": match_type_stats[player]["saves"],
+                            "🔫 Shots": match_type_stats[player]["shots"],
+                            "🤥 Excuses": match_type_stats[player]["excuses"]
+                        }
+                        for player in sorted(
+                            players_with_type,
+                            key=lambda p:
+                                match_type_stats[p]["wins"],
+                            reverse=True
+                        )
+                    ]
 
                     df_totals = pd.DataFrame(
                         totals_data
                     )
 
-                    # LEFT ALIGNED
-                    left_aligned_table(df_totals)
+                    st.dataframe(
+                        df_totals,
+                        use_container_width=True,
+                        hide_index=True
+                    )
 
         # ====================================================
         # PER GAME MATCH TYPE TOTALS
@@ -2135,7 +2288,9 @@ with tab3:
 
         st.divider()
 
-        st.markdown("## Per Game Match Type Totals")
+        st.markdown(
+            "## Per Game Match Type Totals"
+        )
 
         for match_type in ["1v1", "2v2", "3v3"]:
 
@@ -2166,33 +2321,39 @@ with tab3:
 
                 else:
 
-                    avg_data = []
-
-                    for player in sorted(
-                        players_with_type,
-                        key=lambda p:
-                        match_type_stats[p]["wins"],
-                        reverse=True
-                    ):
-
-                        stat = match_type_stats[player]
-
-                        avg_data.append({
+                    avg_data = [
+                        {
                             "🎮 Player": player,
-                            "📍 Avg Score": f"{stat['avg_score']:.1f}",
-                            "⚽ Avg Goals": f"{stat['avg_goals']:.2f}",
-                            "🎁 Avg Assists": f"{stat['avg_assists']:.2f}",
-                            "🛡️ Avg Saves": f"{stat['avg_saves']:.2f}",
-                            "🔫 Avg Shots": f"{stat['avg_shots']:.2f}",
-                            "🤥 Avg Excuses": f"{stat['avg_excuses']:.2f}"
-                        })
+                            "📍 Avg Score":
+                                f"{match_type_stats[player]['avg_score']:.1f}",
+                            "⚽ Avg Goals":
+                                f"{match_type_stats[player]['avg_goals']:.2f}",
+                            "🎁 Avg Assists":
+                                f"{match_type_stats[player]['avg_assists']:.2f}",
+                            "🛡️ Avg Saves":
+                                f"{match_type_stats[player]['avg_saves']:.2f}",
+                            "🔫 Avg Shots":
+                                f"{match_type_stats[player]['avg_shots']:.2f}",
+                            "🤥 Avg Excuses":
+                                f"{match_type_stats[player]['avg_excuses']:.2f}"
+                        }
+                        for player in sorted(
+                            players_with_type,
+                            key=lambda p:
+                                match_type_stats[p]["wins"],
+                            reverse=True
+                        )
+                    ]
 
                     df_avg = pd.DataFrame(
                         avg_data
                     )
 
-                    # LEFT ALIGNED
-                    left_aligned_table(df_avg)
+                    st.dataframe(
+                        df_avg,
+                        use_container_width=True,
+                        hide_index=True
+                    )
 
 
 # ============================================================
@@ -2208,14 +2369,59 @@ with tab4:
     ):
         st.rerun()
 
+    st.markdown("""
+    <script>
+
+        function colorRefreshButton() {
+
+            let buttons = document.querySelectorAll('button');
+
+            buttons.forEach(btn => {
+
+                if (btn.textContent.includes('Refresh Data')) {
+
+                    btn.style.background =
+                        'linear-gradient(90deg, #1E90FF 0%, #4169E1 100%)';
+
+                    btn.style.color = 'white';
+                    btn.style.border = 'none';
+                    btn.style.borderRadius = '8px';
+                    btn.style.fontWeight = 'bold';
+                    btn.style.fontSize = '1.6em';
+                    btn.style.padding = '20px 40px';
+                    btn.style.transition = 'transform 0.2s';
+
+                }
+
+            });
+
+        }
+
+        colorRefreshButton();
+
+        setTimeout(colorRefreshButton, 100);
+        setTimeout(colorRefreshButton, 300);
+        setTimeout(colorRefreshButton, 600);
+
+        const observer = new MutationObserver(
+            colorRefreshButton
+        );
+
+        observer.observe(
+            document.body,
+            {
+                childList: true,
+                subtree: true
+            }
+        );
+
+    </script>
+    """, unsafe_allow_html=True)
+
     st.divider()
 
     c.execute("""
-        SELECT
-            id,
-            team1_players,
-            team2_players,
-            winner
+        SELECT id, team1_players, team2_players, winner
         FROM matches
     """)
 
@@ -2267,12 +2473,15 @@ with tab4:
             t2_list = t2.split(",")
 
             if len(t1_list) == 1:
+
                 match_type = "1v1"
 
             elif len(t1_list) == 2:
+
                 match_type = "2v2"
 
             else:
+
                 match_type = "3v3"
 
             if match_type == "1v1":
@@ -2286,53 +2495,69 @@ with tab4:
                 match_type
             ]
 
+            # ------------------------------------------------
+            # 2V2
+            # ------------------------------------------------
+
             if match_type == "2v2":
 
                 t1_pairs = []
 
                 for i in range(len(t1_list)):
 
-                    for j in range(i + 1, len(t1_list)):
+                    for j in range(
+                        i + 1,
+                        len(t1_list)
+                    ):
 
                         pair = tuple(
-                            sorted(
-                                [
-                                    t1_list[i],
-                                    t1_list[j]
-                                ]
-                            )
+                            sorted([
+                                t1_list[i],
+                                t1_list[j]
+                            ])
                         )
 
                         t1_pairs.append(pair)
 
                         if winner == 1:
+
                             partnerships[pair]["wins"] += 1
+
                         else:
+
                             partnerships[pair]["losses"] += 1
 
                 t2_pairs = []
 
                 for i in range(len(t2_list)):
 
-                    for j in range(i + 1, len(t2_list)):
+                    for j in range(
+                        i + 1,
+                        len(t2_list)
+                    ):
 
                         pair = tuple(
-                            sorted(
-                                [
-                                    t2_list[i],
-                                    t2_list[j]
-                                ]
-                            )
+                            sorted([
+                                t2_list[i],
+                                t2_list[j]
+                            ])
                         )
 
                         t2_pairs.append(pair)
 
                         if winner == 2:
+
                             partnerships[pair]["wins"] += 1
+
                         else:
+
                             partnerships[pair]["losses"] += 1
 
-            else:
+            # ------------------------------------------------
+            # 3V3
+            # ------------------------------------------------
+
+            elif match_type == "3v3":
 
                 t1_team = tuple(
                     sorted(t1_list)
@@ -2344,67 +2569,44 @@ with tab4:
 
                 if winner == 1:
 
-                    partnerships[
-                        t1_team
-                    ]["wins"] += 1
+                    partnerships[t1_team]["wins"] += 1
 
                 else:
 
-                    partnerships[
-                        t1_team
-                    ]["losses"] += 1
+                    partnerships[t1_team]["losses"] += 1
 
                 if winner == 2:
 
-                    partnerships[
-                        t2_team
-                    ]["wins"] += 1
+                    partnerships[t2_team]["wins"] += 1
 
                 else:
 
-                    partnerships[
-                        t2_team
-                    ]["losses"] += 1
+                    partnerships[t2_team]["losses"] += 1
 
                 t1_pairs = [t1_team]
                 t2_pairs = [t2_team]
 
-            # Matchups
+            # ------------------------------------------------
+            # HEAD TO HEAD
+            # ------------------------------------------------
+
             for t1_pair in t1_pairs:
 
                 for t2_pair in t2_pairs:
 
                     if winner == 1:
 
-                        matchups[
-                            t1_pair
-                        ][
-                            t2_pair
-                        ]["wins"] += 1
-
-                        matchups[
-                            t2_pair
-                        ][
-                            t1_pair
-                        ]["losses"] += 1
+                        matchups[t1_pair][t2_pair]["wins"] += 1
+                        matchups[t2_pair][t1_pair]["losses"] += 1
 
                     else:
 
-                        matchups[
-                            t1_pair
-                        ][
-                            t2_pair
-                        ]["losses"] += 1
+                        matchups[t1_pair][t2_pair]["losses"] += 1
+                        matchups[t2_pair][t1_pair]["wins"] += 1
 
-                        matchups[
-                            t2_pair
-                        ][
-                            t1_pair
-                        ]["wins"] += 1
-
-        # ----------------------------------------------------
+        # ====================================================
         # DISPLAY TEAMS
-        # ----------------------------------------------------
+        # ====================================================
 
         for match_type in ["2v2", "3v3"]:
 
@@ -2430,18 +2632,17 @@ with tab4:
 
                 part_data = []
 
-                for partnership_tuple, record in partnerships.items():
+                for partnership_tuple, record in (
+                    partnerships.items()
+                ):
 
                     total = (
                         record["wins"]
-                        +
-                        record["losses"]
+                        + record["losses"]
                     )
 
                     win_pct = (
-                        record["wins"]
-                        / total
-                        * 100
+                        record["wins"] / total * 100
                         if total > 0
                         else 0
                     )
@@ -2451,12 +2652,18 @@ with tab4:
                     )
 
                     part_data.append({
-                        "partnership": partnership_tuple,
-                        "display": display,
-                        "wins": record["wins"],
-                        "losses": record["losses"],
-                        "total": total,
-                        "win_pct": win_pct
+                        "partnership":
+                            partnership_tuple,
+                        "display":
+                            display,
+                        "wins":
+                            record["wins"],
+                        "losses":
+                            record["losses"],
+                        "total":
+                            total,
+                        "win_pct":
+                            win_pct
                     })
 
                 part_data.sort(
@@ -2480,7 +2687,8 @@ with tab4:
 
                     with st.expander(
                         f"🤝 "
-                        f"{partnership_info['display']} · "
+                        f"{partnership_info['display']} "
+                        f"· "
                         f"{partnership_info['wins']}-"
                         f"{partnership_info['losses']} "
                         f"({win_pct:.1f}%)",
@@ -2489,29 +2697,32 @@ with tab4:
 
                         st.markdown(
                             f"**Overall: "
-                            f"{partnership_info['wins']} Wins · "
-                            f"{partnership_info['losses']} Losses · "
+                            f"{partnership_info['wins']} "
+                            f"Wins · "
+                            f"{partnership_info['losses']} "
+                            f"Losses · "
                             f"{win_pct:.1f}% Win Rate**"
                         )
 
                         st.divider()
 
                         st.markdown(
-                            "**Head-to-Head vs Other Partnerships:**"
+                            "**Head-to-Head vs "
+                            "Other Partnerships:**"
                         )
 
                         matchup_records = []
 
                         if part_tuple in matchups:
 
-                            for opponent_tuple, record in matchups[
-                                part_tuple
-                            ].items():
+                            for (
+                                opponent_tuple,
+                                record
+                            ) in matchups[part_tuple].items():
 
                                 h2h_total = (
                                     record["wins"]
-                                    +
-                                    record["losses"]
+                                    + record["losses"]
                                 )
 
                                 h2h_pct = (
@@ -2529,24 +2740,32 @@ with tab4:
                                 )
 
                                 matchup_records.append({
-                                    "opponent": opponent_display,
-                                    "wins": record["wins"],
-                                    "losses": record["losses"],
-                                    "total": h2h_total,
-                                    "pct": h2h_pct
+                                    "opponent":
+                                        opponent_display,
+                                    "wins":
+                                        record["wins"],
+                                    "losses":
+                                        record["losses"],
+                                    "total":
+                                        h2h_total,
+                                    "pct":
+                                        h2h_pct
                                 })
 
                         if matchup_records:
 
                             matchup_records.sort(
-                                key=lambda x: x["wins"],
+                                key=lambda x:
+                                    x["wins"],
                                 reverse=True
                             )
 
                             for matchup in matchup_records:
 
                                 st.markdown(
-                                    f"vs **{matchup['opponent']}** · "
+                                    f"vs **"
+                                    f"{matchup['opponent']}"
+                                    f"** · "
                                     f"{matchup['wins']}-"
                                     f"{matchup['losses']} "
                                     f"({matchup['pct']:.1f}%)"
