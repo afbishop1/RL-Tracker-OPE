@@ -277,7 +277,21 @@ st.markdown(
     '<div class="title-main">⚡ RL MATCH TRACKER ⚡</div>',
     unsafe_allow_html=True
 )
-st.markdown("OPE Gaming", unsafe_allow_html=True)
+st.markdown("""
+<div style="
+    text-align: center;
+    font-size: 1.8em;
+    font-weight: bold;
+    background: linear-gradient(90deg, #FF6B00 0%, #FF8C00 50%, #1E90FF 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 20px;
+    letter-spacing: 2px;
+">
+🎮 OPE GAMING CLAN 🎮
+</div>
+""", unsafe_allow_html=True)
 st.divider()
 # ============================================================
 # SESSION STATE
