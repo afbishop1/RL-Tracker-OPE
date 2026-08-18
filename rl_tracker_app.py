@@ -805,21 +805,42 @@ with tab3:
 </script>
 
 <style>
-    /* Center all table content in Player Stats tab */
-    [data-testid="stDataFrame"] {
+    /* Center all dataframe cells */
+    [data-testid="stDataFrame"] div[role="grid"] {
         text-align: center !important;
     }
     
-    [data-testid="stDataFrame"] thead {
-        text-align: center;
-    }
-    
-    [data-testid="stDataFrame"] tbody {
-        text-align: center;
-    }
-    
-    [role="grid"] {
+    [data-testid="stDataFrame"] [role="row"] {
         text-align: center !important;
+    }
+    
+    [data-testid="stDataFrame"] [role="gridcell"] {
+        text-align: center !important;
+        justify-content: center !important;
+    }
+    
+    /* Target all table cells */
+    [data-testid="stDataFrame"] th {
+        text-align: center !important;
+    }
+    
+    [data-testid="stDataFrame"] td {
+        text-align: center !important;
+    }
+    
+    /* Streamlit dataframe container */
+    .stDataFrame {
+        text-align: center !important;
+    }
+    
+    /* Fallback for pandas styled dataframes */
+    table {
+        text-align: center !important;
+    }
+    
+    table th, table td {
+        text-align: center !important;
+        padding: 12px !important;
     }
 </style>
 """, unsafe_allow_html=True)
