@@ -1018,16 +1018,17 @@ with tab3:
         
         st.divider()
         
-        # Display stats by match type
-        for match_type in ["1v1", "2v2", "3v3"]:
-            st.markdown(f"## {match_type} Stats")
-            
-            # Get stats for this match type
+        st.divider()
+        
+        # Match Type Totals (Dropdown)
+        st.markdown("## Match Type Totals")
+        
+        with st.expander("1v1", expanded=False):
+            match_type = "1v1"
             match_type_stats = {}
             for player in all_players:
                 match_type_stats[player] = get_stats_by_match_type(player, match_type)
             
-            # Filter players who have played this match type
             players_with_type = [p for p in all_players if match_type_stats[p]["games"] > 0]
             
             if not players_with_type:
@@ -1052,7 +1053,6 @@ with tab3:
                 st.divider()
                 
                 # Career Totals
-                st.markdown(f"### {match_type} Career Totals")
                 totals_data = []
                 for player in sorted(players_with_type, key=lambda p: match_type_stats[p]["wins"], reverse=True):
                     stat = match_type_stats[player]
@@ -1068,11 +1068,114 @@ with tab3:
                 
                 df_totals = pd.DataFrame(totals_data)
                 st.dataframe(df_totals, use_container_width=True, hide_index=True)
+        
+        with st.expander("2v2", expanded=False):
+            match_type = "2v2"
+            match_type_stats = {}
+            for player in all_players:
+                match_type_stats[player] = get_stats_by_match_type(player, match_type)
+            
+            players_with_type = [p for p in all_players if match_type_stats[p]["games"] > 0]
+            
+            if not players_with_type:
+                st.info(f"📭 No {match_type} matches yet")
+            else:
+                # Wins/Losses
+                wins_data = []
+                for player in players_with_type:
+                    stat = match_type_stats[player]
+                    wins_data.append({
+                        "🎮 Player": player,
+                        "🏆 Wins": stat["wins"],
+                        "💔 Losses": stat["losses"],
+                        "📊 Games": stat["games"],
+                        "📈 Win %": stat["win_pct"]
+                    })
+                
+                df_wins = pd.DataFrame(wins_data)
+                df_wins = df_wins.sort_values("🏆 Wins", ascending=False)
+                st.dataframe(df_wins, use_container_width=True, hide_index=True)
                 
                 st.divider()
                 
+                # Career Totals
+                totals_data = []
+                for player in sorted(players_with_type, key=lambda p: match_type_stats[p]["wins"], reverse=True):
+                    stat = match_type_stats[player]
+                    totals_data.append({
+                        "🎮 Player": player,
+                        "🎯 Score": stat["score"],
+                        "⚽ Goals": stat["goals"],
+                        "🎁 Assists": stat["assists"],
+                        "🛡️ Saves": stat["saves"],
+                        "🔫 Shots": stat["shots"],
+                        "🤥 Excuses": stat["excuses"]
+                    })
+                
+                df_totals = pd.DataFrame(totals_data)
+                st.dataframe(df_totals, use_container_width=True, hide_index=True)
+        
+        with st.expander("3v3", expanded=False):
+            match_type = "3v3"
+            match_type_stats = {}
+            for player in all_players:
+                match_type_stats[player] = get_stats_by_match_type(player, match_type)
+            
+            players_with_type = [p for p in all_players if match_type_stats[p]["games"] > 0]
+            
+            if not players_with_type:
+                st.info(f"📭 No {match_type} matches yet")
+            else:
+                # Wins/Losses
+                wins_data = []
+                for player in players_with_type:
+                    stat = match_type_stats[player]
+                    wins_data.append({
+                        "🎮 Player": player,
+                        "🏆 Wins": stat["wins"],
+                        "💔 Losses": stat["losses"],
+                        "📊 Games": stat["games"],
+                        "📈 Win %": stat["win_pct"]
+                    })
+                
+                df_wins = pd.DataFrame(wins_data)
+                df_wins = df_wins.sort_values("🏆 Wins", ascending=False)
+                st.dataframe(df_wins, use_container_width=True, hide_index=True)
+                
+                st.divider()
+                
+                # Career Totals
+                totals_data = []
+                for player in sorted(players_with_type, key=lambda p: match_type_stats[p]["wins"], reverse=True):
+                    stat = match_type_stats[player]
+                    totals_data.append({
+                        "🎮 Player": player,
+                        "🎯 Score": stat["score"],
+                        "⚽ Goals": stat["goals"],
+                        "🎁 Assists": stat["assists"],
+                        "🛡️ Saves": stat["saves"],
+                        "🔫 Shots": stat["shots"],
+                        "🤥 Excuses": stat["excuses"]
+                    })
+                
+                df_totals = pd.DataFrame(totals_data)
+                st.dataframe(df_totals, use_container_width=True, hide_index=True)
+        
+        st.divider()
+        st.markdown("## Per Game Match Type Totals")
+        
+        with st.expander("1v1", expanded=False):
+            match_type = "1v1"
+            match_type_stats = {}
+            for player in all_players:
+                match_type_stats[player] = get_stats_by_match_type(player, match_type)
+            
+            players_with_type = [p for p in all_players if match_type_stats[p]["games"] > 0]
+            
+            if not players_with_type:
+                st.info(f"📭 No {match_type} matches yet")
+            else:
                 # Per-Game Averages
-                st.markdown(f"### {match_type} Per-Game Averages")
                 avg_data = []
                 for player in sorted(players_with_type, key=lambda p: match_type_stats[p]["wins"], reverse=True):
                     stat = match_type_stats[player]
@@ -1088,8 +1191,62 @@ with tab3:
                 
                 df_avg = pd.DataFrame(avg_data)
                 st.dataframe(df_avg, use_container_width=True, hide_index=True)
+        
+        with st.expander("2v2", expanded=False):
+            match_type = "2v2"
+            match_type_stats = {}
+            for player in all_players:
+                match_type_stats[player] = get_stats_by_match_type(player, match_type)
+            
+            players_with_type = [p for p in all_players if match_type_stats[p]["games"] > 0]
+            
+            if not players_with_type:
+                st.info(f"📭 No {match_type} matches yet")
+            else:
+                # Per-Game Averages
+                avg_data = []
+                for player in sorted(players_with_type, key=lambda p: match_type_stats[p]["wins"], reverse=True):
+                    stat = match_type_stats[player]
+                    avg_data.append({
+                        "🎮 Player": player,
+                        "📍 Avg Score": f"{stat['avg_score']:.1f}",
+                        "⚽ Avg Goals": f"{stat['avg_goals']:.2f}",
+                        "🎁 Avg Assists": f"{stat['avg_assists']:.2f}",
+                        "🛡️ Avg Saves": f"{stat['avg_saves']:.2f}",
+                        "🔫 Avg Shots": f"{stat['avg_shots']:.2f}",
+                        "🤥 Avg Excuses": f"{stat['avg_excuses']:.2f}"
+                    })
                 
-                st.divider()
+                df_avg = pd.DataFrame(avg_data)
+                st.dataframe(df_avg, use_container_width=True, hide_index=True)
+        
+        with st.expander("3v3", expanded=False):
+            match_type = "3v3"
+            match_type_stats = {}
+            for player in all_players:
+                match_type_stats[player] = get_stats_by_match_type(player, match_type)
+            
+            players_with_type = [p for p in all_players if match_type_stats[p]["games"] > 0]
+            
+            if not players_with_type:
+                st.info(f"📭 No {match_type} matches yet")
+            else:
+                # Per-Game Averages
+                avg_data = []
+                for player in sorted(players_with_type, key=lambda p: match_type_stats[p]["wins"], reverse=True):
+                    stat = match_type_stats[player]
+                    avg_data.append({
+                        "🎮 Player": player,
+                        "📍 Avg Score": f"{stat['avg_score']:.1f}",
+                        "⚽ Avg Goals": f"{stat['avg_goals']:.2f}",
+                        "🎁 Avg Assists": f"{stat['avg_assists']:.2f}",
+                        "🛡️ Avg Saves": f"{stat['avg_saves']:.2f}",
+                        "🔫 Avg Shots": f"{stat['avg_shots']:.2f}",
+                        "🤥 Avg Excuses": f"{stat['avg_excuses']:.2f}"
+                    })
+                
+                df_avg = pd.DataFrame(avg_data)
+                st.dataframe(df_avg, use_container_width=True, hide_index=True)
 
 # ============ TAB 4: TEAMS ============
 with tab4:
