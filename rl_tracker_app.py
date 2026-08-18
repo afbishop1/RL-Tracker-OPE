@@ -172,6 +172,7 @@ def init_db():
                   assists INTEGER,
                   saves INTEGER,
                   shots INTEGER,
+                  excuse_used INTEGER,
                   FOREIGN KEY(match_id) REFERENCES matches(id))''')
     
     c.execute('''CREATE TABLE IF NOT EXISTS activity_log
@@ -186,6 +187,9 @@ def init_db():
         columns = [row[1] for row in c.fetchall()]
         if 'shots' not in columns:
             c.execute("ALTER TABLE player_stats ADD COLUMN shots INTEGER DEFAULT 0")
+            conn.commit()
+        if 'excuse_used' not in columns:
+            c.execute("ALTER TABLE player_stats ADD COLUMN excuse_used INTEGER DEFAULT 0")
             conn.commit()
     except Exception as e:
         print(f"Migration error: {e}")
@@ -399,7 +403,10 @@ with tab1:
                     with stat_col3:
                         shots = st.number_input(f"Shots", min_value=0, key=f"g{game_num}_t1_sh{i}_r{st.session_state.reset_counter}")
                     
-                    team1_stats.append({"player": player_name, "score": score, "goals": goals, "assists": assists, "saves": saves, "shots": shots})
+                    excuse_used = st.radio(f"Excuse Used?", ["No", "Yes"], horizontal=True, key=f"g{game_num}_t1_ex{i}_r{st.session_state.reset_counter}", label_visibility="collapsed")
+                    excuse_val = 1 if excuse_used == "Yes" else 0
+                    
+                    team1_stats.append({"player": player_name, "score": score, "goals": goals, "assists": assists, "saves": saves, "shots": shots, "excuse_used": excuse_val})
                     st.markdown("---")
             
             with col2:
@@ -420,7 +427,10 @@ with tab1:
                     with stat_col3:
                         shots = st.number_input(f"Shots", min_value=0, key=f"g{game_num}_t2_sh{i}_r{st.session_state.reset_counter}")
                     
-                    team2_stats.append({"player": player_name, "score": score, "goals": goals, "assists": assists, "saves": saves, "shots": shots})
+                    excuse_used = st.radio(f"Excuse Used?", ["No", "Yes"], horizontal=True, key=f"g{game_num}_t2_ex{i}_r{st.session_state.reset_counter}", label_visibility="collapsed")
+                    excuse_val = 1 if excuse_used == "Yes" else 0
+                    
+                    team2_stats.append({"player": player_name, "score": score, "goals": goals, "assists": assists, "saves": saves, "shots": shots, "excuse_used": excuse_val})
                     st.markdown("---")
             
             # Winner selection - show actual player names
@@ -500,15 +510,15 @@ with tab1:
                         
                         # Insert player stats for team 1
                         for i, stat in enumerate(game["team1_stats"]):
-                            c.execute("""INSERT INTO player_stats (match_id, player_name, team, score, goals, assists, saves, shots)
-                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                                     (match_id, stat["player"], 1, int(stat["score"]), int(stat["goals"]), int(stat["assists"]), int(stat["saves"]), int(stat["shots"])))
+                            c.execute("""INSERT INTO player_stats (match_id, player_name, team, score, goals, assists, saves, shots, excuse_used)
+                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                                     (match_id, stat["player"], 1, int(stat["score"]), int(stat["goals"]), int(stat["assists"]), int(stat["saves"]), int(stat["shots"]), int(stat["excuse_used"])))
                         
                         # Insert player stats for team 2
                         for i, stat in enumerate(game["team2_stats"]):
-                            c.execute("""INSERT INTO player_stats (match_id, player_name, team, score, goals, assists, saves, shots)
-                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                                     (match_id, stat["player"], 2, int(stat["score"]), int(stat["goals"]), int(stat["assists"]), int(stat["saves"]), int(stat["shots"])))
+                            c.execute("""INSERT INTO player_stats (match_id, player_name, team, score, goals, assists, saves, shots, excuse_used)
+                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                                     (match_id, stat["player"], 2, int(stat["score"]), int(stat["goals"]), int(stat["assists"]), int(stat["saves"]), int(stat["shots"]), int(stat["excuse_used"])))
                     
                     conn.commit()
                     
@@ -782,14 +792,15 @@ with tab3:
                 win_pct = 0
             
             # Get totals
-            c.execute("""SELECT SUM(score), SUM(goals), SUM(assists), SUM(saves), SUM(shots) FROM player_stats 
+            c.execute("""SELECT SUM(score), SUM(goals), SUM(assists), SUM(saves), SUM(shots), SUM(excuse_used) FROM player_stats 
                          WHERE player_name = ?""", (player,))
-            score, goals, assists, saves, shots = c.fetchone()
+            score, goals, assists, saves, shots, excuses = c.fetchone()
             score = score or 0
             goals = goals or 0
             assists = assists or 0
             saves = saves or 0
             shots = shots or 0
+            excuses = excuses or 0
             
             # Calculate averages
             avg_score = score / games if games > 0 else 0
@@ -797,6 +808,7 @@ with tab3:
             avg_assists = assists / games if games > 0 else 0
             avg_saves = saves / games if games > 0 else 0
             avg_shots = shots / games if games > 0 else 0
+            avg_excuses = excuses / games if games > 0 else 0
             
             stats_data.append({
                 "player": player,
@@ -809,11 +821,13 @@ with tab3:
                 "assists": assists,
                 "saves": saves,
                 "shots": shots,
+                "excuses": excuses,
                 "avg_score": avg_score,
                 "avg_goals": avg_goals,
                 "avg_assists": avg_assists,
                 "avg_saves": avg_saves,
-                "avg_shots": avg_shots
+                "avg_shots": avg_shots,
+                "avg_excuses": avg_excuses
             })
         
         # Display wins/losses table
@@ -843,7 +857,8 @@ with tab3:
                 "⚽ Goals": stat["goals"],
                 "🎁 Assists": stat["assists"],
                 "🛡️ Saves": stat["saves"],
-                "🔫 Shots": stat["shots"]
+                "🔫 Shots": stat["shots"],
+                "🤥 Excuses": stat["excuses"]
             })
         
         df_totals = pd.DataFrame(totals_data)
@@ -861,7 +876,8 @@ with tab3:
                 "⚽ Avg Goals": f"{stat['avg_goals']:.2f}",
                 "🎁 Avg Assists": f"{stat['avg_assists']:.2f}",
                 "🛡️ Avg Saves": f"{stat['avg_saves']:.2f}",
-                "🔫 Avg Shots": f"{stat['avg_shots']:.2f}"
+                "🔫 Avg Shots": f"{stat['avg_shots']:.2f}",
+                "🤥 Avg Excuses": f"{stat['avg_excuses']:.2f}"
             })
         
         df_avg = pd.DataFrame(avg_data)
