@@ -708,7 +708,14 @@ with tab2:
                             else:
                                 winner_text = "Pending"
                             
-                            st.markdown(f"**Match {mn}: {winner_text} ({t1s} - {t2s})**")
+                            # Get total goals for each team
+                            c.execute("""SELECT SUM(goals) FROM player_stats WHERE match_id = ? AND team = 1""", (match_id,))
+                            t1_goals = c.fetchone()[0] or 0
+                            
+                            c.execute("""SELECT SUM(goals) FROM player_stats WHERE match_id = ? AND team = 2""", (match_id,))
+                            t2_goals = c.fetchone()[0] or 0
+                            
+                            st.markdown(f"**Match {mn}: {winner_text} ({t1_goals} - {t2_goals})**")
                             
                             col1, col2 = st.columns(2)
                             
