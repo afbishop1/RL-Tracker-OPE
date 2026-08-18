@@ -812,21 +812,44 @@ with tab3:
     if not all_players:
         st.info("📭 No player data yet")
     else:
-        stats_data = []
-        
-        for player in all_players:
-            # Count wins
-            c.execute("""SELECT COUNT(*) FROM matches WHERE 
-                         (team1_players LIKE ? AND winner = 1) OR
-                         (team2_players LIKE ? AND winner = 2)""", 
-                     (f"%{player}%", f"%{player}%"))
-            wins = c.fetchone()[0]
+        # Function to get stats by match type
+        def get_stats_by_match_type(player, match_type):
+            # Determine number of players based on match type
+            if match_type == "1v1":
+                players_count = 1
+            elif match_type == "2v2":
+                players_count = 2
+            else:  # 3v3
+                players_count = 3
             
-            c.execute("""SELECT COUNT(*) FROM matches WHERE 
-                         (team1_players LIKE ? AND winner = 2) OR
-                         (team2_players LIKE ? AND winner = 1)""", 
+            # Get matches of this type
+            c.execute("""SELECT id, winner FROM matches WHERE 
+                         (team1_players LIKE ? OR team2_players LIKE ?)""", 
                      (f"%{player}%", f"%{player}%"))
-            losses = c.fetchone()[0]
+            all_matches = c.fetchall()
+            
+            # Filter by match type and count wins/losses
+            wins = 0
+            losses = 0
+            match_ids = []
+            
+            for match_id, winner in all_matches:
+                c.execute("""SELECT team1_players, team2_players FROM matches WHERE id = ?""", (match_id,))
+                t1_players, t2_players = c.fetchone()
+                
+                # Check if this is the right match type
+                if len(t1_players.split(",")) != players_count:
+                    continue
+                
+                match_ids.append(match_id)
+                
+                # Check if player is on winning team
+                if winner == 1 and player in t1_players:
+                    wins += 1
+                elif winner == 2 and player in t2_players:
+                    wins += 1
+                else:
+                    losses += 1
             
             games = wins + losses
             
@@ -835,10 +858,17 @@ with tab3:
             else:
                 win_pct = 0
             
-            # Get totals
-            c.execute("""SELECT SUM(score), SUM(goals), SUM(assists), SUM(saves), SUM(shots), SUM(excuse_used) FROM player_stats 
-                         WHERE player_name = ?""", (player,))
-            score, goals, assists, saves, shots, excuses = c.fetchone()
+            # Get totals for this match type
+            if match_ids:
+                placeholders = ','.join('?' * len(match_ids))
+                c.execute(f"""SELECT SUM(score), SUM(goals), SUM(assists), SUM(saves), SUM(shots), SUM(excuse_used) 
+                             FROM player_stats WHERE player_name = ? AND match_id IN ({placeholders})""", 
+                         [player] + match_ids)
+                result = c.fetchone()
+                score, goals, assists, saves, shots, excuses = result
+            else:
+                score = goals = assists = saves = shots = excuses = 0
+            
             score = score or 0
             goals = goals or 0
             assists = assists or 0
@@ -854,8 +884,7 @@ with tab3:
             avg_shots = shots / games if games > 0 else 0
             avg_excuses = excuses / games if games > 0 else 0
             
-            stats_data.append({
-                "player": player,
+            return {
                 "wins": wins,
                 "losses": losses,
                 "games": games,
@@ -872,13 +901,71 @@ with tab3:
                 "avg_saves": avg_saves,
                 "avg_shots": avg_shots,
                 "avg_excuses": avg_excuses
-            })
+            }
         
-        # Display wins/losses table
+        # Get overall stats (all match types combined)
+        overall_stats = {}
+        for player in all_players:
+            c.execute("""SELECT COUNT(*) FROM matches WHERE 
+                         (team1_players LIKE ? AND winner = 1) OR
+                         (team2_players LIKE ? AND winner = 2)""", 
+                     (f"%{player}%", f"%{player}%"))
+            wins = c.fetchone()[0]
+            
+            c.execute("""SELECT COUNT(*) FROM matches WHERE 
+                         (team1_players LIKE ? AND winner = 2) OR
+                         (team2_players LIKE ? AND winner = 1)""", 
+                     (f"%{player}%", f"%{player}%"))
+            losses = c.fetchone()[0]
+            
+            games = wins + losses
+            win_pct = (wins / games) * 100 if games > 0 else 0
+            
+            c.execute("""SELECT SUM(score), SUM(goals), SUM(assists), SUM(saves), SUM(shots), SUM(excuse_used) FROM player_stats 
+                         WHERE player_name = ?""", (player,))
+            score, goals, assists, saves, shots, excuses = c.fetchone()
+            score = score or 0
+            goals = goals or 0
+            assists = assists or 0
+            saves = saves or 0
+            shots = shots or 0
+            excuses = excuses or 0
+            
+            avg_score = score / games if games > 0 else 0
+            avg_goals = goals / games if games > 0 else 0
+            avg_assists = assists / games if games > 0 else 0
+            avg_saves = saves / games if games > 0 else 0
+            avg_shots = shots / games if games > 0 else 0
+            avg_excuses = excuses / games if games > 0 else 0
+            
+            overall_stats[player] = {
+                "wins": wins,
+                "losses": losses,
+                "games": games,
+                "win_pct": f"{win_pct:.1f}%",
+                "score": score,
+                "goals": goals,
+                "assists": assists,
+                "saves": saves,
+                "shots": shots,
+                "excuses": excuses,
+                "avg_score": avg_score,
+                "avg_goals": avg_goals,
+                "avg_assists": avg_assists,
+                "avg_saves": avg_saves,
+                "avg_shots": avg_shots,
+                "avg_excuses": avg_excuses
+            }
+        
+        # Display Overall Career Stats
+        st.markdown("## 🎮 Overall Career Stats")
+        
+        # Overall Wins/Losses
         wins_data = []
-        for stat in stats_data:
+        for player in all_players:
+            stat = overall_stats[player]
             wins_data.append({
-                "🎮 Player": stat["player"],
+                "🎮 Player": player,
                 "🏆 Wins": stat["wins"],
                 "💔 Losses": stat["losses"],
                 "📊 Games": stat["games"],
@@ -890,13 +977,14 @@ with tab3:
         st.dataframe(df_wins, use_container_width=True, hide_index=True)
         
         st.divider()
-        st.markdown("## Career Totals")
         
-        # Display career totals
+        # Overall Career Totals
+        st.markdown("### Career Totals (All Matches)")
         totals_data = []
-        for stat in sorted(stats_data, key=lambda x: x["wins"], reverse=True):
+        for player in sorted(all_players, key=lambda p: overall_stats[p]["wins"], reverse=True):
+            stat = overall_stats[player]
             totals_data.append({
-                "🎮 Player": stat["player"],
+                "🎮 Player": player,
                 "🎯 Score": stat["score"],
                 "⚽ Goals": stat["goals"],
                 "🎁 Assists": stat["assists"],
@@ -909,13 +997,14 @@ with tab3:
         st.dataframe(df_totals, use_container_width=True, hide_index=True)
         
         st.divider()
-        st.markdown("## Per-Game Averages")
         
-        # Display averages
+        # Overall Per-Game Averages
+        st.markdown("### Per-Game Averages (All Matches)")
         avg_data = []
-        for stat in sorted(stats_data, key=lambda x: x["wins"], reverse=True):
+        for player in sorted(all_players, key=lambda p: overall_stats[p]["wins"], reverse=True):
+            stat = overall_stats[player]
             avg_data.append({
-                "🎮 Player": stat["player"],
+                "🎮 Player": player,
                 "📍 Avg Score": f"{stat['avg_score']:.1f}",
                 "⚽ Avg Goals": f"{stat['avg_goals']:.2f}",
                 "🎁 Avg Assists": f"{stat['avg_assists']:.2f}",
@@ -926,6 +1015,81 @@ with tab3:
         
         df_avg = pd.DataFrame(avg_data)
         st.dataframe(df_avg, use_container_width=True, hide_index=True)
+        
+        st.divider()
+        
+        # Display stats by match type
+        for match_type in ["1v1", "2v2", "3v3"]:
+            st.markdown(f"## {match_type} Stats")
+            
+            # Get stats for this match type
+            match_type_stats = {}
+            for player in all_players:
+                match_type_stats[player] = get_stats_by_match_type(player, match_type)
+            
+            # Filter players who have played this match type
+            players_with_type = [p for p in all_players if match_type_stats[p]["games"] > 0]
+            
+            if not players_with_type:
+                st.info(f"📭 No {match_type} matches yet")
+            else:
+                # Wins/Losses
+                wins_data = []
+                for player in players_with_type:
+                    stat = match_type_stats[player]
+                    wins_data.append({
+                        "🎮 Player": player,
+                        "🏆 Wins": stat["wins"],
+                        "💔 Losses": stat["losses"],
+                        "📊 Games": stat["games"],
+                        "📈 Win %": stat["win_pct"]
+                    })
+                
+                df_wins = pd.DataFrame(wins_data)
+                df_wins = df_wins.sort_values("🏆 Wins", ascending=False)
+                st.dataframe(df_wins, use_container_width=True, hide_index=True)
+                
+                st.divider()
+                
+                # Career Totals
+                st.markdown(f"### {match_type} Career Totals")
+                totals_data = []
+                for player in sorted(players_with_type, key=lambda p: match_type_stats[p]["wins"], reverse=True):
+                    stat = match_type_stats[player]
+                    totals_data.append({
+                        "🎮 Player": player,
+                        "🎯 Score": stat["score"],
+                        "⚽ Goals": stat["goals"],
+                        "🎁 Assists": stat["assists"],
+                        "🛡️ Saves": stat["saves"],
+                        "🔫 Shots": stat["shots"],
+                        "🤥 Excuses": stat["excuses"]
+                    })
+                
+                df_totals = pd.DataFrame(totals_data)
+                st.dataframe(df_totals, use_container_width=True, hide_index=True)
+                
+                st.divider()
+                
+                # Per-Game Averages
+                st.markdown(f"### {match_type} Per-Game Averages")
+                avg_data = []
+                for player in sorted(players_with_type, key=lambda p: match_type_stats[p]["wins"], reverse=True):
+                    stat = match_type_stats[player]
+                    avg_data.append({
+                        "🎮 Player": player,
+                        "📍 Avg Score": f"{stat['avg_score']:.1f}",
+                        "⚽ Avg Goals": f"{stat['avg_goals']:.2f}",
+                        "🎁 Avg Assists": f"{stat['avg_assists']:.2f}",
+                        "🛡️ Avg Saves": f"{stat['avg_saves']:.2f}",
+                        "🔫 Avg Shots": f"{stat['avg_shots']:.2f}",
+                        "🤥 Avg Excuses": f"{stat['avg_excuses']:.2f}"
+                    })
+                
+                df_avg = pd.DataFrame(avg_data)
+                st.dataframe(df_avg, use_container_width=True, hide_index=True)
+                
+                st.divider()
 
 # ============ TAB 4: TEAMS ============
 with tab4:
