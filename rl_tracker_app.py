@@ -803,6 +803,41 @@ with tab3:
     const observer = new MutationObserver(colorRefreshButton);
     observer.observe(document.body, { childList: true, subtree: true });
 </script>
+
+<style>
+    /* Aggressive centering for all Streamlit dataframes in Player Stats */
+    [data-testid="stDataFrame"] {
+        width: 100%;
+    }
+    
+    [data-testid="stDataFrame"] > div > div {
+        width: 100%;
+    }
+    
+    /* Center all grid cells */
+    [data-testid="stDataFrame"] [role="grid"] [role="row"] [role="gridcell"] {
+        text-align: center !important;
+        justify-content: center !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+    
+    /* Headers */
+    [data-testid="stDataFrame"] [role="columnheader"] {
+        text-align: center !important;
+        justify-content: center !important;
+    }
+    
+    /* All text in dataframe */
+    [data-testid="stDataFrame"] {
+        text-align: center !important;
+    }
+    
+    /* Fallback for all divs inside dataframe */
+    [data-testid="stDataFrame"] * {
+        text-align: center !important;
+    }
+</style>
 """, unsafe_allow_html=True)
     
     st.divider()
@@ -812,13 +847,6 @@ with tab3:
     if not all_players:
         st.info("📭 No player data yet")
     else:
-        # Helper function to center dataframes
-        def center_dataframe(df):
-            return df.style.set_properties(**{'text-align': 'center'}).set_table_styles([
-                {'selector': 'th', 'props': [('text-align', 'center')]},
-                {'selector': 'td', 'props': [('text-align', 'center')]}
-            ])
-        
         def get_stats_by_match_type(player, match_type):
             # Determine number of players based on match type
             if match_type == "1v1":
@@ -980,7 +1008,7 @@ with tab3:
         
         df_wins = pd.DataFrame(wins_data)
         df_wins = df_wins.sort_values("🏆 Wins", ascending=False)
-        st.dataframe(center_dataframe(df_wins), use_container_width=True, hide_index=True)
+        st.dataframe(df_wins, use_container_width=True, hide_index=True)
         
         st.divider()
         
@@ -1000,7 +1028,7 @@ with tab3:
             })
         
         df_totals = pd.DataFrame(totals_data)
-        st.dataframe(center_dataframe(df_totals), use_container_width=True, hide_index=True)
+        st.dataframe(df_totals, use_container_width=True, hide_index=True)
         
         st.divider()
         
@@ -1020,7 +1048,7 @@ with tab3:
             })
         
         df_avg = pd.DataFrame(avg_data)
-        st.dataframe(center_dataframe(df_avg), use_container_width=True, hide_index=True)
+        st.dataframe(df_avg, use_container_width=True, hide_index=True)
         
         st.divider()
         
@@ -1047,7 +1075,7 @@ with tab3:
                     } for player in players_with_type]
                     
                     df_wins = pd.DataFrame(wins_data).sort_values("🏆 Wins", ascending=False)
-                    st.dataframe(center_dataframe(df_wins), use_container_width=True, hide_index=True)
+                    st.dataframe(df_wins, use_container_width=True, hide_index=True)
                     
                     st.divider()
                     
@@ -1063,7 +1091,7 @@ with tab3:
                     } for player in sorted(players_with_type, key=lambda p: match_type_stats[p]["wins"], reverse=True)]
                     
                     df_totals = pd.DataFrame(totals_data)
-                    st.dataframe(center_dataframe(df_totals), use_container_width=True, hide_index=True)
+                    st.dataframe(df_totals, use_container_width=True, hide_index=True)
         
         st.divider()
         st.markdown("## Per Game Match Type Totals")
@@ -1088,7 +1116,7 @@ with tab3:
                     } for player in sorted(players_with_type, key=lambda p: match_type_stats[p]["wins"], reverse=True)]
                     
                     df_avg = pd.DataFrame(avg_data)
-                    st.dataframe(center_dataframe(df_avg), use_container_width=True, hide_index=True)
+                    st.dataframe(df_avg, use_container_width=True, hide_index=True)
 
 # ============ TAB 4: TEAMS ============
 with tab4:
