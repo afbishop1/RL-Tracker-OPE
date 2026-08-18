@@ -805,12 +805,13 @@ with tab3:
 </script>
 
 <style>
-    /* Proper centering for Streamlit dataframes using flexbox */
+    /* Center EVERY cell in Streamlit dataframes */
     [data-testid="stDataFrame"] [role="gridcell"] {
         display: flex !important;
         justify-content: center !important;
         align-items: center !important;
         text-align: center !important;
+        padding: 12px !important;
     }
     
     [data-testid="stDataFrame"] [role="columnheader"] {
@@ -818,10 +819,14 @@ with tab3:
         justify-content: center !important;
         align-items: center !important;
         text-align: center !important;
+        padding: 12px !important;
     }
     
-    /* Center all text in the grid */
-    [data-testid="stDataFrame"] [role="row"] {
+    /* Make sure index column is also centered */
+    [data-testid="stDataFrame"] [role="rowheader"] {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
         text-align: center !important;
     }
 </style>
