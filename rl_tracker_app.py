@@ -974,7 +974,7 @@ with tab3:
         
         df_wins = pd.DataFrame(wins_data)
         df_wins = df_wins.sort_values("🏆 Wins", ascending=False)
-        st.dataframe(df_wins, use_container_width=True, hide_index=True)
+        st.dataframe(df_wins.style.set_properties(**{'text-align': 'center'}), use_container_width=True, hide_index=True)
         
         st.divider()
         
@@ -994,7 +994,7 @@ with tab3:
             })
         
         df_totals = pd.DataFrame(totals_data)
-        st.dataframe(df_totals, use_container_width=True, hide_index=True)
+        st.dataframe(df_totals.style.set_properties(**{'text-align': 'center'}), use_container_width=True, hide_index=True)
         
         st.divider()
         
@@ -1014,7 +1014,7 @@ with tab3:
             })
         
         df_avg = pd.DataFrame(avg_data)
-        st.dataframe(df_avg, use_container_width=True, hide_index=True)
+        st.dataframe(df_avg.style.set_properties(**{'text-align': 'center'}), use_container_width=True, hide_index=True)
         
         st.divider()
         
@@ -1048,7 +1048,7 @@ with tab3:
                 
                 df_wins = pd.DataFrame(wins_data)
                 df_wins = df_wins.sort_values("🏆 Wins", ascending=False)
-                st.dataframe(df_wins, use_container_width=True, hide_index=True)
+                st.dataframe(df_wins.style.set_properties(**{'text-align': 'center'}), use_container_width=True, hide_index=True)
                 
                 st.divider()
                 
@@ -1067,7 +1067,7 @@ with tab3:
                     })
                 
                 df_totals = pd.DataFrame(totals_data)
-                st.dataframe(df_totals, use_container_width=True, hide_index=True)
+                st.dataframe(df_totals.style.set_properties(**{'text-align': 'center'}), use_container_width=True, hide_index=True)
         
         with st.expander("2v2", expanded=False):
             match_type = "2v2"
@@ -1094,7 +1094,7 @@ with tab3:
                 
                 df_wins = pd.DataFrame(wins_data)
                 df_wins = df_wins.sort_values("🏆 Wins", ascending=False)
-                st.dataframe(df_wins, use_container_width=True, hide_index=True)
+                st.dataframe(df_wins.style.set_properties(**{'text-align': 'center'}), use_container_width=True, hide_index=True)
                 
                 st.divider()
                 
@@ -1113,7 +1113,7 @@ with tab3:
                     })
                 
                 df_totals = pd.DataFrame(totals_data)
-                st.dataframe(df_totals, use_container_width=True, hide_index=True)
+                st.dataframe(df_totals.style.set_properties(**{'text-align': 'center'}), use_container_width=True, hide_index=True)
         
         with st.expander("3v3", expanded=False):
             match_type = "3v3"
@@ -1140,7 +1140,7 @@ with tab3:
                 
                 df_wins = pd.DataFrame(wins_data)
                 df_wins = df_wins.sort_values("🏆 Wins", ascending=False)
-                st.dataframe(df_wins, use_container_width=True, hide_index=True)
+                st.dataframe(df_wins.style.set_properties(**{'text-align': 'center'}), use_container_width=True, hide_index=True)
                 
                 st.divider()
                 
@@ -1159,7 +1159,7 @@ with tab3:
                     })
                 
                 df_totals = pd.DataFrame(totals_data)
-                st.dataframe(df_totals, use_container_width=True, hide_index=True)
+                st.dataframe(df_totals.style.set_properties(**{'text-align': 'center'}), use_container_width=True, hide_index=True)
         
         st.divider()
         st.markdown("## Per Game Match Type Totals")
@@ -1190,7 +1190,7 @@ with tab3:
                     })
                 
                 df_avg = pd.DataFrame(avg_data)
-                st.dataframe(df_avg, use_container_width=True, hide_index=True)
+                st.dataframe(df_avg.style.set_properties(**{'text-align': 'center'}), use_container_width=True, hide_index=True)
         
         with st.expander("2v2", expanded=False):
             match_type = "2v2"
@@ -1218,7 +1218,7 @@ with tab3:
                     })
                 
                 df_avg = pd.DataFrame(avg_data)
-                st.dataframe(df_avg, use_container_width=True, hide_index=True)
+                st.dataframe(df_avg.style.set_properties(**{'text-align': 'center'}), use_container_width=True, hide_index=True)
         
         with st.expander("3v3", expanded=False):
             match_type = "3v3"
@@ -1246,7 +1246,7 @@ with tab3:
                     })
                 
                 df_avg = pd.DataFrame(avg_data)
-                st.dataframe(df_avg, use_container_width=True, hide_index=True)
+                st.dataframe(df_avg.style.set_properties(**{'text-align': 'center'}), use_container_width=True, hide_index=True)
 
 # ============ TAB 4: TEAMS ============
 with tab4:
