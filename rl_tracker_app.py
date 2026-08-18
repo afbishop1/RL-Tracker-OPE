@@ -776,7 +776,7 @@ with tab3:
     if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_tab3"):
         st.rerun()
     
-    # JavaScript to color refresh button and center ALL table cells
+    # JavaScript to color refresh button
     st.markdown("""
 <script>
     function colorRefreshButton() {
@@ -795,43 +795,12 @@ with tab3:
         });
     }
     
-    function centerAllTables() {
-        // Find all data frame containers
-        let dataFrames = document.querySelectorAll('[data-testid="stDataFrame"]');
-        dataFrames.forEach(df => {
-            // Center all cells in the grid
-            let cells = df.querySelectorAll('[role="gridcell"], [role="columnheader"], [role="rowheader"]');
-            cells.forEach(cell => {
-                cell.style.textAlign = 'center';
-                cell.style.justifyContent = 'center';
-                cell.style.display = 'flex';
-                cell.style.alignItems = 'center';
-            });
-            
-            // Also center all divs within cells
-            let allDivs = df.querySelectorAll('div');
-            allDivs.forEach(div => {
-                div.style.textAlign = 'center';
-            });
-        });
-    }
-    
     colorRefreshButton();
     setTimeout(colorRefreshButton, 100);
     setTimeout(colorRefreshButton, 300);
     setTimeout(colorRefreshButton, 600);
     
-    // Center tables on initial load
-    setTimeout(centerAllTables, 100);
-    setTimeout(centerAllTables, 300);
-    setTimeout(centerAllTables, 500);
-    
-    // Center tables whenever DOM changes
-    const observer = new MutationObserver(() => {
-        colorRefreshButton();
-        centerAllTables();
-    });
-    
+    const observer = new MutationObserver(colorRefreshButton);
     observer.observe(document.body, { childList: true, subtree: true });
 </script>
 """, unsafe_allow_html=True)
