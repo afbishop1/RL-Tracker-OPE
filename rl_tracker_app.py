@@ -623,12 +623,39 @@ with tab2:
                         t1_players = first_match[0]
                         t2_players = first_match[1]
                         player_info = f"({t1_players} vs {t2_players})"
+                        t1_list = t1_players.split(",")
+                        t2_list = t2_players.split(",")
                     else:
                         player_info = ""
+                        t1_list = []
+                        t2_list = []
+                    
+                    # Get series records (wins per team)
+                    c.execute("""SELECT winner, COUNT(*) FROM matches 
+                                 WHERE series_number = ? GROUP BY winner""", (series_num,))
+                    wins_data = c.fetchall()
+                    t1_wins = 0
+                    t2_wins = 0
+                    for winner, count in wins_data:
+                        if winner == 1:
+                            t1_wins = count
+                        elif winner == 2:
+                            t2_wins = count
+                    
+                    # Determine series winner
+                    if t1_wins > t2_wins:
+                        series_winner = " + ".join(t1_list)
+                        series_record = f"{t1_wins}-{t2_wins}"
+                    elif t2_wins > t1_wins:
+                        series_winner = " + ".join(t2_list)
+                        series_record = f"{t2_wins}-{t1_wins}"
+                    else:
+                        series_winner = "Tied"
+                        series_record = f"{t1_wins}-{t2_wins}"
                     
                     col1, col2 = st.columns([0.9, 0.1])
                     with col1:
-                        expander = st.expander(f"📊 Series {series_num} - Best of {bo} {player_info}", expanded=False)
+                        expander = st.expander(f"📊 Series {series_num} - {series_winner} Won {series_record} {player_info}", expanded=False)
                     with col2:
                         if st.button("🗑️", key=f"delete_series_{series_num}", help="Delete this series"):
                             st.session_state.confirm_delete = True
@@ -669,7 +696,17 @@ with tab2:
                         
                         for match in matches:
                             match_id, sn, mn, b, ts, t1p, t2p, t1s, t2s, winner = match
-                            winner_text = "Team 1 Won" if winner == 1 else "Team 2 Won" if winner == 2 else "Pending"
+                            
+                            # Format winner text with player names
+                            t1_players = t1p.split(",")
+                            t2_players = t2p.split(",")
+                            
+                            if winner == 1:
+                                winner_text = " + ".join(t1_players) + " Won"
+                            elif winner == 2:
+                                winner_text = " + ".join(t2_players) + " Won"
+                            else:
+                                winner_text = "Pending"
                             
                             st.markdown(f"**Match {mn}: {winner_text} ({t1s} - {t2s})**")
                             
