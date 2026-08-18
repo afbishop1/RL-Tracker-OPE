@@ -273,10 +273,22 @@ PLAYERS = [
 # ============================================================
 # TITLE
 # ============================================================
-st.markdown(
-    '<div class="title-main">⚡ RL MATCH TRACKER ⚡</div>',
-    unsafe_allow_html=True
-)
+st.markdown("""
+<style>
+    .rl-title {
+        font-size: clamp(1.8em, 8vw, 3em);
+        font-weight: bold;
+        background: linear-gradient(90deg, #FF6B00 0%, #1E90FF 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 10px;
+        text-align: center;
+        white-space: nowrap;
+    }
+</style>
+<div class="rl-title">RL MATCH TRACKER</div>
+""", unsafe_allow_html=True)
 st.markdown("""
 <div style="
     text-align: center;
