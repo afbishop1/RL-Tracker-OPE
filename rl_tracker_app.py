@@ -301,7 +301,7 @@ st.markdown("""
     margin-bottom: 20px;
     letter-spacing: 2px;
 ">
-🎮 OPE GAMING CLAN 🎮
+🎮 OPE GAMING 🎮
 </div>
 """, unsafe_allow_html=True)
 st.divider()
