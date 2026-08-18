@@ -140,12 +140,39 @@ st.markdown("""
     [data-testid="stMetricValue"] {
         color: var(--rl-orange);
     }
-    
 
+    /* ========================================
+       ALL STREAMLIT DATAFRAME TABLES
+       FORCE LEFT ALIGNMENT
+       ======================================== */
+
+    [data-testid="stDataFrame"] [role="gridcell"] {
+        text-align: left !important;
+        justify-content: flex-start !important;
+    }
+
+    [data-testid="stDataFrame"] [role="columnheader"] {
+        text-align: left !important;
+        justify-content: flex-start !important;
+    }
+
+    [data-testid="stDataFrame"] [role="gridcell"] > div {
+        text-align: left !important;
+        justify-content: flex-start !important;
+    }
+
+    [data-testid="stDataFrame"] [role="columnheader"] > div {
+        text-align: left !important;
+        justify-content: flex-start !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# Database setup
+
+# ============================================================
+# DATABASE SETUP
+# ============================================================
+
 def init_db():
     conn = sqlite3.connect("rl_matches.db")
     c = conn.cursor()
@@ -181,269 +208,540 @@ def init_db():
                   user_name TEXT,
                   action TEXT)''')
     
-    # Auto-migration: Add shots column if it doesn't exist
+    # Auto-migration
     try:
         c.execute("PRAGMA table_info(player_stats)")
         columns = [row[1] for row in c.fetchall()]
+        
         if 'shots' not in columns:
             c.execute("ALTER TABLE player_stats ADD COLUMN shots INTEGER DEFAULT 0")
             conn.commit()
+            
         if 'excuse_used' not in columns:
             c.execute("ALTER TABLE player_stats ADD COLUMN excuse_used INTEGER DEFAULT 0")
             conn.commit()
+            
     except Exception as e:
         print(f"Migration error: {e}")
     
     conn.commit()
     return conn
 
+
 conn = init_db()
 c = conn.cursor()
 
-PLAYERS = ["Killmesmallz", "See Me No Mor", "Bon Qwee Qwee", "CrabLegz19", "GunzMcgee73", "BucciXman", "SirLagz54"]
+PLAYERS = [
+    "Killmesmallz",
+    "See Me No Mor",
+    "Bon Qwee Qwee",
+    "CrabLegz19",
+    "GunzMcgee73",
+    "BucciXman",
+    "SirLagz54"
+]
 
-# Title
-st.markdown('<div class="title-main">⚡ RL MATCH TRACKER ⚡</div>', unsafe_allow_html=True)
+
+# ============================================================
+# HELPER FUNCTION - LEFT ALIGN DATAFRAMES
+# ============================================================
+
+def left_align_dataframe(df):
+    """
+    Forces all dataframe headers and cells to be left aligned.
+    """
+    return df.style.set_properties(
+        **{
+            "text-align": "left",
+            "justify-content": "flex-start"
+        }
+    ).set_table_styles([
+        {
+            "selector": "th",
+            "props": [
+                ("text-align", "left"),
+                ("justify-content", "flex-start")
+            ]
+        },
+        {
+            "selector": "td",
+            "props": [
+                ("text-align", "left"),
+                ("justify-content", "flex-start")
+            ]
+        }
+    ])
+
+
+# ============================================================
+# TITLE
+# ============================================================
+
+st.markdown(
+    '<div class="title-main">⚡ RL MATCH TRACKER ⚡</div>',
+    unsafe_allow_html=True
+)
+
 st.markdown("OPE Gaming", unsafe_allow_html=True)
+
 st.divider()
 
-# Initialize session state for confirmations
+
+# ============================================================
+# SESSION STATE
+# ============================================================
+
 if 'confirm_submit' not in st.session_state:
     st.session_state.confirm_submit = False
+
 if 'confirm_delete' not in st.session_state:
     st.session_state.confirm_delete = False
+
 if 'delete_series_num' not in st.session_state:
     st.session_state.delete_series_num = None
 
-# Create tabs
-tab1, tab2, tab3, tab4 = st.tabs(["🎯 Log Match", "📊 Series History", "🏆 Player Stats", "👥 Teams"])
 
-# ============ TAB 1: LOG MATCH ============
+# ============================================================
+# TABS
+# ============================================================
+
+tab1, tab2, tab3, tab4 = st.tabs([
+    "🎯 Log Match",
+    "📊 Series History",
+    "🏆 Player Stats",
+    "👥 Teams"
+])
+
+
+# ============================================================
+# TAB 1: LOG MATCH
+# ============================================================
+
 with tab1:
-    # Refresh Data and Clear Players/Scores buttons (side by side)
+
     refresh_col, clear_col = st.columns(2)
-    
+
     with refresh_col:
-        if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_tab1"):
+        if st.button(
+            "🔄 Refresh Data",
+            use_container_width=True,
+            key="refresh_tab1"
+        ):
             st.rerun()
-    
+
     with clear_col:
-        if st.button("🔄 Clear Players/Scores", use_container_width=True, key="clear_main"):
-            st.session_state.reset_counter = st.session_state.get('reset_counter', 0) + 1
+        if st.button(
+            "🔄 Clear Players/Scores",
+            use_container_width=True,
+            key="clear_main"
+        ):
+            st.session_state.reset_counter = (
+                st.session_state.get('reset_counter', 0) + 1
+            )
             st.rerun()
-    
-    # JavaScript to color both buttons
+
     st.markdown("""
-<script>
-    function colorButtons() {
-        let buttons = document.querySelectorAll('button');
-        let refreshFound = false;
-        let clearFound = false;
-        
-        buttons.forEach(btn => {
-            if (btn.textContent.includes('Refresh Data')) {
-                btn.style.background = 'linear-gradient(90deg, #1E90FF 0%, #4169E1 100%)';
-                btn.style.color = 'white';
-                btn.style.border = 'none';
-                btn.style.borderRadius = '8px';
-                btn.style.fontWeight = 'bold';
-                btn.style.fontSize = '1.6em';
-                btn.style.padding = '20px 40px';
-                btn.style.transition = 'transform 0.2s';
-                refreshFound = true;
-            }
-            if (btn.textContent.includes('Clear Players/Scores')) {
-                btn.style.background = 'linear-gradient(90deg, #FF6B00 0%, #FF8C00 100%)';
-                btn.style.color = 'white';
-                btn.style.border = 'none';
-                btn.style.borderRadius = '8px';
-                btn.style.fontWeight = 'bold';
-                btn.style.fontSize = '1.6em';
-                btn.style.padding = '20px 40px';
-                btn.style.transition = 'transform 0.2s';
-                clearFound = true;
-            }
-        });
-        
-        return refreshFound && clearFound;
-    }
-    
-    // Try immediately
-    colorButtons();
-    
-    // Retry after short delay
-    setTimeout(colorButtons, 100);
-    setTimeout(colorButtons, 300);
-    setTimeout(colorButtons, 600);
-    setTimeout(colorButtons, 1000);
-    setTimeout(colorButtons, 2000);
-    
-    // Set up observer for future changes
-    const observer = new MutationObserver(() => {
+    <script>
+        function colorButtons() {
+            let buttons = document.querySelectorAll('button');
+
+            buttons.forEach(btn => {
+
+                if (btn.textContent.includes('Refresh Data')) {
+                    btn.style.background =
+                        'linear-gradient(90deg, #1E90FF 0%, #4169E1 100%)';
+                    btn.style.color = 'white';
+                    btn.style.border = 'none';
+                    btn.style.borderRadius = '8px';
+                    btn.style.fontWeight = 'bold';
+                    btn.style.fontSize = '1.6em';
+                    btn.style.padding = '20px 40px';
+                }
+
+                if (btn.textContent.includes('Clear Players/Scores')) {
+                    btn.style.background =
+                        'linear-gradient(90deg, #FF6B00 0%, #FF8C00 100%)';
+                    btn.style.color = 'white';
+                    btn.style.border = 'none';
+                    btn.style.borderRadius = '8px';
+                    btn.style.fontWeight = 'bold';
+                    btn.style.fontSize = '1.6em';
+                    btn.style.padding = '20px 40px';
+                }
+            });
+        }
+
         colorButtons();
-    });
-    
-    observer.observe(document.body, { childList: true, subtree: true });
-</script>
-""", unsafe_allow_html=True)
-    
+
+        setTimeout(colorButtons, 100);
+        setTimeout(colorButtons, 300);
+        setTimeout(colorButtons, 600);
+        setTimeout(colorButtons, 1000);
+        setTimeout(colorButtons, 2000);
+
+        const observer = new MutationObserver(() => {
+            colorButtons();
+        });
+
+        observer.observe(
+            document.body,
+            {
+                childList: true,
+                subtree: true
+            }
+        );
+    </script>
+    """, unsafe_allow_html=True)
+
     st.divider()
-    
-    # Format and Match Type Selection
+
+    # Format and Match Type
     col1, col2 = st.columns(2)
-    
+
     with col1:
         st.markdown("**🏁 Series Format**")
-        best_of = st.radio("Choose format", ["Best of 3", "Best of 5"], horizontal=True, label_visibility="collapsed")
+
+        best_of = st.radio(
+            "Choose format",
+            ["Best of 3", "Best of 5"],
+            horizontal=True,
+            label_visibility="collapsed"
+        )
+
         bo_num = 3 if best_of == "Best of 3" else 5
         max_games = bo_num
-    
+
     with col2:
         st.markdown("**👥 Match Type**")
-        match_type = st.radio("Choose type", ["1v1", "2v2", "3v3"], horizontal=True, label_visibility="collapsed")
+
+        match_type = st.radio(
+            "Choose type",
+            ["1v1", "2v2", "3v3"],
+            horizontal=True,
+            label_visibility="collapsed"
+        )
+
         num_players = int(match_type[0])
-    
-    # Initialize reset counter
+
     if 'reset_counter' not in st.session_state:
         st.session_state.reset_counter = 0
-    
+
     # Get current series
-    c.execute("SELECT series_number, match_number, best_of FROM matches ORDER BY series_number DESC, match_number DESC LIMIT 1")
+    c.execute("""
+        SELECT series_number, match_number, best_of
+        FROM matches
+        ORDER BY series_number DESC, match_number DESC
+        LIMIT 1
+    """)
+
     last_match = c.fetchone()
-    
+
     if last_match:
+
         last_series, last_match_num, last_bo = last_match
-        c.execute(f"SELECT COUNT(*) FROM matches WHERE series_number = ? AND winner IS NOT NULL", (last_series,))
+
+        c.execute("""
+            SELECT COUNT(*)
+            FROM matches
+            WHERE series_number = ?
+            AND winner IS NOT NULL
+        """, (last_series,))
+
         wins_in_series = c.fetchone()[0]
-        
-        if last_bo == 3:
-            wins_needed = 2
-        else:
-            wins_needed = 3
-        
+
+        wins_needed = 2 if last_bo == 3 else 3
+
         if wins_in_series >= wins_needed:
             current_series = last_series + 1
         else:
             current_series = last_series
+
     else:
         current_series = 1
-    
-    # Series header
-    st.markdown(f'<div class="series-header">Series {current_series} - {best_of}</div>', unsafe_allow_html=True)
-    
-    # Initialize session state for player selections - always use defaults
+
+    st.markdown(
+        f'<div class="series-header">Series {current_series} - {best_of}</div>',
+        unsafe_allow_html=True
+    )
+
+    # Team session state
     if 'series_team1' not in st.session_state:
         st.session_state.series_team1 = ["Choose Player"] * num_players
-    
+
     if 'series_team2' not in st.session_state:
         st.session_state.series_team2 = ["Choose Player"] * num_players
-    
-    # Check if we need to reset due to match type change
+
     if len(st.session_state.series_team1) != num_players:
+
         st.session_state.reset_counter += 1
         st.session_state.series_team1 = ["Choose Player"] * num_players
         st.session_state.series_team2 = ["Choose Player"] * num_players
-    
+
     elif len(st.session_state.series_team2) != num_players:
+
         st.session_state.reset_counter += 1
         st.session_state.series_team1 = ["Choose Player"] * num_players
         st.session_state.series_team2 = ["Choose Player"] * num_players
-    
-    # STEP 1: SELECT TEAMS
+
+    # --------------------------------------------------------
+    # STEP 1
+    # --------------------------------------------------------
+
     st.markdown("## Step 1: Select Your Teams")
-    
+
     col1, col2 = st.columns(2)
-    
+
     player_options = ["Choose Player"] + PLAYERS
-    
+
     with col1:
-        st.markdown('<div style="text-align: center; font-size: 1.3em; color: #FF6B00; font-weight: bold; margin-bottom: 15px;">TEAM 1</div>', unsafe_allow_html=True)
+
+        st.markdown(
+            '<div style="text-align: center; font-size: 1.3em; '
+            'color: #FF6B00; font-weight: bold; margin-bottom: 15px;">'
+            'TEAM 1</div>',
+            unsafe_allow_html=True
+        )
+
         for i in range(num_players):
+
             try:
-                current_index = player_options.index(st.session_state.series_team1[i])
+                current_index = player_options.index(
+                    st.session_state.series_team1[i]
+                )
             except (ValueError, IndexError):
                 current_index = 0
-            st.session_state.series_team1[i] = st.selectbox(f"Player {i+1}", player_options, index=current_index, key=f"team1_p{i}_r{st.session_state.reset_counter}")
-    
+
+            st.session_state.series_team1[i] = st.selectbox(
+                f"Player {i+1}",
+                player_options,
+                index=current_index,
+                key=f"team1_p{i}_r{st.session_state.reset_counter}"
+            )
+
     with col2:
-        st.markdown('<div style="text-align: center; font-size: 1.3em; color: #1E90FF; font-weight: bold; margin-bottom: 15px;">TEAM 2</div>', unsafe_allow_html=True)
+
+        st.markdown(
+            '<div style="text-align: center; font-size: 1.3em; '
+            'color: #1E90FF; font-weight: bold; margin-bottom: 15px;">'
+            'TEAM 2</div>',
+            unsafe_allow_html=True
+        )
+
         for i in range(num_players):
+
             try:
-                current_index = player_options.index(st.session_state.series_team2[i])
+                current_index = player_options.index(
+                    st.session_state.series_team2[i]
+                )
             except (ValueError, IndexError):
                 current_index = 0
-            st.session_state.series_team2[i] = st.selectbox(f"Player {i+1}", player_options, index=current_index, key=f"team2_p{i}_r{st.session_state.reset_counter}")
-    
+
+            st.session_state.series_team2[i] = st.selectbox(
+                f"Player {i+1}",
+                player_options,
+                index=current_index,
+                key=f"team2_p{i}_r{st.session_state.reset_counter}"
+            )
+
     st.divider()
-    
-    # STEP 2: ADD STATS FOR EACH GAME
+
+    # --------------------------------------------------------
+    # STEP 2
+    # --------------------------------------------------------
+
     st.markdown("## Step 2: Add Stats for Each Game")
-    
+
     series_games = []
-    
+
     for game_num in range(1, max_games + 1):
-        with st.expander(f"Game {game_num}", expanded=(game_num==1)):
+
+        with st.expander(
+            f"Game {game_num}",
+            expanded=(game_num == 1)
+        ):
+
             col1, col2 = st.columns(2)
-            
+
+            # TEAM 1
             with col1:
-                st.markdown('<div style="text-align: center; font-size: 1.2em; color: #FF6B00; font-weight: bold; margin-bottom: 10px;">TEAM 1</div>', unsafe_allow_html=True)
+
+                st.markdown(
+                    '<div style="text-align: center; font-size: 1.2em; '
+                    'color: #FF6B00; font-weight: bold; margin-bottom: 10px;">'
+                    'TEAM 1</div>',
+                    unsafe_allow_html=True
+                )
+
                 team1_stats = []
-                
+
                 for i in range(num_players):
+
                     player_name = st.session_state.series_team1[i]
+
                     st.markdown(f"**{player_name}**")
-                    
+
                     stat_col1, stat_col2, stat_col3 = st.columns(3)
+
                     with stat_col1:
-                        score = st.number_input(f"Score", min_value=0, key=f"g{game_num}_t1_s{i}_r{st.session_state.reset_counter}")
-                        goals = st.number_input(f"Goals", min_value=0, key=f"g{game_num}_t1_g{i}_r{st.session_state.reset_counter}")
+
+                        score = st.number_input(
+                            "Score",
+                            min_value=0,
+                            key=f"g{game_num}_t1_s{i}_r{st.session_state.reset_counter}"
+                        )
+
+                        goals = st.number_input(
+                            "Goals",
+                            min_value=0,
+                            key=f"g{game_num}_t1_g{i}_r{st.session_state.reset_counter}"
+                        )
+
                     with stat_col2:
-                        assists = st.number_input(f"Assists", min_value=0, key=f"g{game_num}_t1_a{i}_r{st.session_state.reset_counter}")
-                        saves = st.number_input(f"Saves", min_value=0, key=f"g{game_num}_t1_sv{i}_r{st.session_state.reset_counter}")
+
+                        assists = st.number_input(
+                            "Assists",
+                            min_value=0,
+                            key=f"g{game_num}_t1_a{i}_r{st.session_state.reset_counter}"
+                        )
+
+                        saves = st.number_input(
+                            "Saves",
+                            min_value=0,
+                            key=f"g{game_num}_t1_sv{i}_r{st.session_state.reset_counter}"
+                        )
+
                     with stat_col3:
-                        shots = st.number_input(f"Shots", min_value=0, key=f"g{game_num}_t1_sh{i}_r{st.session_state.reset_counter}")
-                    
-                    excuse_used = st.radio(f"Excuse Used?", ["No", "Yes"], horizontal=True, key=f"g{game_num}_t1_ex{i}_r{st.session_state.reset_counter}")
+
+                        shots = st.number_input(
+                            "Shots",
+                            min_value=0,
+                            key=f"g{game_num}_t1_sh{i}_r{st.session_state.reset_counter}"
+                        )
+
+                    excuse_used = st.radio(
+                        "Excuse Used?",
+                        ["No", "Yes"],
+                        horizontal=True,
+                        key=f"g{game_num}_t1_ex{i}_r{st.session_state.reset_counter}"
+                    )
+
                     excuse_val = 1 if excuse_used == "Yes" else 0
-                    
-                    team1_stats.append({"player": player_name, "score": score, "goals": goals, "assists": assists, "saves": saves, "shots": shots, "excuse_used": excuse_val})
+
+                    team1_stats.append({
+                        "player": player_name,
+                        "score": score,
+                        "goals": goals,
+                        "assists": assists,
+                        "saves": saves,
+                        "shots": shots,
+                        "excuse_used": excuse_val
+                    })
+
                     st.markdown("---")
-            
+
+            # TEAM 2
             with col2:
-                st.markdown('<div style="text-align: center; font-size: 1.2em; color: #1E90FF; font-weight: bold; margin-bottom: 10px;">TEAM 2</div>', unsafe_allow_html=True)
+
+                st.markdown(
+                    '<div style="text-align: center; font-size: 1.2em; '
+                    'color: #1E90FF; font-weight: bold; margin-bottom: 10px;">'
+                    'TEAM 2</div>',
+                    unsafe_allow_html=True
+                )
+
                 team2_stats = []
-                
+
                 for i in range(num_players):
+
                     player_name = st.session_state.series_team2[i]
+
                     st.markdown(f"**{player_name}**")
-                    
+
                     stat_col1, stat_col2, stat_col3 = st.columns(3)
+
                     with stat_col1:
-                        score = st.number_input(f"Score", min_value=0, key=f"g{game_num}_t2_s{i}_r{st.session_state.reset_counter}")
-                        goals = st.number_input(f"Goals", min_value=0, key=f"g{game_num}_t2_g{i}_r{st.session_state.reset_counter}")
+
+                        score = st.number_input(
+                            "Score",
+                            min_value=0,
+                            key=f"g{game_num}_t2_s{i}_r{st.session_state.reset_counter}"
+                        )
+
+                        goals = st.number_input(
+                            "Goals",
+                            min_value=0,
+                            key=f"g{game_num}_t2_g{i}_r{st.session_state.reset_counter}"
+                        )
+
                     with stat_col2:
-                        assists = st.number_input(f"Assists", min_value=0, key=f"g{game_num}_t2_a{i}_r{st.session_state.reset_counter}")
-                        saves = st.number_input(f"Saves", min_value=0, key=f"g{game_num}_t2_sv{i}_r{st.session_state.reset_counter}")
+
+                        assists = st.number_input(
+                            "Assists",
+                            min_value=0,
+                            key=f"g{game_num}_t2_a{i}_r{st.session_state.reset_counter}"
+                        )
+
+                        saves = st.number_input(
+                            "Saves",
+                            min_value=0,
+                            key=f"g{game_num}_t2_sv{i}_r{st.session_state.reset_counter}"
+                        )
+
                     with stat_col3:
-                        shots = st.number_input(f"Shots", min_value=0, key=f"g{game_num}_t2_sh{i}_r{st.session_state.reset_counter}")
-                    
-                    excuse_used = st.radio(f"Excuse Used?", ["No", "Yes"], horizontal=True, key=f"g{game_num}_t2_ex{i}_r{st.session_state.reset_counter}")
+
+                        shots = st.number_input(
+                            "Shots",
+                            min_value=0,
+                            key=f"g{game_num}_t2_sh{i}_r{st.session_state.reset_counter}"
+                        )
+
+                    excuse_used = st.radio(
+                        "Excuse Used?",
+                        ["No", "Yes"],
+                        horizontal=True,
+                        key=f"g{game_num}_t2_ex{i}_r{st.session_state.reset_counter}"
+                    )
+
                     excuse_val = 1 if excuse_used == "Yes" else 0
-                    
-                    team2_stats.append({"player": player_name, "score": score, "goals": goals, "assists": assists, "saves": saves, "shots": shots, "excuse_used": excuse_val})
+
+                    team2_stats.append({
+                        "player": player_name,
+                        "score": score,
+                        "goals": goals,
+                        "assists": assists,
+                        "saves": saves,
+                        "shots": shots,
+                        "excuse_used": excuse_val
+                    })
+
                     st.markdown("---")
-            
-            # Winner selection - show actual player names
-            team1_display = " + ".join(st.session_state.series_team1)
-            team2_display = " + ".join(st.session_state.series_team2)
-            
+
+            # Winner
+            team1_display = " + ".join(
+                st.session_state.series_team1
+            )
+
+            team2_display = " + ".join(
+                st.session_state.series_team2
+            )
+
             col_w1, col_w2 = st.columns(2)
+
             with col_w1:
                 st.markdown("**Who won this game?**")
+
             with col_w2:
-                winner = st.radio("Select winner", [team1_display, team2_display], horizontal=True, key=f"g{game_num}_winner_r{st.session_state.reset_counter}", label_visibility="collapsed")
+
+                winner = st.radio(
+                    "Select winner",
+                    [team1_display, team2_display],
+                    horizontal=True,
+                    key=f"g{game_num}_winner_r{st.session_state.reset_counter}",
+                    label_visibility="collapsed"
+                )
+
             winner_num = 1 if winner == team1_display else 2
-            
+
             series_games.append({
                 "game_num": game_num,
                 "team1_players": st.session_state.series_team1,
@@ -452,437 +750,962 @@ with tab1:
                 "team2_stats": team2_stats,
                 "winner": winner_num
             })
-    
+
     st.divider()
-    
-    # Submit button
+
+    # Submit
     col1, col2 = st.columns([0.7, 0.3])
+
     with col1:
-        submit_clicked = st.button("🎮 LOG SERIES 🎮", key="submit_series", use_container_width=True)
-    
-    # If submit clicked, ask for user
+
+        submit_clicked = st.button(
+            "🎮 LOG SERIES 🎮",
+            key="submit_series",
+            use_container_width=True
+        )
+
     if submit_clicked:
         st.session_state.confirm_submit = True
-    
+
     if st.session_state.get("confirm_submit", False):
+
         st.divider()
+
         st.markdown("### 👤 Who is entering this game?")
-        confirming_user = st.selectbox("Select your name", PLAYERS, key="confirm_user_selectbox")
-        
+
+        confirming_user = st.selectbox(
+            "Select your name",
+            PLAYERS,
+            key="confirm_user_selectbox"
+        )
+
         col1, col2 = st.columns(2)
+
         with col1:
-            if st.button("✅ Confirm", use_container_width=True, key="confirm_btn"):
-                # Validate games
+
+            if st.button(
+                "✅ Confirm",
+                use_container_width=True,
+                key="confirm_btn"
+            ):
+
                 all_valid = True
                 error_msg = ""
-                
-                # Check if all players are selected (not "Choose Player")
-                if "Choose Player" in st.session_state.series_team1 or "Choose Player" in st.session_state.series_team2:
+
+                if (
+                    "Choose Player" in st.session_state.series_team1
+                    or
+                    "Choose Player" in st.session_state.series_team2
+                ):
                     all_valid = False
-                    error_msg = "Please select all players before logging the series!"
-                
+                    error_msg = (
+                        "Please select all players before logging the series!"
+                    )
+
                 for game in series_games:
+
                     if not all_valid:
                         break
-                    # Check for duplicate players
-                    all_players_in_game = game["team1_players"] + game["team2_players"]
-                    if len(all_players_in_game) != len(set(all_players_in_game)):
+
+                    all_players_in_game = (
+                        game["team1_players"]
+                        +
+                        game["team2_players"]
+                    )
+
+                    if len(all_players_in_game) != len(
+                        set(all_players_in_game)
+                    ):
+
                         all_valid = False
-                        error_msg = f"Game {game['game_num']}: Each player can only be on one team!"
+
+                        error_msg = (
+                            f"Game {game['game_num']}: "
+                            "Each player can only be on one team!"
+                        )
+
                         break
-                
+
                 if not all_valid:
+
                     st.error(error_msg)
+
                 else:
-                    # Insert all games
+
                     for game in series_games:
-                        t1_total = sum(p["score"] for p in game["team1_stats"])
-                        t2_total = sum(p["score"] for p in game["team2_stats"])
-                        
-                        c.execute("""INSERT INTO matches 
-                                    (series_number, match_number, best_of, timestamp, team1_players, team2_players, team1_score, team2_score, winner)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                                 (current_series, game["game_num"], bo_num, datetime.now().isoformat(), 
-                                  ",".join(game["team1_players"]), ",".join(game["team2_players"]), 
-                                  t1_total, t2_total, game["winner"]))
-                        
+
+                        t1_total = sum(
+                            p["score"]
+                            for p in game["team1_stats"]
+                        )
+
+                        t2_total = sum(
+                            p["score"]
+                            for p in game["team2_stats"]
+                        )
+
+                        c.execute("""
+                            INSERT INTO matches
+                            (
+                                series_number,
+                                match_number,
+                                best_of,
+                                timestamp,
+                                team1_players,
+                                team2_players,
+                                team1_score,
+                                team2_score,
+                                winner
+                            )
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """, (
+                            current_series,
+                            game["game_num"],
+                            bo_num,
+                            datetime.now().isoformat(),
+                            ",".join(game["team1_players"]),
+                            ",".join(game["team2_players"]),
+                            t1_total,
+                            t2_total,
+                            game["winner"]
+                        ))
+
                         match_id = c.lastrowid
-                        
-                        # Insert player stats for team 1
-                        for i, stat in enumerate(game["team1_stats"]):
-                            c.execute("""INSERT INTO player_stats (match_id, player_name, team, score, goals, assists, saves, shots, excuse_used)
-                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                                     (match_id, stat["player"], 1, int(stat["score"]), int(stat["goals"]), int(stat["assists"]), int(stat["saves"]), int(stat["shots"]), int(stat["excuse_used"])))
-                        
-                        # Insert player stats for team 2
-                        for i, stat in enumerate(game["team2_stats"]):
-                            c.execute("""INSERT INTO player_stats (match_id, player_name, team, score, goals, assists, saves, shots, excuse_used)
-                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                                     (match_id, stat["player"], 2, int(stat["score"]), int(stat["goals"]), int(stat["assists"]), int(stat["saves"]), int(stat["shots"]), int(stat["excuse_used"])))
-                    
+
+                        # Team 1 stats
+                        for stat in game["team1_stats"]:
+
+                            c.execute("""
+                                INSERT INTO player_stats
+                                (
+                                    match_id,
+                                    player_name,
+                                    team,
+                                    score,
+                                    goals,
+                                    assists,
+                                    saves,
+                                    shots,
+                                    excuse_used
+                                )
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """, (
+                                match_id,
+                                stat["player"],
+                                1,
+                                int(stat["score"]),
+                                int(stat["goals"]),
+                                int(stat["assists"]),
+                                int(stat["saves"]),
+                                int(stat["shots"]),
+                                int(stat["excuse_used"])
+                            ))
+
+                        # Team 2 stats
+                        for stat in game["team2_stats"]:
+
+                            c.execute("""
+                                INSERT INTO player_stats
+                                (
+                                    match_id,
+                                    player_name,
+                                    team,
+                                    score,
+                                    goals,
+                                    assists,
+                                    saves,
+                                    shots,
+                                    excuse_used
+                                )
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """, (
+                                match_id,
+                                stat["player"],
+                                2,
+                                int(stat["score"]),
+                                int(stat["goals"]),
+                                int(stat["assists"]),
+                                int(stat["saves"]),
+                                int(stat["shots"]),
+                                int(stat["excuse_used"])
+                            ))
+
                     conn.commit()
-                    
-                    # Log the action
-                    c.execute("""INSERT INTO activity_log (timestamp, user_name, action)
-                                VALUES (?, ?, ?)""",
-                             (datetime.now().isoformat(), confirming_user, f"entered a game"))
+
+                    c.execute("""
+                        INSERT INTO activity_log
+                        (timestamp, user_name, action)
+                        VALUES (?, ?, ?)
+                    """, (
+                        datetime.now().isoformat(),
+                        confirming_user,
+                        "entered a game"
+                    ))
+
                     conn.commit()
-                    
-                    # Reset by incrementing counter - forces all widgets to get new keys
+
                     st.session_state.reset_counter += 1
-                    st.session_state.series_team1 = ["Choose Player"] * num_players
-                    st.session_state.series_team2 = ["Choose Player"] * num_players
+
+                    st.session_state.series_team1 = (
+                        ["Choose Player"] * num_players
+                    )
+
+                    st.session_state.series_team2 = (
+                        ["Choose Player"] * num_players
+                    )
+
                     st.session_state.confirm_submit = False
-                    
+
                     st.balloons()
-                    st.success(f"✅ Series {current_series} Logged by {confirming_user}! 🎉")
+
+                    st.success(
+                        f"✅ Series {current_series} Logged by "
+                        f"{confirming_user}! 🎉"
+                    )
+
                     st.rerun()
-        
+
         with col2:
-            if st.button("❌ Cancel", use_container_width=True, key="cancel_btn"):
+
+            if st.button(
+                "❌ Cancel",
+                use_container_width=True,
+                key="cancel_btn"
+            ):
+
                 st.session_state.confirm_submit = False
                 st.rerun()
 
-# ============ TAB 2: SERIES HISTORY ============
+
+# ============================================================
+# TAB 2: SERIES HISTORY
+# ============================================================
+
 with tab2:
-    if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_tab2"):
+
+    if st.button(
+        "🔄 Refresh Data",
+        use_container_width=True,
+        key="refresh_tab2"
+    ):
         st.rerun()
-    
-    # JavaScript to color refresh button blue
+
     st.markdown("""
-<script>
-    function colorRefreshButton() {
-        let buttons = document.querySelectorAll('button');
-        buttons.forEach(btn => {
-            if (btn.textContent.includes('Refresh Data')) {
-                btn.style.background = 'linear-gradient(90deg, #1E90FF 0%, #4169E1 100%)';
-                btn.style.color = 'white';
-                btn.style.border = 'none';
-                btn.style.borderRadius = '8px';
-                btn.style.fontWeight = 'bold';
-                btn.style.fontSize = '1.6em';
-                btn.style.padding = '20px 40px';
-                btn.style.transition = 'transform 0.2s';
+    <script>
+        function colorRefreshButton() {
+            let buttons = document.querySelectorAll('button');
+
+            buttons.forEach(btn => {
+
+                if (btn.textContent.includes('Refresh Data')) {
+                    btn.style.background =
+                        'linear-gradient(90deg, #1E90FF 0%, #4169E1 100%)';
+                    btn.style.color = 'white';
+                    btn.style.border = 'none';
+                    btn.style.borderRadius = '8px';
+                    btn.style.fontWeight = 'bold';
+                    btn.style.fontSize = '1.6em';
+                    btn.style.padding = '20px 40px';
+                }
+            });
+        }
+
+        colorRefreshButton();
+
+        setTimeout(colorRefreshButton, 100);
+        setTimeout(colorRefreshButton, 300);
+        setTimeout(colorRefreshButton, 600);
+
+        const observer = new MutationObserver(colorRefreshButton);
+
+        observer.observe(
+            document.body,
+            {
+                childList: true,
+                subtree: true
             }
-        });
-    }
-    
-    colorRefreshButton();
-    setTimeout(colorRefreshButton, 100);
-    setTimeout(colorRefreshButton, 300);
-    setTimeout(colorRefreshButton, 600);
-    
-    const observer = new MutationObserver(colorRefreshButton);
-    observer.observe(document.body, { childList: true, subtree: true });
-</script>
-""", unsafe_allow_html=True)
-    
+        );
+    </script>
+    """, unsafe_allow_html=True)
+
     st.divider()
-    c.execute("""SELECT series_number, best_of, match_number FROM matches 
-                 GROUP BY series_number ORDER BY series_number DESC""")
+
+    c.execute("""
+        SELECT series_number, best_of, match_number
+        FROM matches
+        GROUP BY series_number
+        ORDER BY series_number DESC
+    """)
+
     series_list = c.fetchall()
-    
+
     if not series_list:
+
         st.info("📭 No matches logged yet")
+
     else:
-        # Organize series by match type
-        series_by_type = {"1v1": [], "2v2": [], "3v3": []}
-        
+
+        series_by_type = {
+            "1v1": [],
+            "2v2": [],
+            "3v3": []
+        }
+
         for series_num, bo, last_match in series_list:
-            # Get first match to determine match type
-            c.execute("""SELECT team1_players FROM matches 
-                         WHERE series_number = ? ORDER BY match_number LIMIT 1""", (series_num,))
+
+            c.execute("""
+                SELECT team1_players
+                FROM matches
+                WHERE series_number = ?
+                ORDER BY match_number
+                LIMIT 1
+            """, (series_num,))
+
             first_match = c.fetchone()
-            
+
             if first_match:
+
                 t1_players = first_match[0].split(",")
+
                 num_players_in_series = len(t1_players)
+
                 if num_players_in_series == 1:
                     match_type = "1v1"
                 elif num_players_in_series == 2:
                     match_type = "2v2"
                 else:
                     match_type = "3v3"
-                
-                series_by_type[match_type].append((series_num, bo, last_match))
-        
-        # Display by match type
+
+                series_by_type[match_type].append(
+                    (series_num, bo, last_match)
+                )
+
         for match_type in ["1v1", "2v2", "3v3"]:
+
             st.markdown(f"## {match_type}")
-            
+
             if not series_by_type[match_type]:
+
                 st.info(f"📭 No {match_type} series yet")
+
             else:
-                for series_num, bo, last_match in series_by_type[match_type]:
-                    # Get player info
-                    c.execute("""SELECT team1_players, team2_players FROM matches 
-                                 WHERE series_number = ? ORDER BY match_number LIMIT 1""", (series_num,))
+
+                for series_num, bo, last_match in (
+                    series_by_type[match_type]
+                ):
+
+                    c.execute("""
+                        SELECT team1_players, team2_players
+                        FROM matches
+                        WHERE series_number = ?
+                        ORDER BY match_number
+                        LIMIT 1
+                    """, (series_num,))
+
                     first_match = c.fetchone()
-                    
+
                     if first_match:
+
                         t1_players = first_match[0]
                         t2_players = first_match[1]
-                        player_info = f"({t1_players} vs {t2_players})"
+
+                        player_info = (
+                            f"({t1_players} vs {t2_players})"
+                        )
+
                         t1_list = t1_players.split(",")
                         t2_list = t2_players.split(",")
+
                     else:
+
                         player_info = ""
                         t1_list = []
                         t2_list = []
-                    
-                    # Get series records (wins per team)
-                    c.execute("""SELECT winner, COUNT(*) FROM matches 
-                                 WHERE series_number = ? GROUP BY winner""", (series_num,))
+
+                    c.execute("""
+                        SELECT winner, COUNT(*)
+                        FROM matches
+                        WHERE series_number = ?
+                        GROUP BY winner
+                    """, (series_num,))
+
                     wins_data = c.fetchall()
+
                     t1_wins = 0
                     t2_wins = 0
+
                     for winner, count in wins_data:
+
                         if winner == 1:
                             t1_wins = count
+
                         elif winner == 2:
                             t2_wins = count
-                    
-                    # Determine series winner
+
                     if t1_wins > t2_wins:
+
                         series_winner = " + ".join(t1_list)
                         series_record = f"{t1_wins}-{t2_wins}"
+
                     elif t2_wins > t1_wins:
+
                         series_winner = " + ".join(t2_list)
                         series_record = f"{t2_wins}-{t1_wins}"
+
                     else:
+
                         series_winner = "Tied"
                         series_record = f"{t1_wins}-{t2_wins}"
-                    
+
                     col1, col2 = st.columns([0.9, 0.1])
+
                     with col1:
-                        expander = st.expander(f"📊 Series {series_num} - {series_winner} Won {series_record} {player_info}", expanded=False)
+
+                        expander = st.expander(
+                            f"📊 Series {series_num} - "
+                            f"{series_winner} Won "
+                            f"{series_record} "
+                            f"{player_info}",
+                            expanded=False
+                        )
+
                     with col2:
-                        if st.button("🗑️", key=f"delete_series_{series_num}", help="Delete this series"):
+
+                        if st.button(
+                            "🗑️",
+                            key=f"delete_series_{series_num}",
+                            help="Delete this series"
+                        ):
+
                             st.session_state.confirm_delete = True
-                            st.session_state.delete_series_num = series_num
-                    
-                    # Show delete confirmation dialog
-                    if st.session_state.get("confirm_delete", False) and st.session_state.get("delete_series_num") == series_num:
+                            st.session_state.delete_series_num = (
+                                series_num
+                            )
+
+                    if (
+                        st.session_state.get("confirm_delete", False)
+                        and
+                        st.session_state.get("delete_series_num")
+                        == series_num
+                    ):
+
                         st.divider()
-                        st.markdown(f"### 👤 Who is deleting Series {series_num}?")
-                        deleting_user = st.selectbox("Select your name", PLAYERS, key=f"delete_user_{series_num}")
-                        
+
+                        st.markdown(
+                            f"### 👤 Who is deleting Series {series_num}?"
+                        )
+
+                        deleting_user = st.selectbox(
+                            "Select your name",
+                            PLAYERS,
+                            key=f"delete_user_{series_num}"
+                        )
+
                         col1, col2 = st.columns(2)
+
                         with col1:
-                            if st.button("✅ Confirm Delete", use_container_width=True, key=f"confirm_delete_{series_num}"):
-                                c.execute("DELETE FROM player_stats WHERE match_id IN (SELECT id FROM matches WHERE series_number = ?)", (series_num,))
-                                c.execute("DELETE FROM matches WHERE series_number = ?", (series_num,))
-                                
-                                # Log the deletion
-                                c.execute("""INSERT INTO activity_log (timestamp, user_name, action)
-                                            VALUES (?, ?, ?)""",
-                                         (datetime.now().isoformat(), deleting_user, f"deleted a game"))
-                                
+
+                            if st.button(
+                                "✅ Confirm Delete",
+                                use_container_width=True,
+                                key=f"confirm_delete_{series_num}"
+                            ):
+
+                                c.execute("""
+                                    DELETE FROM player_stats
+                                    WHERE match_id IN (
+                                        SELECT id
+                                        FROM matches
+                                        WHERE series_number = ?
+                                    )
+                                """, (series_num,))
+
+                                c.execute("""
+                                    DELETE FROM matches
+                                    WHERE series_number = ?
+                                """, (series_num,))
+
+                                c.execute("""
+                                    INSERT INTO activity_log
+                                    (timestamp, user_name, action)
+                                    VALUES (?, ?, ?)
+                                """, (
+                                    datetime.now().isoformat(),
+                                    deleting_user,
+                                    "deleted a game"
+                                ))
+
                                 conn.commit()
+
                                 st.session_state.confirm_delete = False
                                 st.session_state.delete_series_num = None
-                                st.success(f"Series {series_num} deleted by {deleting_user}!")
+
+                                st.success(
+                                    f"Series {series_num} deleted "
+                                    f"by {deleting_user}!"
+                                )
+
                                 st.rerun()
-                        
+
                         with col2:
-                            if st.button("❌ Cancel", use_container_width=True, key=f"cancel_delete_{series_num}"):
+
+                            if st.button(
+                                "❌ Cancel",
+                                use_container_width=True,
+                                key=f"cancel_delete_{series_num}"
+                            ):
+
                                 st.session_state.confirm_delete = False
                                 st.session_state.delete_series_num = None
+
                                 st.rerun()
-                    
+
                     with expander:
-                        c.execute("""SELECT * FROM matches WHERE series_number = ? ORDER BY match_number""", (series_num,))
+
+                        c.execute("""
+                            SELECT *
+                            FROM matches
+                            WHERE series_number = ?
+                            ORDER BY match_number
+                        """, (series_num,))
+
                         matches = c.fetchall()
-                        
+
                         for match in matches:
-                            match_id, sn, mn, b, ts, t1p, t2p, t1s, t2s, winner = match
-                            
-                            # Format winner text with player names
+
+                            (
+                                match_id,
+                                sn,
+                                mn,
+                                b,
+                                ts,
+                                t1p,
+                                t2p,
+                                t1s,
+                                t2s,
+                                winner
+                            ) = match
+
                             t1_players = t1p.split(",")
                             t2_players = t2p.split(",")
-                            
+
                             if winner == 1:
-                                winner_text = " + ".join(t1_players) + " Won"
+
+                                winner_text = (
+                                    " + ".join(t1_players) + " Won"
+                                )
+
                             elif winner == 2:
-                                winner_text = " + ".join(t2_players) + " Won"
+
+                                winner_text = (
+                                    " + ".join(t2_players) + " Won"
+                                )
+
                             else:
+
                                 winner_text = "Pending"
-                            
-                            # Get total goals for each team
-                            c.execute("""SELECT SUM(goals) FROM player_stats WHERE match_id = ? AND team = 1""", (match_id,))
+
+                            c.execute("""
+                                SELECT SUM(goals)
+                                FROM player_stats
+                                WHERE match_id = ?
+                                AND team = 1
+                            """, (match_id,))
+
                             t1_goals = c.fetchone()[0] or 0
-                            
-                            c.execute("""SELECT SUM(goals) FROM player_stats WHERE match_id = ? AND team = 2""", (match_id,))
+
+                            c.execute("""
+                                SELECT SUM(goals)
+                                FROM player_stats
+                                WHERE match_id = ?
+                                AND team = 2
+                            """, (match_id,))
+
                             t2_goals = c.fetchone()[0] or 0
-                            
-                            st.markdown(f"**Match {mn}: {winner_text} ({t1_goals} - {t2_goals})**")
-                            
+
+                            st.markdown(
+                                f"**Match {mn}: {winner_text} "
+                                f"({t1_goals} - {t2_goals})**"
+                            )
+
                             col1, col2 = st.columns(2)
-                            
+
                             with col1:
-                                st.markdown('<div style="text-align: center; font-size: 1.1em; color: #FF6B00; font-weight: bold;">TEAM 1</div>', unsafe_allow_html=True)
-                                c.execute("""SELECT player_name, score, goals, assists, saves, shots FROM player_stats 
-                                             WHERE match_id = ? AND team = 1""", (match_id,))
+
+                                st.markdown(
+                                    '<div style="text-align: center; '
+                                    'font-size: 1.1em; color: #FF6B00; '
+                                    'font-weight: bold;">TEAM 1</div>',
+                                    unsafe_allow_html=True
+                                )
+
+                                c.execute("""
+                                    SELECT
+                                        player_name,
+                                        score,
+                                        goals,
+                                        assists,
+                                        saves,
+                                        shots
+                                    FROM player_stats
+                                    WHERE match_id = ?
+                                    AND team = 1
+                                """, (match_id,))
+
                                 for row in c.fetchall():
-                                    st.markdown(f"**{row[0]}** · Score: {row[1]} Goals: {row[2]} Assists: {row[3]} Saves: {row[4]} Shots: {row[5]}")
-                            
+
+                                    st.markdown(
+                                        f"**{row[0]}** · "
+                                        f"Score: {row[1]} "
+                                        f"Goals: {row[2]} "
+                                        f"Assists: {row[3]} "
+                                        f"Saves: {row[4]} "
+                                        f"Shots: {row[5]}"
+                                    )
+
                             with col2:
-                                st.markdown('<div style="text-align: center; font-size: 1.1em; color: #1E90FF; font-weight: bold;">TEAM 2</div>', unsafe_allow_html=True)
-                                c.execute("""SELECT player_name, score, goals, assists, saves, shots FROM player_stats 
-                                             WHERE match_id = ? AND team = 2""", (match_id,))
+
+                                st.markdown(
+                                    '<div style="text-align: center; '
+                                    'font-size: 1.1em; color: #1E90FF; '
+                                    'font-weight: bold;">TEAM 2</div>',
+                                    unsafe_allow_html=True
+                                )
+
+                                c.execute("""
+                                    SELECT
+                                        player_name,
+                                        score,
+                                        goals,
+                                        assists,
+                                        saves,
+                                        shots
+                                    FROM player_stats
+                                    WHERE match_id = ?
+                                    AND team = 2
+                                """, (match_id,))
+
                                 for row in c.fetchall():
-                                    st.markdown(f"**{row[0]}** · Score: {row[1]} Goals: {row[2]} Assists: {row[3]} Saves: {row[4]} Shots: {row[5]}")
-                            
+
+                                    st.markdown(
+                                        f"**{row[0]}** · "
+                                        f"Score: {row[1]} "
+                                        f"Goals: {row[2]} "
+                                        f"Assists: {row[3]} "
+                                        f"Saves: {row[4]} "
+                                        f"Shots: {row[5]}"
+                                    )
+
                             st.divider()
-                        
+
                         st.divider()
-                        
-                        # Series totals
+
                         st.markdown("### Series Totals")
-                        c.execute("""SELECT player_name, SUM(score), SUM(goals), SUM(assists), SUM(saves), SUM(shots) 
-                                     FROM player_stats 
-                                     WHERE match_id IN (SELECT id FROM matches WHERE series_number = ?)
-                                     GROUP BY player_name
-                                     ORDER BY SUM(score) DESC""", (series_num,))
-                        
+
+                        c.execute("""
+                            SELECT
+                                player_name,
+                                SUM(score),
+                                SUM(goals),
+                                SUM(assists),
+                                SUM(saves),
+                                SUM(shots)
+                            FROM player_stats
+                            WHERE match_id IN (
+                                SELECT id
+                                FROM matches
+                                WHERE series_number = ?
+                            )
+                            GROUP BY player_name
+                            ORDER BY SUM(score) DESC
+                        """, (series_num,))
+
                         for row in c.fetchall():
-                            st.markdown(f"**{row[0]}** · Score: {row[1]} Goals: {row[2]} Assists: {row[3]} Saves: {row[4]} Shots: {row[5]}")
-            
+
+                            st.markdown(
+                                f"**{row[0]}** · "
+                                f"Score: {row[1]} "
+                                f"Goals: {row[2]} "
+                                f"Assists: {row[3]} "
+                                f"Saves: {row[4]} "
+                                f"Shots: {row[5]}"
+                            )
+
             st.divider()
-    
+
     # Activity Log
     st.markdown("## 📋 Activity Log")
-    c.execute("""SELECT timestamp, user_name, action FROM activity_log ORDER BY timestamp DESC LIMIT 50""")
+
+    c.execute("""
+        SELECT timestamp, user_name, action
+        FROM activity_log
+        ORDER BY timestamp DESC
+        LIMIT 50
+    """)
+
     logs = c.fetchall()
-    
+
     if not logs:
+
         st.info("📭 No activity yet")
+
     else:
-        eastern = pytz.timezone('US/Eastern')
+
+        eastern = pytz.timezone("US/Eastern")
+
         for timestamp, user_name, action in logs:
-            # Format timestamp to be more readable - convert from UTC to Eastern
+
             ts = datetime.fromisoformat(timestamp)
-            # Assume stored timestamp is UTC and localize it
-            ts_utc = pytz.UTC.localize(ts) if ts.tzinfo is None else ts
-            # Convert to Eastern
+
+            ts_utc = (
+                pytz.UTC.localize(ts)
+                if ts.tzinfo is None
+                else ts
+            )
+
             ts_eastern = ts_utc.astimezone(eastern)
+
             ts_str = ts_eastern.strftime("%m/%d %I:%M %p")
-            st.markdown(f"**{user_name}** {action} · {ts_str}")
-    
+
+            st.markdown(
+                f"**{user_name}** {action} · {ts_str}"
+            )
+
     st.divider()
 
-# ============ TAB 3: PLAYER STATS ============
+
+# ============================================================
+# TAB 3: PLAYER STATS
+# ============================================================
+
 with tab3:
-    if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_tab3"):
+
+    if st.button(
+        "🔄 Refresh Data",
+        use_container_width=True,
+        key="refresh_tab3"
+    ):
         st.rerun()
-    
-    # JavaScript to color refresh button
+
     st.markdown("""
-<script>
-    function colorRefreshButton() {
-        let buttons = document.querySelectorAll('button');
-        buttons.forEach(btn => {
-            if (btn.textContent.includes('Refresh Data')) {
-                btn.style.background = 'linear-gradient(90deg, #1E90FF 0%, #4169E1 100%)';
-                btn.style.color = 'white';
-                btn.style.border = 'none';
-                btn.style.borderRadius = '8px';
-                btn.style.fontWeight = 'bold';
-                btn.style.fontSize = '1.6em';
-                btn.style.padding = '20px 40px';
-                btn.style.transition = 'transform 0.2s';
+    <script>
+        function colorRefreshButton() {
+            let buttons = document.querySelectorAll('button');
+
+            buttons.forEach(btn => {
+
+                if (btn.textContent.includes('Refresh Data')) {
+                    btn.style.background =
+                        'linear-gradient(90deg, #1E90FF 0%, #4169E1 100%)';
+                    btn.style.color = 'white';
+                    btn.style.border = 'none';
+                    btn.style.borderRadius = '8px';
+                    btn.style.fontWeight = 'bold';
+                    btn.style.fontSize = '1.6em';
+                    btn.style.padding = '20px 40px';
+                }
+            });
+        }
+
+        colorRefreshButton();
+
+        setTimeout(colorRefreshButton, 100);
+        setTimeout(colorRefreshButton, 300);
+        setTimeout(colorRefreshButton, 600);
+
+        const observer = new MutationObserver(colorRefreshButton);
+
+        observer.observe(
+            document.body,
+            {
+                childList: true,
+                subtree: true
             }
-        });
-    }
-    
-    colorRefreshButton();
-    setTimeout(colorRefreshButton, 100);
-    setTimeout(colorRefreshButton, 300);
-    setTimeout(colorRefreshButton, 600);
-    
-    const observer = new MutationObserver(colorRefreshButton);
-    observer.observe(document.body, { childList: true, subtree: true });
-</script>
-""", unsafe_allow_html=True)
-    
+        );
+    </script>
+    """, unsafe_allow_html=True)
+
     st.divider()
-    c.execute("""SELECT DISTINCT player_name FROM player_stats ORDER BY player_name""")
-    all_players = [row[0] for row in c.fetchall()]
-    
+
+    c.execute("""
+        SELECT DISTINCT player_name
+        FROM player_stats
+        ORDER BY player_name
+    """)
+
+    all_players = [
+        row[0]
+        for row in c.fetchall()
+    ]
+
     if not all_players:
+
         st.info("📭 No player data yet")
+
     else:
+
+        # ----------------------------------------------------
+        # MATCH TYPE STATS FUNCTION
+        # ----------------------------------------------------
+
         def get_stats_by_match_type(player, match_type):
-            # Determine number of players based on match type
+
             if match_type == "1v1":
                 players_count = 1
             elif match_type == "2v2":
                 players_count = 2
-            else:  # 3v3
+            else:
                 players_count = 3
-            
-            # Get matches of this type
-            c.execute("""SELECT id, winner FROM matches WHERE 
-                         (team1_players LIKE ? OR team2_players LIKE ?)""", 
-                     (f"%{player}%", f"%{player}%"))
+
+            c.execute("""
+                SELECT id, winner
+                FROM matches
+                WHERE
+                    team1_players LIKE ?
+                    OR
+                    team2_players LIKE ?
+            """, (
+                f"%{player}%",
+                f"%{player}%"
+            ))
+
             all_matches = c.fetchall()
-            
-            # Filter by match type and count wins/losses
+
             wins = 0
             losses = 0
             match_ids = []
-            
+
             for match_id, winner in all_matches:
-                c.execute("""SELECT team1_players, team2_players FROM matches WHERE id = ?""", (match_id,))
-                t1_players, t2_players = c.fetchone()
-                
-                # Check if this is the right match type
+
+                c.execute("""
+                    SELECT team1_players, team2_players
+                    FROM matches
+                    WHERE id = ?
+                """, (match_id,))
+
+                result = c.fetchone()
+
+                if not result:
+                    continue
+
+                t1_players, t2_players = result
+
                 if len(t1_players.split(",")) != players_count:
                     continue
-                
+
                 match_ids.append(match_id)
-                
-                # Check if player is on winning team
-                if winner == 1 and player in t1_players:
+
+                if (
+                    winner == 1
+                    and player in t1_players.split(",")
+                ):
+
                     wins += 1
-                elif winner == 2 and player in t2_players:
+
+                elif (
+                    winner == 2
+                    and player in t2_players.split(",")
+                ):
+
                     wins += 1
+
                 else:
+
                     losses += 1
-            
+
             games = wins + losses
-            
-            if games > 0:
-                win_pct = (wins / games) * 100
-            else:
-                win_pct = 0
-            
-            # Get totals for this match type
+
+            win_pct = (
+                (wins / games) * 100
+                if games > 0
+                else 0
+            )
+
             if match_ids:
-                placeholders = ','.join('?' * len(match_ids))
-                c.execute(f"""SELECT SUM(score), SUM(goals), SUM(assists), SUM(saves), SUM(shots), SUM(excuse_used) 
-                             FROM player_stats WHERE player_name = ? AND match_id IN ({placeholders})""", 
-                         [player] + match_ids)
+
+                placeholders = ",".join(
+                    "?" * len(match_ids)
+                )
+
+                c.execute(
+                    f"""
+                    SELECT
+                        SUM(score),
+                        SUM(goals),
+                        SUM(assists),
+                        SUM(saves),
+                        SUM(shots),
+                        SUM(excuse_used)
+                    FROM player_stats
+                    WHERE player_name = ?
+                    AND match_id IN ({placeholders})
+                    """,
+                    [player] + match_ids
+                )
+
                 result = c.fetchone()
-                score, goals, assists, saves, shots, excuses = result
+
+                (
+                    score,
+                    goals,
+                    assists,
+                    saves,
+                    shots,
+                    excuses
+                ) = result
+
             else:
-                score = goals = assists = saves = shots = excuses = 0
-            
+
+                score = 0
+                goals = 0
+                assists = 0
+                saves = 0
+                shots = 0
+                excuses = 0
+
             score = score or 0
             goals = goals or 0
             assists = assists or 0
             saves = saves or 0
             shots = shots or 0
             excuses = excuses or 0
-            
-            # Calculate averages
-            avg_score = score / games if games > 0 else 0
-            avg_goals = goals / games if games > 0 else 0
-            avg_assists = assists / games if games > 0 else 0
-            avg_saves = saves / games if games > 0 else 0
-            avg_shots = shots / games if games > 0 else 0
-            avg_excuses = excuses / games if games > 0 else 0
-            
+
+            avg_score = (
+                score / games
+                if games > 0
+                else 0
+            )
+
+            avg_goals = (
+                goals / games
+                if games > 0
+                else 0
+            )
+
+            avg_assists = (
+                assists / games
+                if games > 0
+                else 0
+            )
+
+            avg_saves = (
+                saves / games
+                if games > 0
+                else 0
+            )
+
+            avg_shots = (
+                shots / games
+                if games > 0
+                else 0
+            )
+
+            avg_excuses = (
+                excuses / games
+                if games > 0
+                else 0
+            )
+
             return {
                 "wins": wins,
                 "losses": losses,
@@ -901,42 +1724,92 @@ with tab3:
                 "avg_shots": avg_shots,
                 "avg_excuses": avg_excuses
             }
-        
-        # Get overall stats (all match types combined)
+
+
+        # ----------------------------------------------------
+        # OVERALL STATS
+        # ----------------------------------------------------
+
         overall_stats = {}
+
         for player in all_players:
-            c.execute("""SELECT COUNT(*) FROM matches WHERE 
-                         (team1_players LIKE ? AND winner = 1) OR
-                         (team2_players LIKE ? AND winner = 2)""", 
-                     (f"%{player}%", f"%{player}%"))
+
+            c.execute("""
+                SELECT COUNT(*)
+                FROM matches
+                WHERE
+                    (
+                        team1_players LIKE ?
+                        AND winner = 1
+                    )
+                    OR
+                    (
+                        team2_players LIKE ?
+                        AND winner = 2
+                    )
+            """, (
+                f"%{player}%",
+                f"%{player}%"
+            ))
+
             wins = c.fetchone()[0]
-            
-            c.execute("""SELECT COUNT(*) FROM matches WHERE 
-                         (team1_players LIKE ? AND winner = 2) OR
-                         (team2_players LIKE ? AND winner = 1)""", 
-                     (f"%{player}%", f"%{player}%"))
+
+            c.execute("""
+                SELECT COUNT(*)
+                FROM matches
+                WHERE
+                    (
+                        team1_players LIKE ?
+                        AND winner = 2
+                    )
+                    OR
+                    (
+                        team2_players LIKE ?
+                        AND winner = 1
+                    )
+            """, (
+                f"%{player}%",
+                f"%{player}%"
+            ))
+
             losses = c.fetchone()[0]
-            
+
             games = wins + losses
-            win_pct = (wins / games) * 100 if games > 0 else 0
-            
-            c.execute("""SELECT SUM(score), SUM(goals), SUM(assists), SUM(saves), SUM(shots), SUM(excuse_used) FROM player_stats 
-                         WHERE player_name = ?""", (player,))
-            score, goals, assists, saves, shots, excuses = c.fetchone()
+
+            win_pct = (
+                (wins / games) * 100
+                if games > 0
+                else 0
+            )
+
+            c.execute("""
+                SELECT
+                    SUM(score),
+                    SUM(goals),
+                    SUM(assists),
+                    SUM(saves),
+                    SUM(shots),
+                    SUM(excuse_used)
+                FROM player_stats
+                WHERE player_name = ?
+            """, (player,))
+
+            (
+                score,
+                goals,
+                assists,
+                saves,
+                shots,
+                excuses
+            ) = c.fetchone()
+
             score = score or 0
             goals = goals or 0
             assists = assists or 0
             saves = saves or 0
             shots = shots or 0
             excuses = excuses or 0
-            
-            avg_score = score / games if games > 0 else 0
-            avg_goals = goals / games if games > 0 else 0
-            avg_assists = assists / games if games > 0 else 0
-            avg_saves = saves / games if games > 0 else 0
-            avg_shots = shots / games if games > 0 else 0
-            avg_excuses = excuses / games if games > 0 else 0
-            
+
             overall_stats[player] = {
                 "wins": wins,
                 "losses": losses,
@@ -948,21 +1821,27 @@ with tab3:
                 "saves": saves,
                 "shots": shots,
                 "excuses": excuses,
-                "avg_score": avg_score,
-                "avg_goals": avg_goals,
-                "avg_assists": avg_assists,
-                "avg_saves": avg_saves,
-                "avg_shots": avg_shots,
-                "avg_excuses": avg_excuses
+                "avg_score": score / games if games else 0,
+                "avg_goals": goals / games if games else 0,
+                "avg_assists": assists / games if games else 0,
+                "avg_saves": saves / games if games else 0,
+                "avg_shots": shots / games if games else 0,
+                "avg_excuses": excuses / games if games else 0
             }
-        
-        # Display Overall Career Stats
+
+
+        # ----------------------------------------------------
+        # OVERALL CAREER STATS
+        # ----------------------------------------------------
+
         st.markdown("## 🎮 Overall Career Stats")
-        
-        # Overall Wins/Losses
+
         wins_data = []
+
         for player in all_players:
+
             stat = overall_stats[player]
+
             wins_data.append({
                 "🎮 Player": player,
                 "🏆 Wins": stat["wins"],
@@ -970,18 +1849,39 @@ with tab3:
                 "📊 Games": stat["games"],
                 "📈 Win %": stat["win_pct"]
             })
-        
+
         df_wins = pd.DataFrame(wins_data)
-        df_wins = df_wins.sort_values("🏆 Wins", ascending=False)
-        st.dataframe(df_wins, use_container_width=True, hide_index=True)
-        
+
+        df_wins = df_wins.sort_values(
+            "🏆 Wins",
+            ascending=False
+        )
+
+        # LEFT ALIGNED
+        st.dataframe(
+            left_align_dataframe(df_wins),
+            use_container_width=True,
+            hide_index=True
+        )
+
         st.divider()
-        
-        # Overall Career Totals
+
+        # ----------------------------------------------------
+        # CAREER TOTALS
+        # ----------------------------------------------------
+
         st.markdown("### Career Totals (All Matches)")
+
         totals_data = []
-        for player in sorted(all_players, key=lambda p: overall_stats[p]["wins"], reverse=True):
+
+        for player in sorted(
+            all_players,
+            key=lambda p: overall_stats[p]["wins"],
+            reverse=True
+        ):
+
             stat = overall_stats[player]
+
             totals_data.append({
                 "🎮 Player": player,
                 "🎯 Score": stat["score"],
@@ -991,17 +1891,34 @@ with tab3:
                 "🔫 Shots": stat["shots"],
                 "🤥 Excuses": stat["excuses"]
             })
-        
+
         df_totals = pd.DataFrame(totals_data)
-        st.dataframe(df_totals, use_container_width=True, hide_index=True)
-        
+
+        # LEFT ALIGNED
+        st.dataframe(
+            left_align_dataframe(df_totals),
+            use_container_width=True,
+            hide_index=True
+        )
+
         st.divider()
-        
-        # Overall Per-Game Averages
+
+        # ----------------------------------------------------
+        # OVERALL PER-GAME AVERAGES
+        # ----------------------------------------------------
+
         st.markdown("### Per-Game Averages (All Matches)")
+
         avg_data = []
-        for player in sorted(all_players, key=lambda p: overall_stats[p]["wins"], reverse=True):
+
+        for player in sorted(
+            all_players,
+            key=lambda p: overall_stats[p]["wins"],
+            reverse=True
+        ):
+
             stat = overall_stats[player]
+
             avg_data.append({
                 "🎮 Player": player,
                 "📍 Avg Score": f"{stat['avg_score']:.1f}",
@@ -1011,215 +1928,415 @@ with tab3:
                 "🔫 Avg Shots": f"{stat['avg_shots']:.2f}",
                 "🤥 Avg Excuses": f"{stat['avg_excuses']:.2f}"
             })
-        
-        df_avg = pd.DataFrame(avg_data)
-        st.dataframe(df_avg, use_container_width=True, hide_index=True)
-        
-        st.divider()
-        
-        st.divider()
-        
-        # Match Type Totals (Dropdown)
-        st.markdown("## Match Type Totals")
-        
-        for match_type in ["1v1", "2v2", "3v3"]:
-            with st.expander(match_type, expanded=False):
-                match_type_stats = {p: get_stats_by_match_type(p, match_type) for p in all_players}
-                players_with_type = [p for p in all_players if match_type_stats[p]["games"] > 0]
-                
-                if not players_with_type:
-                    st.info(f"📭 No {match_type} matches yet")
-                else:
-                    # Wins/Losses
-                    wins_data = [{
-                        "🎮 Player": player,
-                        "🏆 Wins": match_type_stats[player]["wins"],
-                        "💔 Losses": match_type_stats[player]["losses"],
-                        "📊 Games": match_type_stats[player]["games"],
-                        "📈 Win %": match_type_stats[player]["win_pct"]
-                    } for player in players_with_type]
-                    
-                    df_wins = pd.DataFrame(wins_data).sort_values("🏆 Wins", ascending=False)
-                    st.dataframe(df_wins, use_container_width=True, hide_index=True)
-                    
-                    st.divider()
-                    
-                    # Career Totals
-                    totals_data = [{
-                        "🎮 Player": player,
-                        "🎯 Score": match_type_stats[player]["score"],
-                        "⚽ Goals": match_type_stats[player]["goals"],
-                        "🎁 Assists": match_type_stats[player]["assists"],
-                        "🛡️ Saves": match_type_stats[player]["saves"],
-                        "🔫 Shots": match_type_stats[player]["shots"],
-                        "🤥 Excuses": match_type_stats[player]["excuses"]
-                    } for player in sorted(players_with_type, key=lambda p: match_type_stats[p]["wins"], reverse=True)]
-                    
-                    df_totals = pd.DataFrame(totals_data)
-                    st.dataframe(df_totals, use_container_width=True, hide_index=True)
-        
-        st.divider()
-        st.markdown("## Per Game Match Type Totals")
-        
-        for match_type in ["1v1", "2v2", "3v3"]:
-            with st.expander(match_type, expanded=False):
-                match_type_stats = {p: get_stats_by_match_type(p, match_type) for p in all_players}
-                players_with_type = [p for p in all_players if match_type_stats[p]["games"] > 0]
-                
-                if not players_with_type:
-                    st.info(f"📭 No {match_type} matches yet")
-                else:
-                    # Per-Game Averages
-                    avg_data = [{
-                        "🎮 Player": player,
-                        "📍 Avg Score": f"{match_type_stats[player]['avg_score']:.1f}",
-                        "⚽ Avg Goals": f"{match_type_stats[player]['avg_goals']:.2f}",
-                        "🎁 Avg Assists": f"{match_type_stats[player]['avg_assists']:.2f}",
-                        "🛡️ Avg Saves": f"{match_type_stats[player]['avg_saves']:.2f}",
-                        "🔫 Avg Shots": f"{match_type_stats[player]['avg_shots']:.2f}",
-                        "🤥 Avg Excuses": f"{match_type_stats[player]['avg_excuses']:.2f}"
-                    } for player in sorted(players_with_type, key=lambda p: match_type_stats[p]["wins"], reverse=True)]
-                    
-                    df_avg = pd.DataFrame(avg_data)
-                    st.dataframe(df_avg, use_container_width=True, hide_index=True)
 
-# ============ TAB 4: TEAMS ============
+        df_avg = pd.DataFrame(avg_data)
+
+        # LEFT ALIGNED
+        st.dataframe(
+            left_align_dataframe(df_avg),
+            use_container_width=True,
+            hide_index=True
+        )
+
+        st.divider()
+
+        # ----------------------------------------------------
+        # MATCH TYPE TOTALS
+        # ----------------------------------------------------
+
+        st.markdown("## Match Type Totals")
+
+        for match_type in ["1v1", "2v2", "3v3"]:
+
+            with st.expander(
+                match_type,
+                expanded=False
+            ):
+
+                match_type_stats = {
+                    p: get_stats_by_match_type(
+                        p,
+                        match_type
+                    )
+                    for p in all_players
+                }
+
+                players_with_type = [
+                    p
+                    for p in all_players
+                    if match_type_stats[p]["games"] > 0
+                ]
+
+                if not players_with_type:
+
+                    st.info(
+                        f"📭 No {match_type} matches yet"
+                    )
+
+                else:
+
+                    # Wins / Losses
+                    wins_data = []
+
+                    for player in players_with_type:
+
+                        stat = match_type_stats[player]
+
+                        wins_data.append({
+                            "🎮 Player": player,
+                            "🏆 Wins": stat["wins"],
+                            "💔 Losses": stat["losses"],
+                            "📊 Games": stat["games"],
+                            "📈 Win %": stat["win_pct"]
+                        })
+
+                    df_wins = pd.DataFrame(wins_data)
+
+                    df_wins = df_wins.sort_values(
+                        "🏆 Wins",
+                        ascending=False
+                    )
+
+                    # LEFT ALIGNED
+                    st.dataframe(
+                        left_align_dataframe(df_wins),
+                        use_container_width=True,
+                        hide_index=True
+                    )
+
+                    st.divider()
+
+                    # Career totals
+                    totals_data = []
+
+                    for player in sorted(
+                        players_with_type,
+                        key=lambda p: match_type_stats[p]["wins"],
+                        reverse=True
+                    ):
+
+                        stat = match_type_stats[player]
+
+                        totals_data.append({
+                            "🎮 Player": player,
+                            "🎯 Score": stat["score"],
+                            "⚽ Goals": stat["goals"],
+                            "🎁 Assists": stat["assists"],
+                            "🛡️ Saves": stat["saves"],
+                            "🔫 Shots": stat["shots"],
+                            "🤥 Excuses": stat["excuses"]
+                        })
+
+                    df_totals = pd.DataFrame(totals_data)
+
+                    # LEFT ALIGNED
+                    st.dataframe(
+                        left_align_dataframe(df_totals),
+                        use_container_width=True,
+                        hide_index=True
+                    )
+
+        # ----------------------------------------------------
+        # PER GAME MATCH TYPE TOTALS
+        # ----------------------------------------------------
+
+        st.divider()
+
+        st.markdown("## Per Game Match Type Totals")
+
+        for match_type in ["1v1", "2v2", "3v3"]:
+
+            with st.expander(
+                match_type,
+                expanded=False
+            ):
+
+                match_type_stats = {
+                    p: get_stats_by_match_type(
+                        p,
+                        match_type
+                    )
+                    for p in all_players
+                }
+
+                players_with_type = [
+                    p
+                    for p in all_players
+                    if match_type_stats[p]["games"] > 0
+                ]
+
+                if not players_with_type:
+
+                    st.info(
+                        f"📭 No {match_type} matches yet"
+                    )
+
+                else:
+
+                    avg_data = []
+
+                    for player in sorted(
+                        players_with_type,
+                        key=lambda p: match_type_stats[p]["wins"],
+                        reverse=True
+                    ):
+
+                        stat = match_type_stats[player]
+
+                        avg_data.append({
+                            "🎮 Player": player,
+                            "📍 Avg Score": f"{stat['avg_score']:.1f}",
+                            "⚽ Avg Goals": f"{stat['avg_goals']:.2f}",
+                            "🎁 Avg Assists": f"{stat['avg_assists']:.2f}",
+                            "🛡️ Avg Saves": f"{stat['avg_saves']:.2f}",
+                            "🔫 Avg Shots": f"{stat['avg_shots']:.2f}",
+                            "🤥 Avg Excuses": f"{stat['avg_excuses']:.2f}"
+                        })
+
+                    df_avg = pd.DataFrame(avg_data)
+
+                    # LEFT ALIGNED
+                    st.dataframe(
+                        left_align_dataframe(df_avg),
+                        use_container_width=True,
+                        hide_index=True
+                    )
+
+
+# ============================================================
+# TAB 4: TEAMS
+# ============================================================
+
 with tab4:
-    if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_tab4"):
+
+    if st.button(
+        "🔄 Refresh Data",
+        use_container_width=True,
+        key="refresh_tab4"
+    ):
         st.rerun()
-    
-    # JavaScript to color refresh button blue
+
     st.markdown("""
-<script>
-    function colorRefreshButton() {
-        let buttons = document.querySelectorAll('button');
-        buttons.forEach(btn => {
-            if (btn.textContent.includes('Refresh Data')) {
-                btn.style.background = 'linear-gradient(90deg, #1E90FF 0%, #4169E1 100%)';
-                btn.style.color = 'white';
-                btn.style.border = 'none';
-                btn.style.borderRadius = '8px';
-                btn.style.fontWeight = 'bold';
-                btn.style.fontSize = '1.6em';
-                btn.style.padding = '20px 40px';
-                btn.style.transition = 'transform 0.2s';
+    <script>
+        function colorRefreshButton() {
+            let buttons = document.querySelectorAll('button');
+
+            buttons.forEach(btn => {
+
+                if (btn.textContent.includes('Refresh Data')) {
+                    btn.style.background =
+                        'linear-gradient(90deg, #1E90FF 0%, #4169E1 100%)';
+                    btn.style.color = 'white';
+                    btn.style.border = 'none';
+                    btn.style.borderRadius = '8px';
+                    btn.style.fontWeight = 'bold';
+                    btn.style.fontSize = '1.6em';
+                    btn.style.padding = '20px 40px';
+                }
+            });
+        }
+
+        colorRefreshButton();
+
+        setTimeout(colorRefreshButton, 100);
+        setTimeout(colorRefreshButton, 300);
+        setTimeout(colorRefreshButton, 600);
+
+        const observer = new MutationObserver(colorRefreshButton);
+
+        observer.observe(
+            document.body,
+            {
+                childList: true,
+                subtree: true
             }
-        });
-    }
-    
-    colorRefreshButton();
-    setTimeout(colorRefreshButton, 100);
-    setTimeout(colorRefreshButton, 300);
-    setTimeout(colorRefreshButton, 600);
-    
-    const observer = new MutationObserver(colorRefreshButton);
-    observer.observe(document.body, { childList: true, subtree: true });
-</script>
-""", unsafe_allow_html=True)
-    
+        );
+    </script>
+    """, unsafe_allow_html=True)
+
     st.divider()
-    c.execute("""SELECT id, team1_players, team2_players, winner FROM matches""")
+
+    c.execute("""
+        SELECT id, team1_players, team2_players, winner
+        FROM matches
+    """)
+
     all_matches = c.fetchall()
-    
+
     if not all_matches:
+
         st.info("📭 No partnership data yet")
+
     else:
-        # Organize by match type
+
         partnerships_by_type = {
-            "2v2": defaultdict(lambda: {"wins": 0, "losses": 0}),
-            "3v3": defaultdict(lambda: {"wins": 0, "losses": 0})
+            "2v2": defaultdict(
+                lambda: {
+                    "wins": 0,
+                    "losses": 0
+                }
+            ),
+            "3v3": defaultdict(
+                lambda: {
+                    "wins": 0,
+                    "losses": 0
+                }
+            )
         }
+
         matchups_by_type = {
-            "2v2": defaultdict(lambda: defaultdict(lambda: {"wins": 0, "losses": 0})),
-            "3v3": defaultdict(lambda: defaultdict(lambda: {"wins": 0, "losses": 0}))
+            "2v2": defaultdict(
+                lambda: defaultdict(
+                    lambda: {
+                        "wins": 0,
+                        "losses": 0
+                    }
+                )
+            ),
+            "3v3": defaultdict(
+                lambda: defaultdict(
+                    lambda: {
+                        "wins": 0,
+                        "losses": 0
+                    }
+                )
+            )
         }
-        
+
         for match_id, t1, t2, winner in all_matches:
+
             t1_list = t1.split(",")
             t2_list = t2.split(",")
-            
-            # Determine match type
+
             if len(t1_list) == 1:
                 match_type = "1v1"
             elif len(t1_list) == 2:
                 match_type = "2v2"
             else:
                 match_type = "3v3"
-            
-            # Only track partnerships for 2v2 and 3v3
+
             if match_type == "1v1":
                 continue
-            
+
             partnerships = partnerships_by_type[match_type]
             matchups = matchups_by_type[match_type]
-            
-            # Get all partnerships for team 1 and team 2
+
             if match_type == "2v2":
-                # For 2v2: track 2-player pairs
+
                 t1_pairs = []
+
                 for i in range(len(t1_list)):
-                    for j in range(i+1, len(t1_list)):
-                        pair = tuple(sorted([t1_list[i], t1_list[j]]))
+
+                    for j in range(i + 1, len(t1_list)):
+
+                        pair = tuple(
+                            sorted([
+                                t1_list[i],
+                                t1_list[j]
+                            ])
+                        )
+
                         t1_pairs.append(pair)
+
                         if winner == 1:
                             partnerships[pair]["wins"] += 1
                         else:
                             partnerships[pair]["losses"] += 1
-                
+
                 t2_pairs = []
+
                 for i in range(len(t2_list)):
-                    for j in range(i+1, len(t2_list)):
-                        pair = tuple(sorted([t2_list[i], t2_list[j]]))
+
+                    for j in range(i + 1, len(t2_list)):
+
+                        pair = tuple(
+                            sorted([
+                                t2_list[i],
+                                t2_list[j]
+                            ])
+                        )
+
                         t2_pairs.append(pair)
+
                         if winner == 2:
                             partnerships[pair]["wins"] += 1
                         else:
                             partnerships[pair]["losses"] += 1
-            
+
             elif match_type == "3v3":
-                # For 3v3: track full 3-player teams
+
                 t1_team = tuple(sorted(t1_list))
                 t2_team = tuple(sorted(t2_list))
-                
+
                 if winner == 1:
+
                     partnerships[t1_team]["wins"] += 1
+
                 else:
+
                     partnerships[t1_team]["losses"] += 1
-                
+
                 if winner == 2:
+
                     partnerships[t2_team]["wins"] += 1
+
                 else:
+
                     partnerships[t2_team]["losses"] += 1
-                
+
                 t1_pairs = [t1_team]
                 t2_pairs = [t2_team]
-            
-            # Track matchups between partnerships from each partnership's perspective
+
             for t1_pair in t1_pairs:
+
                 for t2_pair in t2_pairs:
+
                     if winner == 1:
+
                         matchups[t1_pair][t2_pair]["wins"] += 1
                         matchups[t2_pair][t1_pair]["losses"] += 1
+
                     else:
+
                         matchups[t1_pair][t2_pair]["losses"] += 1
                         matchups[t2_pair][t1_pair]["wins"] += 1
-        
-        # Display by match type
+
+        # Display
         for match_type in ["2v2", "3v3"]:
+
             partnerships = partnerships_by_type[match_type]
             matchups = matchups_by_type[match_type]
-            
+
             st.markdown(f"## {match_type} Teams")
-            
+
             if not partnerships:
-                st.info(f"📭 No {match_type} team data yet")
+
+                st.info(
+                    f"📭 No {match_type} team data yet"
+                )
+
             else:
+
                 part_data = []
+
                 for partnership_tuple, record in partnerships.items():
-                    total = record["wins"] + record["losses"]
-                    win_pct = (record["wins"] / total) * 100 if total > 0 else 0
-                    # Format display string based on number of players
-                    display = " + ".join(partnership_tuple)
+
+                    total = (
+                        record["wins"]
+                        +
+                        record["losses"]
+                    )
+
+                    win_pct = (
+                        (record["wins"] / total) * 100
+                        if total > 0
+                        else 0
+                    )
+
+                    display = " + ".join(
+                        partnership_tuple
+                    )
+
                     part_data.append({
                         "partnership": partnership_tuple,
                         "display": display,
@@ -1228,29 +2345,66 @@ with tab4:
                         "total": total,
                         "win_pct": win_pct
                     })
-                
-                # Sort by wins descending
-                part_data.sort(key=lambda x: x["wins"], reverse=True)
-                
-                # Display partnerships with matchup records
+
+                part_data.sort(
+                    key=lambda x: x["wins"],
+                    reverse=True
+                )
+
                 for partnership_info in part_data:
-                    part_tuple = partnership_info["partnership"]
+
+                    part_tuple = (
+                        partnership_info["partnership"]
+                    )
+
                     total = partnership_info["total"]
                     win_pct = partnership_info["win_pct"]
-                    
-                    # Create expander for this partnership
-                    with st.expander(f"🤝 {partnership_info['display']} · {partnership_info['wins']}-{partnership_info['losses']} ({win_pct:.1f}%)", expanded=False):
-                        st.markdown(f"**Overall: {partnership_info['wins']} Wins · {partnership_info['losses']} Losses · {win_pct:.1f}% Win Rate**")
+
+                    with st.expander(
+                        f"🤝 {partnership_info['display']} · "
+                        f"{partnership_info['wins']}-"
+                        f"{partnership_info['losses']} "
+                        f"({win_pct:.1f}%)",
+                        expanded=False
+                    ):
+
+                        st.markdown(
+                            f"**Overall: "
+                            f"{partnership_info['wins']} Wins · "
+                            f"{partnership_info['losses']} Losses · "
+                            f"{win_pct:.1f}% Win Rate**"
+                        )
+
                         st.divider()
-                        st.markdown("**Head-to-Head vs Other Partnerships:**")
-                        
-                        # Get all matchups for this partnership
+
+                        st.markdown(
+                            "**Head-to-Head vs Other Partnerships:**"
+                        )
+
                         matchup_records = []
+
                         if part_tuple in matchups:
-                            for opponent_tuple, record in matchups[part_tuple].items():
-                                h2h_total = record["wins"] + record["losses"]
-                                h2h_pct = (record["wins"] / h2h_total) * 100 if h2h_total > 0 else 0
-                                opponent_display = " + ".join(opponent_tuple)
+
+                            for opponent_tuple, record in (
+                                matchups[part_tuple].items()
+                            ):
+
+                                h2h_total = (
+                                    record["wins"]
+                                    +
+                                    record["losses"]
+                                )
+
+                                h2h_pct = (
+                                    (record["wins"] / h2h_total) * 100
+                                    if h2h_total > 0
+                                    else 0
+                                )
+
+                                opponent_display = (
+                                    " + ".join(opponent_tuple)
+                                )
+
                                 matchup_records.append({
                                     "opponent": opponent_display,
                                     "wins": record["wins"],
@@ -1258,16 +2412,34 @@ with tab4:
                                     "total": h2h_total,
                                     "pct": h2h_pct
                                 })
-                        
+
                         if matchup_records:
-                            # Sort by wins descending
-                            matchup_records.sort(key=lambda x: x["wins"], reverse=True)
-                            
+
+                            matchup_records.sort(
+                                key=lambda x: x["wins"],
+                                reverse=True
+                            )
+
                             for matchup in matchup_records:
-                                st.markdown(f"vs **{matchup['opponent']}** · {matchup['wins']}-{matchup['losses']} ({matchup['pct']:.1f}%)")
+
+                                st.markdown(
+                                    f"vs **{matchup['opponent']}** · "
+                                    f"{matchup['wins']}-"
+                                    f"{matchup['losses']} "
+                                    f"({matchup['pct']:.1f}%)"
+                                )
+
                         else:
-                            st.markdown("*No matchup data yet*")
-                
+
+                            st.markdown(
+                                "*No matchup data yet*"
+                            )
+
                 st.divider()
+
+
+# ============================================================
+# CLOSE DATABASE
+# ============================================================
 
 conn.close()
