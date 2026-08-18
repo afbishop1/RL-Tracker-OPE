@@ -776,7 +776,7 @@ with tab3:
     if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_tab3"):
         st.rerun()
     
-    # JavaScript to color refresh button blue
+    # JavaScript to color refresh button and center ALL table cells
     st.markdown("""
 <script>
     function colorRefreshButton() {
@@ -795,41 +795,45 @@ with tab3:
         });
     }
     
+    function centerAllTables() {
+        // Find all data frame containers
+        let dataFrames = document.querySelectorAll('[data-testid="stDataFrame"]');
+        dataFrames.forEach(df => {
+            // Center all cells in the grid
+            let cells = df.querySelectorAll('[role="gridcell"], [role="columnheader"], [role="rowheader"]');
+            cells.forEach(cell => {
+                cell.style.textAlign = 'center';
+                cell.style.justifyContent = 'center';
+                cell.style.display = 'flex';
+                cell.style.alignItems = 'center';
+            });
+            
+            // Also center all divs within cells
+            let allDivs = df.querySelectorAll('div');
+            allDivs.forEach(div => {
+                div.style.textAlign = 'center';
+            });
+        });
+    }
+    
     colorRefreshButton();
     setTimeout(colorRefreshButton, 100);
     setTimeout(colorRefreshButton, 300);
     setTimeout(colorRefreshButton, 600);
     
-    const observer = new MutationObserver(colorRefreshButton);
+    // Center tables on initial load
+    setTimeout(centerAllTables, 100);
+    setTimeout(centerAllTables, 300);
+    setTimeout(centerAllTables, 500);
+    
+    // Center tables whenever DOM changes
+    const observer = new MutationObserver(() => {
+        colorRefreshButton();
+        centerAllTables();
+    });
+    
     observer.observe(document.body, { childList: true, subtree: true });
 </script>
-
-<style>
-    /* Center EVERY cell in Streamlit dataframes */
-    [data-testid="stDataFrame"] [role="gridcell"] {
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
-        text-align: center !important;
-        padding: 12px !important;
-    }
-    
-    [data-testid="stDataFrame"] [role="columnheader"] {
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
-        text-align: center !important;
-        padding: 12px !important;
-    }
-    
-    /* Make sure index column is also centered */
-    [data-testid="stDataFrame"] [role="rowheader"] {
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
-        text-align: center !important;
-    }
-</style>
 """, unsafe_allow_html=True)
     
     st.divider()
