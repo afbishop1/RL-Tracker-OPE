@@ -403,7 +403,7 @@ with tab1:
                     with stat_col3:
                         shots = st.number_input(f"Shots", min_value=0, key=f"g{game_num}_t1_sh{i}_r{st.session_state.reset_counter}")
                     
-                    excuse_used = st.radio(f"Excuse Used?", ["No", "Yes"], horizontal=True, key=f"g{game_num}_t1_ex{i}_r{st.session_state.reset_counter}", label_visibility="collapsed")
+                    excuse_used = st.radio(f"Excuse Used?", ["No", "Yes"], horizontal=True, key=f"g{game_num}_t1_ex{i}_r{st.session_state.reset_counter}")
                     excuse_val = 1 if excuse_used == "Yes" else 0
                     
                     team1_stats.append({"player": player_name, "score": score, "goals": goals, "assists": assists, "saves": saves, "shots": shots, "excuse_used": excuse_val})
@@ -427,7 +427,7 @@ with tab1:
                     with stat_col3:
                         shots = st.number_input(f"Shots", min_value=0, key=f"g{game_num}_t2_sh{i}_r{st.session_state.reset_counter}")
                     
-                    excuse_used = st.radio(f"Excuse Used?", ["No", "Yes"], horizontal=True, key=f"g{game_num}_t2_ex{i}_r{st.session_state.reset_counter}", label_visibility="collapsed")
+                    excuse_used = st.radio(f"Excuse Used?", ["No", "Yes"], horizontal=True, key=f"g{game_num}_t2_ex{i}_r{st.session_state.reset_counter}")
                     excuse_val = 1 if excuse_used == "Yes" else 0
                     
                     team2_stats.append({"player": player_name, "score": score, "goals": goals, "assists": assists, "saves": saves, "shots": shots, "excuse_used": excuse_val})
