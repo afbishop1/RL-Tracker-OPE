@@ -805,36 +805,23 @@ with tab3:
 </script>
 
 <style>
-    /* Aggressive centering for all Streamlit dataframes in Player Stats */
-    [data-testid="stDataFrame"] {
-        width: 100%;
-    }
-    
-    [data-testid="stDataFrame"] > div > div {
-        width: 100%;
-    }
-    
-    /* Center all grid cells */
-    [data-testid="stDataFrame"] [role="grid"] [role="row"] [role="gridcell"] {
-        text-align: center !important;
-        justify-content: center !important;
+    /* Proper centering for Streamlit dataframes using flexbox */
+    [data-testid="stDataFrame"] [role="gridcell"] {
         display: flex !important;
-        align-items: center !important;
-    }
-    
-    /* Headers */
-    [data-testid="stDataFrame"] [role="columnheader"] {
-        text-align: center !important;
         justify-content: center !important;
-    }
-    
-    /* All text in dataframe */
-    [data-testid="stDataFrame"] {
+        align-items: center !important;
         text-align: center !important;
     }
     
-    /* Fallback for all divs inside dataframe */
-    [data-testid="stDataFrame"] * {
+    [data-testid="stDataFrame"] [role="columnheader"] {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        text-align: center !important;
+    }
+    
+    /* Center all text in the grid */
+    [data-testid="stDataFrame"] [role="row"] {
         text-align: center !important;
     }
 </style>
