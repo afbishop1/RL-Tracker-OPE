@@ -776,7 +776,7 @@ with tab3:
     if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_tab3"):
         st.rerun()
     
-    # JavaScript to color refresh button blue and CSS to center tables
+    # JavaScript to color refresh button blue
     st.markdown("""
 <script>
     function colorRefreshButton() {
@@ -803,46 +803,6 @@ with tab3:
     const observer = new MutationObserver(colorRefreshButton);
     observer.observe(document.body, { childList: true, subtree: true });
 </script>
-
-<style>
-    /* Center all dataframe cells */
-    [data-testid="stDataFrame"] div[role="grid"] {
-        text-align: center !important;
-    }
-    
-    [data-testid="stDataFrame"] [role="row"] {
-        text-align: center !important;
-    }
-    
-    [data-testid="stDataFrame"] [role="gridcell"] {
-        text-align: center !important;
-        justify-content: center !important;
-    }
-    
-    /* Target all table cells */
-    [data-testid="stDataFrame"] th {
-        text-align: center !important;
-    }
-    
-    [data-testid="stDataFrame"] td {
-        text-align: center !important;
-    }
-    
-    /* Streamlit dataframe container */
-    .stDataFrame {
-        text-align: center !important;
-    }
-    
-    /* Fallback for pandas styled dataframes */
-    table {
-        text-align: center !important;
-    }
-    
-    table th, table td {
-        text-align: center !important;
-        padding: 12px !important;
-    }
-</style>
 """, unsafe_allow_html=True)
     
     st.divider()
@@ -852,7 +812,13 @@ with tab3:
     if not all_players:
         st.info("📭 No player data yet")
     else:
-        # Function to get stats by match type
+        # Helper function to center dataframes
+        def center_dataframe(df):
+            return df.style.set_properties(**{'text-align': 'center'}).set_table_styles([
+                {'selector': 'th', 'props': [('text-align', 'center')]},
+                {'selector': 'td', 'props': [('text-align', 'center')]}
+            ])
+        
         def get_stats_by_match_type(player, match_type):
             # Determine number of players based on match type
             if match_type == "1v1":
@@ -1014,7 +980,7 @@ with tab3:
         
         df_wins = pd.DataFrame(wins_data)
         df_wins = df_wins.sort_values("🏆 Wins", ascending=False)
-        st.dataframe(df_wins, use_container_width=True, hide_index=True)
+        st.dataframe(center_dataframe(df_wins), use_container_width=True, hide_index=True)
         
         st.divider()
         
@@ -1034,7 +1000,7 @@ with tab3:
             })
         
         df_totals = pd.DataFrame(totals_data)
-        st.dataframe(df_totals, use_container_width=True, hide_index=True)
+        st.dataframe(center_dataframe(df_totals), use_container_width=True, hide_index=True)
         
         st.divider()
         
@@ -1054,7 +1020,7 @@ with tab3:
             })
         
         df_avg = pd.DataFrame(avg_data)
-        st.dataframe(df_avg, use_container_width=True, hide_index=True)
+        st.dataframe(center_dataframe(df_avg), use_container_width=True, hide_index=True)
         
         st.divider()
         
@@ -1081,7 +1047,7 @@ with tab3:
                     } for player in players_with_type]
                     
                     df_wins = pd.DataFrame(wins_data).sort_values("🏆 Wins", ascending=False)
-                    st.dataframe(df_wins, use_container_width=True, hide_index=True)
+                    st.dataframe(center_dataframe(df_wins), use_container_width=True, hide_index=True)
                     
                     st.divider()
                     
@@ -1097,7 +1063,7 @@ with tab3:
                     } for player in sorted(players_with_type, key=lambda p: match_type_stats[p]["wins"], reverse=True)]
                     
                     df_totals = pd.DataFrame(totals_data)
-                    st.dataframe(df_totals, use_container_width=True, hide_index=True)
+                    st.dataframe(center_dataframe(df_totals), use_container_width=True, hide_index=True)
         
         st.divider()
         st.markdown("## Per Game Match Type Totals")
@@ -1122,7 +1088,7 @@ with tab3:
                     } for player in sorted(players_with_type, key=lambda p: match_type_stats[p]["wins"], reverse=True)]
                     
                     df_avg = pd.DataFrame(avg_data)
-                    st.dataframe(df_avg, use_container_width=True, hide_index=True)
+                    st.dataframe(center_dataframe(df_avg), use_container_width=True, hide_index=True)
 
 # ============ TAB 4: TEAMS ============
 with tab4:
