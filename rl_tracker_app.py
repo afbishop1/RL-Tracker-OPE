@@ -715,58 +715,6 @@ def display_leaderboard(rankings_data):
     df_rankings = pd.DataFrame(rankings_data)
     left_aligned_table(df_rankings)
 
-def display_sortable_table(df, default_sort_col=None):
-    """
-    Display a DataFrame as an interactive table with clickable headers for sorting.
-    """
-    if df.empty:
-        st.info("No data available")
-        return
-    
-    # Initialize sort state
-    if "sort_col" not in st.session_state:
-        st.session_state.sort_col = default_sort_col or df.columns[0]
-    if "sort_descending" not in st.session_state:
-        st.session_state.sort_descending = True
-    
-    # Create header buttons
-    header_cols = st.columns(len(df.columns))
-    for col_idx, col_name in enumerate(df.columns):
-        with header_cols[col_idx]:
-            # Create button text with indicator
-            if col_name == st.session_state.sort_col:
-                indicator = " ⬇️" if st.session_state.sort_descending else " ⬆️"
-                button_text = col_name + indicator
-            else:
-                button_text = col_name
-            
-            if st.button(button_text, key=f"sort_{col_idx}", use_container_width=True):
-                if st.session_state.sort_col == col_name:
-                    # Toggle direction if clicking same column
-                    st.session_state.sort_descending = not st.session_state.sort_descending
-                else:
-                    # Set new sort column
-                    st.session_state.sort_col = col_name
-                    st.session_state.sort_descending = True
-                st.rerun()
-    
-    # Sort the dataframe
-    try:
-        df_sorted = df.sort_values(
-            by=st.session_state.sort_col,
-            ascending=not st.session_state.sort_descending,
-            key=lambda col: pd.to_numeric(col, errors='coerce') if col.dtype == 'object' else col
-        )
-    except:
-        df_sorted = df.sort_values(
-            by=st.session_state.sort_col,
-            ascending=not st.session_state.sort_descending
-        )
-    
-    # Display sorted table
-    st.divider()
-    left_aligned_table(df_sorted)
-
 # ============================================================
 # HEADER
 # ============================================================
@@ -1904,7 +1852,7 @@ with tab3:
             "🏆 Wins",
             ascending=False
         )
-        display_sortable_table(df_wins, default_sort_col="🏆 Wins")
+        left_aligned_table(df_wins)
         st.divider()
         # ====================================================
         # CAREER TOTALS
@@ -1927,7 +1875,7 @@ with tab3:
                 "🤥 Excuses": stat["excuses"]
             })
         df_totals = pd.DataFrame(totals_data)
-        display_sortable_table(df_totals, default_sort_col="⚽ Goals")
+        left_aligned_table(df_totals)
         st.divider()
         # ====================================================
         # PER GAME AVERAGES
@@ -1950,7 +1898,7 @@ with tab3:
                 "🤥 Avg Excuses": f"{stat['avg_excuses']:.2f}"
             })
         df_avg = pd.DataFrame(avg_data)
-        display_sortable_table(df_avg, default_sort_col="⚽ Avg Goals")
+        left_aligned_table(df_avg)
         st.divider()
         # ====================================================
         # MATCH TYPE CAREER TOTALS
@@ -2003,7 +1951,7 @@ with tab3:
                 
                 if type_totals:
                     df_type = pd.DataFrame(type_totals)
-                    display_sortable_table(df_type, default_sort_col="⚽ Goals")
+                    left_aligned_table(df_type)
                 else:
                     st.info(f"No {match_type} games yet")
         
@@ -2058,7 +2006,7 @@ with tab3:
                 
                 if type_avgs:
                     df_type_avg = pd.DataFrame(type_avgs)
-                    display_sortable_table(df_type_avg, default_sort_col="⚽ Avg Goals")
+                    left_aligned_table(df_type_avg)
                 else:
                     st.info(f"No {match_type} games yet")
         
