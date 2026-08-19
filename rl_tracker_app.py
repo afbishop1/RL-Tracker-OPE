@@ -847,25 +847,20 @@ with tab1:
     col1, col2 = st.columns(2)
     player_options = ["Choose Player"] + PLAYERS
     with col1:
-        st.markdown("""
-        <div style="
-            background: linear-gradient(135deg, rgba(255, 107, 0, 0.1) 0%, rgba(255, 140, 0, 0.05) 100%);
-            border-left: 4px solid #FF6B00;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
-        ">
-        <div style="
-            text-align:center;
-            font-size:1.3em;
-            color:#FF6B00;
-            font-weight:bold;
-            margin-bottom:15px;
-        ">
-        TEAM 1
-        </div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            """
+            <div style="
+                text-align:center;
+                font-size:1.3em;
+                color:#FF6B00;
+                font-weight:bold;
+                margin-bottom:15px;
+            ">
+            TEAM 1
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
         for i in range(num_players):
             try:
                 current_index = player_options.index(
@@ -881,25 +876,20 @@ with tab1:
                 key=f"team1_p{i}_r{st.session_state.reset_counter}"
             )
     with col2:
-        st.markdown("""
-        <div style="
-            background: linear-gradient(135deg, rgba(30, 144, 255, 0.1) 0%, rgba(65, 105, 225, 0.05) 100%);
-            border-left: 4px solid #1E90FF;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
-        ">
-        <div style="
-            text-align:center;
-            font-size:1.3em;
-            color:#1E90FF;
-            font-weight:bold;
-            margin-bottom:15px;
-        ">
-        TEAM 2
-        </div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            """
+            <div style="
+                text-align:center;
+                font-size:1.3em;
+                color:#1E90FF;
+                font-weight:bold;
+                margin-bottom:15px;
+            ">
+            TEAM 2
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
         for i in range(num_players):
             try:
                 current_index = player_options.index(
@@ -928,25 +918,20 @@ with tab1:
             col1, col2 = st.columns(2)
             # TEAM 1
             with col1:
-                st.markdown("""
-                <div style="
-                    background: linear-gradient(135deg, rgba(255, 107, 0, 0.1) 0%, rgba(255, 140, 0, 0.05) 100%);
-                    border-left: 4px solid #FF6B00;
-                    border-radius: 8px;
-                    padding: 15px;
-                    margin-bottom: 10px;
-                ">
-                <div style="
-                    text-align:center;
-                    font-size:1.2em;
-                    color:#FF6B00;
-                    font-weight:bold;
-                    margin-bottom:10px;
-                ">
-                TEAM 1
-                </div>
-                </div>
-                """, unsafe_allow_html=True)
+                st.markdown(
+                    """
+                    <div style="
+                        text-align:center;
+                        font-size:1.2em;
+                        color:#FF6B00;
+                        font-weight:bold;
+                        margin-bottom:10px;
+                    ">
+                    TEAM 1
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
                 team1_stats = []
                 for i in range(num_players):
                     player_name = st.session_state.series_team1[i]
@@ -999,25 +984,20 @@ with tab1:
                     st.markdown("---")
             # TEAM 2
             with col2:
-                st.markdown("""
-                <div style="
-                    background: linear-gradient(135deg, rgba(30, 144, 255, 0.1) 0%, rgba(65, 105, 225, 0.05) 100%);
-                    border-left: 4px solid #1E90FF;
-                    border-radius: 8px;
-                    padding: 15px;
-                    margin-bottom: 10px;
-                ">
-                <div style="
-                    text-align:center;
-                    font-size:1.2em;
-                    color:#1E90FF;
-                    font-weight:bold;
-                    margin-bottom:10px;
-                ">
-                TEAM 2
-                </div>
-                </div>
-                """, unsafe_allow_html=True)
+                st.markdown(
+                    """
+                    <div style="
+                        text-align:center;
+                        font-size:1.2em;
+                        color:#1E90FF;
+                        font-weight:bold;
+                        margin-bottom:10px;
+                    ">
+                    TEAM 2
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
                 team2_stats = []
                 for i in range(num_players):
                     player_name = st.session_state.series_team2[i]
