@@ -2179,18 +2179,19 @@ with tab5:
                         st.info(f"No {match_type} games yet")
             
             st.divider()
-            st.markdown("""
-### 📊 How Rating is Calculated
-
+            st.markdown("### 📊 How Rating is Calculated")
+            st.write("""
 The **Performance Rating** combines your stats into a single 0-10 score:
 
-1. **Normalize each stat** - Compare your average to the best player's average
-2. **Apply weights** to determine importance:
-   - ⚽ **Goals: 40%** (most important, wins games)
-   - 🎁 **Assists: 30%** (team play)
-   - 🛡️ **Saves: 20%** (defense)
-   - 🔫 **Shots: 10%** (efficiency)
-3. **Final Rating** = (Goals×0.40) + (Assists×0.30) + (Saves×0.20) + (Shots×0.10)
+**Step 1:** Normalize each stat - Compare your average to the best player's average
+
+**Step 2:** Apply weights to determine importance:
+- ⚽ Goals: 40% (most important, wins games)
+- 🎁 Assists: 30% (team play)
+- 🛡️ Saves: 20% (defense)
+- 🔫 Shots: 10% (efficiency)
+
+**Step 3:** Final Rating = (Goals×0.40) + (Assists×0.30) + (Saves×0.20) + (Shots×0.10)
 
 **Example:** If you have the best Goals average (10.0), average Assists (7.5), average Saves (8.0), and average Shots (6.0):
 - Rating = (10.0×0.40) + (7.5×0.30) + (8.0×0.20) + (6.0×0.10) = **8.35**
