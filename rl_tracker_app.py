@@ -235,7 +235,7 @@ st.markdown("""
             gap: 2px;
         }
         [data-testid="stMainBlockContainer"] {
-            padding: 0.75rem;
+            padding: 1rem 0.75rem;
         }
     }
     /* ========================================================
@@ -578,27 +578,17 @@ PLAYERS = [
 st.markdown("""
 <style>
     .rl-title {
-        font-size: clamp(1.8em, 8vw, 3em);
+        font-size: clamp(1.5em, 7vw, 2.5em);
         font-weight: bold;
         background: linear-gradient(90deg, #FF6B00 0%, #1E90FF 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
         margin-bottom: 10px;
+        margin-top: 5px;
         text-align: center;
-        white-space: nowrap;
-    }
-    @media (max-width: 768px) {
-        .rl-title {
-            font-size: clamp(1.2em, 6vw, 1.8em);
-            margin-bottom: 8px;
-        }
-    }
-    @media (max-width: 480px) {
-        .rl-title {
-            font-size: clamp(1em, 5vw, 1.4em);
-            margin-bottom: 5px;
-        }
+        white-space: normal;
+        line-height: 1.2;
     }
 </style>
 <div class="rl-title">RL MATCH TRACKER</div>
@@ -606,14 +596,15 @@ st.markdown("""
 st.markdown("""
 <div style="
     text-align: center;
-    font-size: clamp(1.2em, 5vw, 1.8em);
+    font-size: clamp(1.4em, 6vw, 1.8em);
     font-weight: bold;
     background: linear-gradient(90deg, #FF6B00 0%, #FF8C00 50%, #1E90FF 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    margin-bottom: 15px;
+    margin: 10px 0 15px 0;
     letter-spacing: 1px;
+    line-height: 1.3;
 ">
 🎮 OPE GAMING CLAN 🎮
 </div>
