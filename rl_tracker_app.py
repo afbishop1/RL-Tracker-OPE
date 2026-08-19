@@ -197,7 +197,7 @@ def left_aligned_table(df):
 # ============================================================
 # SORTABLE TABLE FUNCTION
 # ============================================================
-def sortable_table(df, default_sort_col=None, default_sort_order="Highest to Lowest"):
+def sortable_table(df, default_sort_col=None):
     """
     Display a sortable table with sort controls.
     """
@@ -205,28 +205,15 @@ def sortable_table(df, default_sort_col=None, default_sort_order="Highest to Low
         st.info("No data available")
         return
     
-    col1, col2 = st.columns(2)
+    sort_col = st.selectbox(
+        "Sort by",
+        df.columns,
+        index=0 if default_sort_col is None else list(df.columns).index(default_sort_col),
+        key=f"sort_col_{id(df)}"
+    )
     
-    with col1:
-        sort_col = st.selectbox(
-            "Sort by",
-            df.columns,
-            index=0 if default_sort_col is None else list(df.columns).index(default_sort_col),
-            key=f"sort_col_{id(df)}"
-        )
-    
-    with col2:
-        sort_order = st.radio(
-            "Order",
-            ["Highest to Lowest", "Lowest to Highest"],
-            index=0 if default_sort_order == "Highest to Lowest" else 1,
-            horizontal=True,
-            key=f"sort_order_{id(df)}"
-        )
-    
-    # Sort the dataframe
-    ascending = sort_order == "Lowest to Highest"
-    df_sorted = df.sort_values(by=sort_col, ascending=ascending)
+    # Always sort descending (highest to lowest)
+    df_sorted = df.sort_values(by=sort_col, ascending=False)
     
     left_aligned_table(df_sorted)
 # ============================================================
