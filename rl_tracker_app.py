@@ -256,7 +256,43 @@ def init_db():
         print(f"Migration error: {e}")
     conn.commit()
     return conn
+
+# ============================================================
+# AUTO-RENUMBER SERIES (QUICK FIX FOR DELETED SERIES)
+# ============================================================
+def renumber_series():
+    """Renumber series sequentially if gaps exist from deletions"""
+    conn = sqlite3.connect("rl_matches.db")
+    c = conn.cursor()
+    
+    c.execute("""
+        SELECT DISTINCT series_number
+        FROM matches
+        ORDER BY series_number
+    """)
+    old_series = [row[0] for row in c.fetchall()]
+    
+    if not old_series:
+        conn.close()
+        return
+    
+    # Create mapping from old to new
+    old_to_new = {old_num: new_num for new_num, old_num in enumerate(old_series, 1)}
+    
+    # Update if there are gaps
+    if old_to_new != {i: i for i in range(1, len(old_series) + 1)}:
+        for old_num, new_num in old_to_new.items():
+            if old_num != new_num:
+                c.execute("""
+                    UPDATE matches
+                    SET series_number = ?
+                    WHERE series_number = ?
+                """, (new_num, old_num))
+        conn.commit()
+    
+    conn.close()
 conn = init_db()
+renumber_series()
 c = conn.cursor()
 # ============================================================
 # PLAYERS
@@ -1468,6 +1504,113 @@ with tab3:
             })
         df_avg = pd.DataFrame(avg_data)
         left_aligned_table(df_avg)
+        st.divider()
+        # ====================================================
+        # MATCH TYPE TOTALS - INDIVIDUAL EXPANDERS
+        # ====================================================
+        for match_type in ["1v1", "2v2", "3v3"]:
+            with st.expander(f"{match_type} Career Totals", expanded=False):
+                type_totals = []
+                for player in sorted(
+                    all_players_list,
+                    key=lambda p: overall_stats[p]["wins"],
+                    reverse=True
+                ):
+                    # Get stats for this match type
+                    c.execute("""
+                        SELECT
+                            SUM(score),
+                            SUM(goals),
+                            SUM(assists),
+                            SUM(saves),
+                            SUM(shots),
+                            SUM(excuse_used),
+                            COUNT(DISTINCT match_id)
+                        FROM player_stats
+                        WHERE player_name = ?
+                        AND match_id IN (
+                            SELECT id FROM matches
+                            WHERE 
+                                (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', '')))
+                                = ?
+                        )
+                    """, (
+                        player,
+                        1 if match_type == "2v2" else (2 if match_type == "3v3" else 0)
+                    ))
+                    result = c.fetchone()
+                    if result and result[6]:  # Has games in this match type
+                        score, goals, assists, saves, shots, excuses, games = result
+                        type_totals.append({
+                            "🎮 Player": player,
+                            "🎯 Score": score or 0,
+                            "⚽ Goals": goals or 0,
+                            "🎁 Assists": assists or 0,
+                            "🛡️ Saves": saves or 0,
+                            "🔫 Shots": shots or 0,
+                            "🤥 Excuses": excuses or 0,
+                            "📊 Games": games
+                        })
+                
+                if type_totals:
+                    df_type = pd.DataFrame(type_totals)
+                    left_aligned_table(df_type)
+                else:
+                    st.info(f"No {match_type} games yet")
+        
+        st.divider()
+        # ====================================================
+        # MATCH TYPE PER-GAME AVERAGES - INDIVIDUAL EXPANDERS
+        # ====================================================
+        for match_type in ["1v1", "2v2", "3v3"]:
+            with st.expander(f"{match_type} Per-Game Averages", expanded=False):
+                type_avgs = []
+                for player in sorted(
+                    all_players_list,
+                    key=lambda p: overall_stats[p]["wins"],
+                    reverse=True
+                ):
+                    # Get stats for this match type
+                    c.execute("""
+                        SELECT
+                            SUM(score),
+                            SUM(goals),
+                            SUM(assists),
+                            SUM(saves),
+                            SUM(shots),
+                            SUM(excuse_used),
+                            COUNT(DISTINCT match_id)
+                        FROM player_stats
+                        WHERE player_name = ?
+                        AND match_id IN (
+                            SELECT id FROM matches
+                            WHERE 
+                                (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', '')))
+                                = ?
+                        )
+                    """, (
+                        player,
+                        1 if match_type == "2v2" else (2 if match_type == "3v3" else 0)
+                    ))
+                    result = c.fetchone()
+                    if result and result[6]:  # Has games in this match type
+                        score, goals, assists, saves, shots, excuses, games = result
+                        type_avgs.append({
+                            "🎮 Player": player,
+                            "📍 Avg Score": f"{(score or 0) / games:.1f}",
+                            "⚽ Avg Goals": f"{(goals or 0) / games:.2f}",
+                            "🎁 Avg Assists": f"{(assists or 0) / games:.2f}",
+                            "🛡️ Avg Saves": f"{(saves or 0) / games:.2f}",
+                            "🔫 Avg Shots": f"{(shots or 0) / games:.2f}",
+                            "🤥 Avg Excuses": f"{(excuses or 0) / games:.2f}"
+                        })
+                
+                if type_avgs:
+                    df_type_avg = pd.DataFrame(type_avgs)
+                    left_aligned_table(df_type_avg)
+                else:
+                    st.info(f"No {match_type} games yet")
+        
         st.divider()
 # ============================================================
 # TAB 4 - TEAMS
