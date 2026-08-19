@@ -4,6 +4,9 @@ import pandas as pd
 from datetime import datetime
 from collections import defaultdict
 import pytz
+from anthropic import Anthropic
+import base64
+import json
 # ============================================================
 # PAGE CONFIG
 # ============================================================
@@ -352,6 +355,8 @@ if "delete_series_num" not in st.session_state:
     st.session_state.delete_series_num = None
 if "reset_counter" not in st.session_state:
     st.session_state.reset_counter = 0
+if "scoreboard_data" not in st.session_state:
+    st.session_state.scoreboard_data = None
 # ============================================================
 # PERFORMANCE RATING CALCULATION
 # ============================================================
@@ -371,6 +376,78 @@ def calculate_performance_rating(avg_goals, avg_assists, avg_saves, avg_shots,
     rating = (norm_goals * 0.40) + (norm_assists * 0.30) + (norm_saves * 0.20) + (norm_shots * 0.10)
     
     return round(rating, 2)
+
+# ============================================================
+# SCOREBOARD IMAGE READER
+# ============================================================
+def read_scoreboard_image(image_bytes):
+    """
+    Use Claude's vision API to read a scoreboard image and extract match data.
+    Returns extracted data as a dict with teams, players, scores, and stats.
+    """
+    try:
+        client = Anthropic()
+        base64_image = base64.standard_b64encode(image_bytes).decode("utf-8")
+        
+        message = client.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=1024,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": "image/jpeg",
+                                "data": base64_image,
+                            },
+                        },
+                        {
+                            "type": "text",
+                            "text": """Analyze this Rocket League scoreboard image and extract the following information in JSON format:
+{
+    "team1": ["player1", "player2", "player3"],
+    "team2": ["player4", "player5", "player6"],
+    "team1_score": number,
+    "team2_score": number,
+    "team1_stats": {
+        "player1": {"goals": 0, "assists": 0, "saves": 0, "shots": 0},
+        "player2": {"goals": 0, "assists": 0, "saves": 0, "shots": 0},
+        "player3": {"goals": 0, "assists": 0, "saves": 0, "shots": 0}
+    },
+    "team2_stats": {
+        "player4": {"goals": 0, "assists": 0, "saves": 0, "shots": 0},
+        "player5": {"goals": 0, "assists": 0, "saves": 0, "shots": 0},
+        "player6": {"goals": 0, "assists": 0, "saves": 0, "shots": 0}
+    }
+}
+
+Return ONLY valid JSON, no other text. Use empty arrays/objects if information is not visible."""
+                        }
+                    ],
+                }
+            ],
+        )
+        
+        # Parse the response
+        response_text = message.content[0].text
+        # Try to extract JSON from the response
+        try:
+            data = json.loads(response_text)
+            return data
+        except json.JSONDecodeError:
+            # If direct parsing fails, try to find JSON in the response
+            import re
+            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            if json_match:
+                data = json.loads(json_match.group())
+                return data
+            return None
+    except Exception as e:
+        st.error(f"Error reading scoreboard: {str(e)}")
+        return None
 
 # ============================================================
 # TABS
@@ -406,6 +483,38 @@ with tab1:
             st.session_state.series_team1 = ["Choose Player"] * 3
             st.session_state.series_team2 = ["Choose Player"] * 3
             st.rerun()
+    st.divider()
+    
+    # ====================================================
+    # SCOREBOARD IMAGE UPLOAD
+    # ====================================================
+    with st.expander("📸 Read from Scoreboard Image", expanded=False):
+        st.markdown("Upload a screenshot of the match scoreboard and I'll extract the stats automatically!")
+        
+        uploaded_image = st.file_uploader(
+            "Choose a scoreboard image",
+            type=["jpg", "jpeg", "png"],
+            label_visibility="collapsed"
+        )
+        
+        if uploaded_image:
+            image_bytes = uploaded_image.read()
+            
+            if st.button("🔍 Analyze Scoreboard", use_container_width=True):
+                with st.spinner("Reading scoreboard..."):
+                    extracted_data = read_scoreboard_image(image_bytes)
+                    
+                    if extracted_data:
+                        st.success("✅ Scoreboard read successfully!")
+                        st.json(extracted_data)
+                        
+                        # Pre-fill the form with extracted data
+                        st.session_state.scoreboard_data = extracted_data
+                        st.info("👇 Scroll down to see the form pre-filled with extracted data")
+                    else:
+                        st.error("❌ Couldn't read the scoreboard. Try a clearer image.")
+    
+    st.divider()
     # Button coloring
     st.markdown("""
     <script>
@@ -504,6 +613,24 @@ with tab1:
         f'<div class="series-header">Series {current_series} - {best_of}</div>',
         unsafe_allow_html=True
     )
+    
+    # --------------------------------------------------------
+    # AUTO-FILL FROM SCOREBOARD IF AVAILABLE
+    # --------------------------------------------------------
+    if st.session_state.scoreboard_data:
+        sb_data = st.session_state.scoreboard_data
+        if sb_data.get("team1") and sb_data.get("team2"):
+            # Check if teams match expected player count
+            team1_count = len([p for p in sb_data.get("team1", []) if p])
+            team2_count = len([p for p in sb_data.get("team2", []) if p])
+            
+            if team1_count == num_players and team2_count == num_players:
+                st.session_state.series_team1 = sb_data["team1"][:num_players]
+                st.session_state.series_team2 = sb_data["team2"][:num_players]
+                
+                st.success(f"✅ Pre-filled {num_players}v{num_players} teams from scoreboard!")
+                st.session_state.scoreboard_data = None  # Clear to avoid re-applying
+    
     # --------------------------------------------------------
     # TEAM SESSION STATE
     # --------------------------------------------------------
