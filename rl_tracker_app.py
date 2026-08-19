@@ -1662,13 +1662,15 @@ with tab4:
     all_comparison_players = [row[0] for row in c.fetchall()]
     
     if all_comparison_players:
+        comparison_options = ["Choose Player"] + all_comparison_players
+        
         col1, col2 = st.columns(2)
         with col1:
-            player1 = st.selectbox("Player 1", all_comparison_players, key="comp_p1")
+            player1 = st.selectbox("Player 1", comparison_options, key="comp_p1")
         with col2:
-            player2 = st.selectbox("Player 2", all_comparison_players, key="comp_p2", index=1 if len(all_comparison_players) > 1 else 0)
+            player2 = st.selectbox("Player 2", comparison_options, key="comp_p2")
         
-        if player1 != player2:
+        if player1 != "Choose Player" and player2 != "Choose Player" and player1 != player2:
             comparison_data = []
             
             for player in [player1, player2]:
@@ -1754,12 +1756,6 @@ with tab4:
                     
                     if stat_name == "Games":
                         c.execute("""
-                            SELECT COUNT(*)
-                            FROM matches
-                            WHERE team1_players LIKE ? OR team2_players LIKE ?
-                        """, (f"%{player}%", f"%{player}%"))
-                        games_val = c.fetchone()[0]
-                        c.execute("""
                             SELECT COUNT(DISTINCT match_id) FROM player_stats WHERE player_name = ?
                         """, (player,))
                         games_val = c.fetchone()[0]
@@ -1792,10 +1788,8 @@ with tab4:
                         """, (f"%{player}%", f"%{player}%"))
                         wins = c.fetchone()[0]
                         c.execute("""
-                            SELECT COUNT(*)
-                            FROM matches
-                            WHERE team1_players LIKE ? OR team2_players LIKE ?
-                        """, (f"%{player}%", f"%{player}%"))
+                            SELECT COUNT(DISTINCT match_id) FROM player_stats WHERE player_name = ?
+                        """, (player,))
                         total = c.fetchone()[0]
                         pct = (wins / total * 100) if total > 0 else 0
                         row[player] = f"{pct:.1f}%"
@@ -1836,8 +1830,8 @@ with tab4:
             
             df_comparison = pd.DataFrame(stats_list)
             left_aligned_table(df_comparison)
-        else:
-            st.info("Select two different players to compare")
+        elif player1 != "Choose Player" or player2 != "Choose Player":
+            st.info("👈 Select two different players to compare")
     
     st.divider()
     # ====================================================
