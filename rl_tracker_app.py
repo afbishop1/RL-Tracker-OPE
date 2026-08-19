@@ -1648,6 +1648,258 @@ with tab4:
     ):
         st.rerun()
     st.divider()
+    
+    # ====================================================
+    # PLAYER COMPARISON
+    # ====================================================
+    st.markdown("## 🎮 Player Comparison")
+    
+    c.execute("""
+        SELECT DISTINCT player_name
+        FROM player_stats
+        ORDER BY player_name
+    """)
+    all_comparison_players = [row[0] for row in c.fetchall()]
+    
+    if all_comparison_players:
+        col1, col2 = st.columns(2)
+        with col1:
+            player1 = st.selectbox("Player 1", all_comparison_players, key="comp_p1")
+        with col2:
+            player2 = st.selectbox("Player 2", all_comparison_players, key="comp_p2", index=1 if len(all_comparison_players) > 1 else 0)
+        
+        if player1 != player2:
+            comparison_data = []
+            
+            for player in [player1, player2]:
+                # Wins/Losses
+                c.execute("""
+                    SELECT COUNT(*)
+                    FROM matches
+                    WHERE
+                        (
+                            team1_players LIKE ?
+                            AND winner = 1
+                        )
+                        OR
+                        (
+                            team2_players LIKE ?
+                            AND winner = 2
+                        )
+                """, (f"%{player}%", f"%{player}%"))
+                wins = c.fetchone()[0]
+                
+                c.execute("""
+                    SELECT COUNT(*)
+                    FROM matches
+                    WHERE
+                        (
+                            team1_players LIKE ?
+                            AND winner = 2
+                        )
+                        OR
+                        (
+                            team2_players LIKE ?
+                            AND winner = 1
+                        )
+                """, (f"%{player}%", f"%{player}%"))
+                losses = c.fetchone()[0]
+                
+                games = wins + losses
+                win_pct = (wins / games * 100) if games > 0 else 0
+                
+                # Stats
+                c.execute("""
+                    SELECT
+                        SUM(goals),
+                        SUM(assists),
+                        SUM(saves),
+                        SUM(shots),
+                        COUNT(DISTINCT match_id)
+                    FROM player_stats
+                    WHERE player_name = ?
+                """, (player,))
+                result = c.fetchone()
+                
+                if result:
+                    total_goals, total_assists, total_saves, total_shots, total_games = result
+                    avg_goals = (total_goals or 0) / total_games if total_games > 0 else 0
+                    avg_assists = (total_assists or 0) / total_games if total_games > 0 else 0
+                    avg_saves = (total_saves or 0) / total_games if total_games > 0 else 0
+                    avg_shots = (total_shots or 0) / total_games if total_games > 0 else 0
+                    
+                    comparison_data.append({"Stat": "Games", player1: "", player2: ""})
+                    comparison_data.append({"Stat": "Games", player: total_games})
+                    comparison_data.append({"Stat": "Wins", player: wins})
+                    comparison_data.append({"Stat": "Losses", player: losses})
+                    comparison_data.append({"Stat": "Win %", player: f"{win_pct:.1f}%"})
+                    comparison_data.append({"Stat": "Avg Goals", player: f"{avg_goals:.2f}"})
+                    comparison_data.append({"Stat": "Avg Assists", player: f"{avg_assists:.2f}"})
+                    comparison_data.append({"Stat": "Avg Saves", player: f"{avg_saves:.2f}"})
+                    comparison_data.append({"Stat": "Avg Shots", player: f"{avg_shots:.2f}"})
+            
+            # Build comparison table
+            stats_list = []
+            stats_names = ["Games", "Wins", "Losses", "Win %", "Avg Goals", "Avg Assists", "Avg Saves", "Avg Shots"]
+            
+            for stat_name in stats_names:
+                row = {"📊 Stat": stat_name}
+                for player in [player1, player2]:
+                    c.execute("""
+                        SELECT COUNT(*), SUM(goals), SUM(assists), SUM(saves), SUM(shots)
+                        FROM player_stats
+                        WHERE player_name = ?
+                    """, (player,))
+                    result = c.fetchone()
+                    
+                    if stat_name == "Games":
+                        c.execute("""
+                            SELECT COUNT(*)
+                            FROM matches
+                            WHERE team1_players LIKE ? OR team2_players LIKE ?
+                        """, (f"%{player}%", f"%{player}%"))
+                        games_val = c.fetchone()[0]
+                        c.execute("""
+                            SELECT COUNT(DISTINCT match_id) FROM player_stats WHERE player_name = ?
+                        """, (player,))
+                        games_val = c.fetchone()[0]
+                        row[player] = games_val
+                    elif stat_name == "Wins":
+                        c.execute("""
+                            SELECT COUNT(*)
+                            FROM matches
+                            WHERE
+                                (team1_players LIKE ? AND winner = 1)
+                                OR (team2_players LIKE ? AND winner = 2)
+                        """, (f"%{player}%", f"%{player}%"))
+                        row[player] = c.fetchone()[0]
+                    elif stat_name == "Losses":
+                        c.execute("""
+                            SELECT COUNT(*)
+                            FROM matches
+                            WHERE
+                                (team1_players LIKE ? AND winner = 2)
+                                OR (team2_players LIKE ? AND winner = 1)
+                        """, (f"%{player}%", f"%{player}%"))
+                        row[player] = c.fetchone()[0]
+                    elif stat_name == "Win %":
+                        c.execute("""
+                            SELECT COUNT(*)
+                            FROM matches
+                            WHERE
+                                (team1_players LIKE ? AND winner = 1)
+                                OR (team2_players LIKE ? AND winner = 2)
+                        """, (f"%{player}%", f"%{player}%"))
+                        wins = c.fetchone()[0]
+                        c.execute("""
+                            SELECT COUNT(*)
+                            FROM matches
+                            WHERE team1_players LIKE ? OR team2_players LIKE ?
+                        """, (f"%{player}%", f"%{player}%"))
+                        total = c.fetchone()[0]
+                        pct = (wins / total * 100) if total > 0 else 0
+                        row[player] = f"{pct:.1f}%"
+                    elif stat_name == "Avg Goals":
+                        c.execute("""
+                            SELECT SUM(goals), COUNT(DISTINCT match_id)
+                            FROM player_stats WHERE player_name = ?
+                        """, (player,))
+                        goals, games = c.fetchone()
+                        avg = (goals or 0) / games if games > 0 else 0
+                        row[player] = f"{avg:.2f}"
+                    elif stat_name == "Avg Assists":
+                        c.execute("""
+                            SELECT SUM(assists), COUNT(DISTINCT match_id)
+                            FROM player_stats WHERE player_name = ?
+                        """, (player,))
+                        assists, games = c.fetchone()
+                        avg = (assists or 0) / games if games > 0 else 0
+                        row[player] = f"{avg:.2f}"
+                    elif stat_name == "Avg Saves":
+                        c.execute("""
+                            SELECT SUM(saves), COUNT(DISTINCT match_id)
+                            FROM player_stats WHERE player_name = ?
+                        """, (player,))
+                        saves, games = c.fetchone()
+                        avg = (saves or 0) / games if games > 0 else 0
+                        row[player] = f"{avg:.2f}"
+                    elif stat_name == "Avg Shots":
+                        c.execute("""
+                            SELECT SUM(shots), COUNT(DISTINCT match_id)
+                            FROM player_stats WHERE player_name = ?
+                        """, (player,))
+                        shots, games = c.fetchone()
+                        avg = (shots or 0) / games if games > 0 else 0
+                        row[player] = f"{avg:.2f}"
+                
+                stats_list.append(row)
+            
+            df_comparison = pd.DataFrame(stats_list)
+            left_aligned_table(df_comparison)
+        else:
+            st.info("Select two different players to compare")
+    
+    st.divider()
+    # ====================================================
+    # BEST PARTNERSHIPS
+    # ====================================================
+    st.markdown("## 🤝 Best Partnerships")
+    
+    c.execute("""
+        SELECT id, team1_players, team2_players, winner
+        FROM matches
+    """)
+    all_match_data = c.fetchall()
+    
+    if all_match_data:
+        partnerships = defaultdict(lambda: {"wins": 0, "losses": 0})
+        
+        for match_id, t1, t2, winner in all_match_data:
+            t1_list = t1.split(",")
+            t2_list = t2.split(",")
+            
+            # Only count 2v2 and 3v3 (skip 1v1)
+            if len(t1_list) == 1:
+                continue
+            
+            t1_team = tuple(sorted(t1_list))
+            t2_team = tuple(sorted(t2_list))
+            
+            if winner == 1:
+                partnerships[t1_team]["wins"] += 1
+            else:
+                partnerships[t1_team]["losses"] += 1
+            
+            if winner == 2:
+                partnerships[t2_team]["wins"] += 1
+            else:
+                partnerships[t2_team]["losses"] += 1
+        
+        if partnerships:
+            partnership_list = []
+            for team, record in partnerships.items():
+                total = record["wins"] + record["losses"]
+                win_pct = (record["wins"] / total * 100) if total > 0 else 0
+                team_display = " + ".join(team)
+                partnership_list.append({
+                    "🏆 Rank": 0,
+                    "🤝 Partnership": team_display,
+                    "🏅 Wins": record["wins"],
+                    "💔 Losses": record["losses"],
+                    "📊 Games": total,
+                    "📈 Win %": f"{win_pct:.1f}%"
+                })
+            
+            partnership_list.sort(key=lambda x: x["🏅 Wins"], reverse=True)
+            for idx, p in enumerate(partnership_list, 1):
+                p["🏆 Rank"] = idx
+            
+            df_partnerships = pd.DataFrame(partnership_list)
+            left_aligned_table(df_partnerships)
+        else:
+            st.info("No 2v2 or 3v3 partnerships yet")
+    
+    st.divider()
     # ====================================================
     # 1V1 HEAD-TO-HEAD
     # ====================================================
