@@ -234,6 +234,9 @@ st.markdown("""
         [data-testid="stTabs"] [role="tablist"] {
             gap: 2px;
         }
+        [data-testid="stMainBlockContainer"] {
+            padding: 0.75rem;
+        }
     }
     /* ========================================================
        HEADER & BRANDING
@@ -585,20 +588,32 @@ st.markdown("""
         text-align: center;
         white-space: nowrap;
     }
+    @media (max-width: 768px) {
+        .rl-title {
+            font-size: clamp(1.2em, 6vw, 1.8em);
+            margin-bottom: 8px;
+        }
+    }
+    @media (max-width: 480px) {
+        .rl-title {
+            font-size: clamp(1em, 5vw, 1.4em);
+            margin-bottom: 5px;
+        }
+    }
 </style>
 <div class="rl-title">RL MATCH TRACKER</div>
 """, unsafe_allow_html=True)
 st.markdown("""
 <div style="
     text-align: center;
-    font-size: 1.8em;
+    font-size: clamp(1.2em, 5vw, 1.8em);
     font-weight: bold;
     background: linear-gradient(90deg, #FF6B00 0%, #FF8C00 50%, #1E90FF 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    margin-bottom: 20px;
-    letter-spacing: 2px;
+    margin-bottom: 15px;
+    letter-spacing: 1px;
 ">
 🎮 OPE GAMING CLAN 🎮
 </div>
