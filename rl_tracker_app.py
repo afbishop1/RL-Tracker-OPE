@@ -353,14 +353,35 @@ if "delete_series_num" not in st.session_state:
 if "reset_counter" not in st.session_state:
     st.session_state.reset_counter = 0
 # ============================================================
+# PERFORMANCE RATING CALCULATION
+# ============================================================
+def calculate_performance_rating(avg_goals, avg_assists, avg_saves, avg_shots, 
+                                  max_goals, max_assists, max_saves, max_shots):
+    """
+    Calculate performance rating (0-10) based on normalized stats.
+    Weights: Goals 40%, Assists 30%, Saves 20%, Shots 10%
+    """
+    # Normalize each stat to 0-10 scale
+    norm_goals = (avg_goals / max_goals * 10) if max_goals > 0 else 0
+    norm_assists = (avg_assists / max_assists * 10) if max_assists > 0 else 0
+    norm_saves = (avg_saves / max_saves * 10) if max_saves > 0 else 0
+    norm_shots = (avg_shots / max_shots * 10) if max_shots > 0 else 0
+    
+    # Calculate weighted rating
+    rating = (norm_goals * 0.40) + (norm_assists * 0.30) + (norm_saves * 0.20) + (norm_shots * 0.10)
+    
+    return round(rating, 2)
+
+# ============================================================
 # TABS
 # ============================================================
-tab1, tab2, tab3, tab4 = st.tabs(
+tab1, tab2, tab3, tab4, tab5 = st.tabs(
     [
         "🎯 Log Match",
         "📊 Series History",
         "🏆 Player Stats",
-        "👥 Matchups"
+        "👥 Matchups",
+        "🏅 Leaderboard"
     ]
 )
 # ============================================================
@@ -1950,6 +1971,218 @@ with tab4:
                                 "*No matchup data yet*"
                             )
                 st.divider()
+# ============================================================
+# TAB 5 - LEADERBOARD
+# ============================================================
+with tab5:
+    if st.button(
+        "🔄 Refresh Data",
+        use_container_width=True,
+        key="refresh_tab5"
+    ):
+        st.rerun()
+    st.divider()
+    
+    # Get all players with stats
+    c.execute("""
+        SELECT DISTINCT player_name
+        FROM player_stats
+        ORDER BY player_name
+    """)
+    leaderboard_players = [row[0] for row in c.fetchall()]
+    
+    if not leaderboard_players:
+        st.info("📭 No player data yet")
+    else:
+        # ====================================================
+        # OVERALL PERFORMANCE RATING
+        # ====================================================
+        st.markdown("## 🏆 Overall Performance Rating")
+        
+        # Get max stats for normalization
+        c.execute("""
+            SELECT
+                MAX(CAST(SUM(goals) AS FLOAT) / COUNT(DISTINCT match_id)),
+                MAX(CAST(SUM(assists) AS FLOAT) / COUNT(DISTINCT match_id)),
+                MAX(CAST(SUM(saves) AS FLOAT) / COUNT(DISTINCT match_id)),
+                MAX(CAST(SUM(shots) AS FLOAT) / COUNT(DISTINCT match_id))
+            FROM player_stats
+            GROUP BY player_name
+        """)
+        max_stats = c.fetchone()
+        max_goals, max_assists, max_saves, max_shots = max_stats if max_stats else (1, 1, 1, 1)
+        
+        # Calculate ratings for all players
+        overall_ratings = []
+        for player in leaderboard_players:
+            c.execute("""
+                SELECT
+                    COUNT(DISTINCT match_id),
+                    SUM(goals),
+                    SUM(assists),
+                    SUM(saves),
+                    SUM(shots)
+                FROM player_stats
+                WHERE player_name = ?
+            """, (player,))
+            result = c.fetchone()
+            
+            if result:
+                games, total_goals, total_assists, total_saves, total_shots = result
+                avg_goals = (total_goals or 0) / games if games > 0 else 0
+                avg_assists = (total_assists or 0) / games if games > 0 else 0
+                avg_saves = (total_saves or 0) / games if games > 0 else 0
+                avg_shots = (total_shots or 0) / games if games > 0 else 0
+                
+                rating = calculate_performance_rating(
+                    avg_goals, avg_assists, avg_saves, avg_shots,
+                    max_goals or 1, max_assists or 1, max_saves or 1, max_shots or 1
+                )
+                
+                # Get wins
+                c.execute("""
+                    SELECT COUNT(*)
+                    FROM matches
+                    WHERE
+                        (
+                            team1_players LIKE ?
+                            AND winner = 1
+                        )
+                        OR
+                        (
+                            team2_players LIKE ?
+                            AND winner = 2
+                        )
+                """, (f"%{player}%", f"%{player}%"))
+                wins = c.fetchone()[0]
+                
+                # Get losses
+                c.execute("""
+                    SELECT COUNT(*)
+                    FROM matches
+                    WHERE
+                        (
+                            team1_players LIKE ?
+                            AND winner = 2
+                        )
+                        OR
+                        (
+                            team2_players LIKE ?
+                            AND winner = 1
+                        )
+                """, (f"%{player}%", f"%{player}%"))
+                losses = c.fetchone()[0]
+                
+                total_games = wins + losses
+                win_pct = (wins / total_games * 100) if total_games > 0 else 0
+                
+                overall_ratings.append({
+                    "🏅 Rank": 0,  # Will be set after sorting
+                    "🎮 Player": player,
+                    "⭐ Rating": rating,
+                    "⚽ Avg Goals": f"{avg_goals:.2f}",
+                    "🎁 Avg Assists": f"{avg_assists:.2f}",
+                    "🛡️ Avg Saves": f"{avg_saves:.2f}",
+                    "🔫 Avg Shots": f"{avg_shots:.2f}",
+                    "📊 W-L": f"{wins}-{losses}",
+                    "📈 Win %": f"{win_pct:.1f}%"
+                })
+        
+        # Sort by rating
+        overall_ratings.sort(key=lambda x: x["⭐ Rating"], reverse=True)
+        for idx, rating_data in enumerate(overall_ratings, 1):
+            rating_data["🏅 Rank"] = idx
+        
+        df_overall = pd.DataFrame(overall_ratings)
+        left_aligned_table(df_overall)
+        
+        st.divider()
+        # ====================================================
+        # MATCH TYPE PERFORMANCE RATINGS
+        # ====================================================
+        st.markdown("## Match Type Performance Ratings")
+        
+        for match_type in ["1v1", "2v2", "3v3"]:
+            with st.expander(f"{match_type} Performance Rating", expanded=False):
+                # Get max stats for this match type
+                c.execute(f"""
+                    SELECT
+                        MAX(CAST(SUM(goals) AS FLOAT) / COUNT(DISTINCT match_id)),
+                        MAX(CAST(SUM(assists) AS FLOAT) / COUNT(DISTINCT match_id)),
+                        MAX(CAST(SUM(saves) AS FLOAT) / COUNT(DISTINCT match_id)),
+                        MAX(CAST(SUM(shots) AS FLOAT) / COUNT(DISTINCT match_id))
+                    FROM player_stats
+                    WHERE match_id IN (
+                        SELECT id FROM matches
+                        WHERE 
+                            (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', '')))
+                            = ?
+                    )
+                    GROUP BY player_name
+                """, (1 if match_type == "2v2" else (2 if match_type == "3v3" else 0),))
+                max_type_stats = c.fetchone()
+                max_type_goals, max_type_assists, max_type_saves, max_type_shots = (
+                    max_type_stats if max_type_stats else (1, 1, 1, 1)
+                )
+                
+                # Calculate ratings
+                type_ratings = []
+                for player in leaderboard_players:
+                    c.execute("""
+                        SELECT
+                            COUNT(DISTINCT match_id),
+                            SUM(goals),
+                            SUM(assists),
+                            SUM(saves),
+                            SUM(shots)
+                        FROM player_stats
+                        WHERE player_name = ?
+                        AND match_id IN (
+                            SELECT id FROM matches
+                            WHERE 
+                                (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', '')))
+                                = ?
+                        )
+                    """, (
+                        player,
+                        1 if match_type == "2v2" else (2 if match_type == "3v3" else 0)
+                    ))
+                    result = c.fetchone()
+                    
+                    if result and result[0]:  # Has games in this type
+                        games, total_goals, total_assists, total_saves, total_shots = result
+                        avg_goals = (total_goals or 0) / games
+                        avg_assists = (total_assists or 0) / games
+                        avg_saves = (total_saves or 0) / games
+                        avg_shots = (total_shots or 0) / games
+                        
+                        rating = calculate_performance_rating(
+                            avg_goals, avg_assists, avg_saves, avg_shots,
+                            max_type_goals or 1, max_type_assists or 1, 
+                            max_type_saves or 1, max_type_shots or 1
+                        )
+                        
+                        type_ratings.append({
+                            "🏅 Rank": 0,
+                            "🎮 Player": player,
+                            "⭐ Rating": rating,
+                            "⚽ Avg Goals": f"{avg_goals:.2f}",
+                            "🎁 Avg Assists": f"{avg_assists:.2f}",
+                            "🛡️ Avg Saves": f"{avg_saves:.2f}",
+                            "🔫 Avg Shots": f"{avg_shots:.2f}",
+                            "📊 Games": games
+                        })
+                
+                if type_ratings:
+                    type_ratings.sort(key=lambda x: x["⭐ Rating"], reverse=True)
+                    for idx, rating_data in enumerate(type_ratings, 1):
+                        rating_data["🏅 Rank"] = idx
+                    
+                    df_type_rating = pd.DataFrame(type_ratings)
+                    left_aligned_table(df_type_rating)
+                else:
+                    st.info(f"No {match_type} games yet")
+
 # ============================================================
 # CLOSE DATABASE
 # ============================================================
