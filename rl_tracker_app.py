@@ -715,55 +715,6 @@ def display_leaderboard(rankings_data):
     df_rankings = pd.DataFrame(rankings_data)
     left_aligned_table(df_rankings)
 
-def sortable_table(df, table_key="default"):
-    """
-    Display DataFrame with sortable headers above the table.
-    """
-    if df.empty:
-        st.info("No data available")
-        return
-    
-    # Initialize session state
-    if f"{table_key}_sort_col" not in st.session_state:
-        st.session_state[f"{table_key}_sort_col"] = df.columns[0]
-    if f"{table_key}_sort_desc" not in st.session_state:
-        st.session_state[f"{table_key}_sort_desc"] = True
-    
-    # Get current sort settings
-    sort_col = st.session_state[f"{table_key}_sort_col"]
-    sort_desc = st.session_state[f"{table_key}_sort_desc"]
-    
-    # Sort dataframe
-    try:
-        df_sorted = df.sort_values(
-            by=sort_col,
-            ascending=not sort_desc,
-            key=lambda col: pd.to_numeric(col, errors='coerce') if col.dtype == 'object' else col
-        )
-    except:
-        df_sorted = df.sort_values(by=sort_col, ascending=not sort_desc)
-    
-    # Create clickable header buttons
-    cols = st.columns(len(df.columns), gap="small")
-    for idx, col in enumerate(df.columns):
-        with cols[idx]:
-            # Determine sort indicator
-            if col == sort_col:
-                indicator = " ↓" if sort_desc else " ↑"
-            else:
-                indicator = ""
-            
-            if st.button(f"{col}{indicator}", key=f"{table_key}_sort_{idx}", use_container_width=True):
-                if st.session_state[f"{table_key}_sort_col"] == col:
-                    st.session_state[f"{table_key}_sort_desc"] = not st.session_state[f"{table_key}_sort_desc"]
-                else:
-                    st.session_state[f"{table_key}_sort_col"] = col
-                    st.session_state[f"{table_key}_sort_desc"] = True
-                st.rerun()
-    
-    # Display sorted table
-    left_aligned_table(df_sorted)
-
 # ============================================================
 # HEADER
 # ============================================================
@@ -1901,7 +1852,7 @@ with tab3:
             "🏆 Wins",
             ascending=False
         )
-        sortable_table(df_wins, "overall_wins")
+        left_aligned_table(df_wins)
         st.divider()
         # ====================================================
         # CAREER TOTALS
@@ -1924,7 +1875,7 @@ with tab3:
                 "🤥 Excuses": stat["excuses"]
             })
         df_totals = pd.DataFrame(totals_data)
-        sortable_table(df_totals, "career_totals")
+        left_aligned_table(df_totals)
         st.divider()
         # ====================================================
         # PER GAME AVERAGES
@@ -1947,7 +1898,7 @@ with tab3:
                 "🤥 Avg Excuses": f"{stat['avg_excuses']:.2f}"
             })
         df_avg = pd.DataFrame(avg_data)
-        sortable_table(df_avg, "per_game_avg")
+        left_aligned_table(df_avg)
         st.divider()
         # ====================================================
         # MATCH TYPE CAREER TOTALS
@@ -2000,7 +1951,7 @@ with tab3:
                 
                 if type_totals:
                     df_type = pd.DataFrame(type_totals)
-                    sortable_table(df_type, f"{match_type}_totals")
+                    left_aligned_table(df_type)
                 else:
                     st.info(f"No {match_type} games yet")
         
@@ -2055,7 +2006,7 @@ with tab3:
                 
                 if type_avgs:
                     df_type_avg = pd.DataFrame(type_avgs)
-                    sortable_table(df_type_avg, f"{match_type}_averages")
+                    left_aligned_table(df_type_avg)
                 else:
                     st.info(f"No {match_type} games yet")
         
