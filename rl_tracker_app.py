@@ -138,29 +138,35 @@ st.markdown("""
     .rl-stats-table {
         width: 100%;
         border-collapse: collapse;
-        background: #0f1428;
+        background: transparent;
         color: #E8EAED;
         font-size: 16px;
         text-align: left !important;
     }
     .rl-stats-table th {
-        background: #1a1f3a;
-        color: #E8EAED;
+        background: linear-gradient(90deg, rgba(255,107,0,0.2) 0%, rgba(30,144,255,0.2) 100%);
+        color: #FFD700;
         font-weight: bold;
-        padding: 12px 15px;
-        border: 1px solid #303653;
+        padding: 14px 16px;
+        border-top: 2px solid #FF6B00;
+        border-bottom: 2px solid #1E90FF;
         text-align: left !important;
         white-space: nowrap;
     }
     .rl-stats-table td {
-        padding: 12px 15px;
-        border: 1px solid #303653;
+        padding: 12px 16px;
+        border: none;
+        border-bottom: 1px solid rgba(255,107,0,0.2);
         text-align: left !important;
         vertical-align: middle;
         white-space: nowrap;
+        background: rgba(30, 144, 255, 0.04);
     }
-    .rl-stats-table tr:hover {
-        background: rgba(30, 144, 255, 0.08);
+    .rl-stats-table tr:hover td {
+        background: rgba(30, 144, 255, 0.12);
+    }
+    .rl-stats-table tr:last-child td {
+        border-bottom: 2px solid rgba(255,107,0,0.3);
     }
     .rl-stats-table th *,
     .rl-stats-table td * {
