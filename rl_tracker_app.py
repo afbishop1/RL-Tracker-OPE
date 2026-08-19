@@ -2739,38 +2739,73 @@ with tab6:
                         else:
                             st.info("No data")
                     
-                    # Largest Blowout
+                    # Most Combined Goals in a Series
                     with col2:
-                        st.markdown("**💥 Largest Blowout**")
-                        best_diff = 0
-                        blowout_team = None
-                        blowout_opp = None
+                        st.markdown("**🎯 Most Combined Goals in a Series**")
+                        best_combined = 0
+                        best_series_num = None
+                        best_t1 = None
+                        best_t2 = None
                         
                         c.execute("""
-                            SELECT id, team1_players, team2_players, team1_score, team2_score
+                            SELECT series_number, team1_players, team2_players, SUM(team1_score) as t1_total, SUM(team2_score) as t2_total
                             FROM matches
                             WHERE (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', ''))) = ?
+                            GROUP BY series_number, team1_players, team2_players
                         """, (match_type_num,))
                         
-                        for match_id, t1, t2, s1, s2 in c.fetchall():
-                            diff1 = s1 - s2
-                            diff2 = s2 - s1
-                            
-                            if diff1 > best_diff:
-                                best_diff = diff1
-                                blowout_team = t1
-                                blowout_opp = t2
-                            if diff2 > best_diff:
-                                best_diff = diff2
-                                blowout_team = t2
-                                blowout_opp = t1
+                        for series_num, t1, t2, t1_total, t2_total in c.fetchall():
+                            combined = (t1_total or 0) + (t2_total or 0)
+                            if combined > best_combined:
+                                best_combined = combined
+                                best_series_num = series_num
+                                best_t1 = t1
+                                best_t2 = t2
                         
-                        if blowout_team:
-                            t1_display = " + ".join(blowout_team.split(","))
-                            t2_display = " + ".join(blowout_opp.split(","))
-                            st.success(f"{t1_display} beat {t2_display} by **{best_diff}** goals")
+                        if best_t1:
+                            t1_display = " + ".join(best_t1.split(","))
+                            t2_display = " + ".join(best_t2.split(","))
+                            st.success(f"Series {best_series_num}: {t1_display} vs {t2_display} - **{best_combined}** goals")
                         else:
                             st.info("No data")
+                    
+                    # Largest Blowout (series differential)
+                    with col2:
+                        st.markdown("**💥 Largest Blowout (Series)**")
+                        best_diff = 0
+                        blowout_series = None
+                        blowout_t1 = None
+                        blowout_t2 = None
+                        blowout_t1_total = 0
+                        blowout_t2_total = 0
+                        
+                        c.execute("""
+                            SELECT series_number, team1_players, team2_players, SUM(team1_score) as t1_total, SUM(team2_score) as t2_total
+                            FROM matches
+                            WHERE (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', ''))) = ?
+                            GROUP BY series_number, team1_players, team2_players
+                        """, (match_type_num,))
+                        
+                        for series_num, t1, t2, t1_total, t2_total in c.fetchall():
+                            diff = abs((t1_total or 0) - (t2_total or 0))
+                            if diff > best_diff:
+                                best_diff = diff
+                                blowout_series = series_num
+                                blowout_t1 = t1
+                                blowout_t2 = t2
+                                blowout_t1_total = t1_total or 0
+                                blowout_t2_total = t2_total or 0
+                        
+                        if blowout_t1:
+                            t1_display = " + ".join(blowout_t1.split(","))
+                            t2_display = " + ".join(blowout_t2.split(","))
+                            if blowout_t1_total > blowout_t2_total:
+                                st.success(f"Series {blowout_series}: {t1_display} beat {t2_display} by **{best_diff}** goals")
+                            else:
+                                st.success(f"Series {blowout_series}: {t2_display} beat {t1_display} by **{best_diff}** goals")
+                        else:
+                            st.info("No data")
+                
                 else:
                     st.info(f"No {match_type} games yet")
 
