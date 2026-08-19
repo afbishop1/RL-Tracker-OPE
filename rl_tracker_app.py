@@ -850,6 +850,13 @@ with tab1:
         st.markdown(
             """
             <div style="
+                border: 3px solid;
+                border-image: linear-gradient(135deg, #FF6B00 0%, #FF8C00 100%) 1;
+                border-radius: 12px;
+                padding: 20px;
+                background: rgba(255, 107, 0, 0.05);
+            ">
+            <div style="
                 text-align:center;
                 font-size:1.3em;
                 color:#FF6B00;
@@ -857,6 +864,7 @@ with tab1:
                 margin-bottom:15px;
             ">
             TEAM 1
+            </div>
             </div>
             """,
             unsafe_allow_html=True
@@ -879,6 +887,13 @@ with tab1:
         st.markdown(
             """
             <div style="
+                border: 3px solid;
+                border-image: linear-gradient(135deg, #1E90FF 0%, #4169E1 100%) 1;
+                border-radius: 12px;
+                padding: 20px;
+                background: rgba(30, 144, 255, 0.05);
+            ">
+            <div style="
                 text-align:center;
                 font-size:1.3em;
                 color:#1E90FF;
@@ -886,6 +901,7 @@ with tab1:
                 margin-bottom:15px;
             ">
             TEAM 2
+            </div>
             </div>
             """,
             unsafe_allow_html=True
@@ -921,6 +937,11 @@ with tab1:
                 st.markdown(
                     """
                     <div style="
+                        border: 3px solid;
+                        border-image: linear-gradient(135deg, #FF6B00 0%, #FF8C00 100%) 1;
+                        border-radius: 10px;
+                        padding: 15px;
+                        background: rgba(255, 107, 0, 0.05);
                         text-align:center;
                         font-size:1.2em;
                         color:#FF6B00;
@@ -987,6 +1008,11 @@ with tab1:
                 st.markdown(
                     """
                     <div style="
+                        border: 3px solid;
+                        border-image: linear-gradient(135deg, #1E90FF 0%, #4169E1 100%) 1;
+                        border-radius: 10px;
+                        padding: 15px;
+                        background: rgba(30, 144, 255, 0.05);
                         text-align:center;
                         font-size:1.2em;
                         color:#1E90FF;
