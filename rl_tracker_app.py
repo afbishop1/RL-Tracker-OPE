@@ -292,23 +292,23 @@ st.markdown("""
        ======================================================== */
     [data-testid="stSelectbox"] > div {
         background: linear-gradient(135deg, rgba(30, 50, 80, 0.6) 0%, rgba(15, 20, 40, 0.6) 100%);
-        border: 2px solid rgba(255, 107, 0, 0.3);
+        border: 2px solid var(--rl-orange);
         border-radius: 10px;
         transition: all 0.3s ease;
     }
     [data-testid="stSelectbox"] > div:hover {
         border-color: var(--rl-orange);
-        box-shadow: 0 4px 12px rgba(255, 107, 0, 0.2);
+        box-shadow: 0 4px 12px rgba(255, 107, 0, 0.4);
     }
     [data-testid="stNumberInput"] > div {
         background: linear-gradient(135deg, rgba(30, 50, 80, 0.6) 0%, rgba(15, 20, 40, 0.6) 100%);
-        border: 2px solid rgba(30, 144, 255, 0.3);
+        border: 2px solid var(--rl-blue);
         border-radius: 10px;
         transition: all 0.3s ease;
     }
     [data-testid="stNumberInput"] > div:hover {
         border-color: var(--rl-blue);
-        box-shadow: 0 4px 12px rgba(30, 144, 255, 0.2);
+        box-shadow: 0 4px 12px rgba(30, 144, 255, 0.4);
     }
     .form-group {
         background: rgba(15, 20, 40, 0.4);
