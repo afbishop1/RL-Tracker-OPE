@@ -302,13 +302,12 @@ st.markdown("""
     }
     [data-testid="stNumberInput"] > div {
         background: linear-gradient(135deg, rgba(30, 50, 80, 0.6) 0%, rgba(15, 20, 40, 0.6) 100%);
-        border: 2px solid var(--rl-blue);
+        border: 2px solid rgba(100, 100, 100, 0.4);
         border-radius: 10px;
         transition: all 0.3s ease;
     }
     [data-testid="stNumberInput"] > div:hover {
-        border-color: var(--rl-blue);
-        box-shadow: 0 4px 12px rgba(30, 144, 255, 0.4);
+        box-shadow: 0 4px 12px rgba(100, 100, 100, 0.2);
     }
     .form-group {
         background: rgba(15, 20, 40, 0.4);
@@ -434,9 +433,60 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
+
 # ============================================================
-# LEFT-ALIGNED TABLE FUNCTION
+# DYNAMIC INPUT COLORING - TEAM 1 ORANGE, TEAM 2 BLUE
 # ============================================================
+st.markdown("""
+<script>
+function colorTeamInputs() {
+    const gameExpanders = document.querySelectorAll('[data-testid="stExpander"]');
+    gameExpanders.forEach((expander) => {
+        const text = expander.textContent;
+        if (text.includes('Game')) {
+            const columns = expander.querySelectorAll('[data-testid="stColumn"]');
+            if (columns.length >= 2) {
+                // Team 1 = first column = orange
+                const team1Col = columns[0];
+                const team1Inputs = team1Col.querySelectorAll('[data-testid="stNumberInput"] > div');
+                team1Inputs.forEach(input => {
+                    input.style.borderColor = '#FF6B00';
+                    input.style.boxShadow = '0 0 0 0';
+                    input.addEventListener('mouseenter', () => {
+                        input.style.boxShadow = '0 4px 12px rgba(255, 107, 0, 0.4)';
+                    });
+                    input.addEventListener('mouseleave', () => {
+                        input.style.boxShadow = '0 0 0 0';
+                    });
+                });
+                
+                // Team 2 = second column = blue
+                const team2Col = columns[1];
+                const team2Inputs = team2Col.querySelectorAll('[data-testid="stNumberInput"] > div');
+                team2Inputs.forEach(input => {
+                    input.style.borderColor = '#1E90FF';
+                    input.style.boxShadow = '0 0 0 0';
+                    input.addEventListener('mouseenter', () => {
+                        input.style.boxShadow = '0 4px 12px rgba(30, 144, 255, 0.4)';
+                    });
+                    input.addEventListener('mouseleave', () => {
+                        input.style.boxShadow = '0 0 0 0';
+                    });
+                });
+            }
+        }
+    });
+}
+
+// Run on load and watch for changes
+setTimeout(colorTeamInputs, 100);
+window.addEventListener('load', colorTeamInputs);
+const observer = new MutationObserver(() => {
+    setTimeout(colorTeamInputs, 50);
+});
+observer.observe(document.body, { childList: true, subtree: true });
+</script>
+""", unsafe_allow_html=True)
 def left_aligned_table(df):
     """
     Displays a pandas DataFrame as an HTML table with
