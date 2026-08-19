@@ -1649,9 +1649,9 @@ with tab4:
         st.rerun()
 
     # ====================================================
-    # BEST PARTNERSHIPS
+    # BEST TEAMS
     # ====================================================
-    st.markdown("## 🤝 Best Partnerships")
+    st.markdown("## 🤝 Best Teams")
     
     c.execute("""
         SELECT id, team1_players, team2_players, winner
@@ -1691,7 +1691,7 @@ with tab4:
                 team_display = " + ".join(team)
                 partnership_list.append({
                     "🏆 Rank": 0,
-                    "🤝 Partnership": team_display,
+                    "🤝 Team": team_display,
                     "🏅 Wins": record["wins"],
                     "💔 Losses": record["losses"],
                     "📊 Games": total,
@@ -1705,7 +1705,7 @@ with tab4:
             df_partnerships = pd.DataFrame(partnership_list)
             left_aligned_table(df_partnerships)
         else:
-            st.info("No 2v2 or 3v3 partnerships yet")
+            st.info("No 2v2 or 3v3 teams yet")
     
     st.divider()
     # ====================================================
@@ -1778,7 +1778,7 @@ with tab4:
     """)
     all_matches = c.fetchall()
     if not all_matches:
-        st.info("📭 No partnership data yet")
+        st.info("📭 No team data yet")
     else:
         partnerships_by_type = {
             "2v2": defaultdict(
@@ -1983,7 +1983,7 @@ with tab4:
                         )
                         st.divider()
                         st.markdown(
-                            "**Head-to-Head vs Other Partnerships:**"
+                            "**Head-to-Head vs Other Teams:**"
                         )
                         matchup_records = []
                         if part_tuple in matchups:
