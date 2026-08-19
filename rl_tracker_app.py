@@ -717,14 +717,13 @@ def display_leaderboard(rankings_data):
 
 def sortable_table(df, table_key="default"):
     """
-    Display a DataFrame with clickable column headers for sorting.
-    Preserves original styling and just adds sort indicators.
+    Display DataFrame with sortable headers embedded IN the table header row.
     """
     if df.empty:
         st.info("No data available")
         return
     
-    # Initialize session state for this table
+    # Initialize session state
     if f"{table_key}_sort_col" not in st.session_state:
         st.session_state[f"{table_key}_sort_col"] = df.columns[0]
     if f"{table_key}_sort_desc" not in st.session_state:
@@ -744,17 +743,16 @@ def sortable_table(df, table_key="default"):
     except:
         df_sorted = df.sort_values(by=sort_col, ascending=not sort_desc)
     
-    # Create clickable header buttons
+    # Create hidden sort buttons
     cols = st.columns(len(df.columns), gap="small")
     for idx, col in enumerate(df.columns):
         with cols[idx]:
-            # Show indicator
-            if col == sort_col:
-                indicator = " ↓" if sort_desc else " ↑"
-            else:
-                indicator = ""
-            
-            if st.button(f"{col}{indicator}", key=f"{table_key}_{idx}", use_container_width=True):
+            if st.button(
+                "▲▼",
+                key=f"{table_key}_sort_{idx}",
+                use_container_width=True,
+                label_visibility="collapsed"
+            ):
                 if st.session_state[f"{table_key}_sort_col"] == col:
                     st.session_state[f"{table_key}_sort_desc"] = not st.session_state[f"{table_key}_sort_desc"]
                 else:
@@ -762,8 +760,43 @@ def sortable_table(df, table_key="default"):
                     st.session_state[f"{table_key}_sort_desc"] = True
                 st.rerun()
     
-    # Display sorted table with original styling
-    left_aligned_table(df_sorted)
+    # Build HTML table with sortable headers
+    html = '<table style="width:100%; border-collapse: collapse;">'
+    html += '<thead>'
+    html += '<tr style="background-color: #f0f2f6; border-bottom: 2px solid #ddd;">'
+    
+    for col_idx, col in enumerate(df.columns):
+        # Determine indicator
+        if col == sort_col:
+            indicator = " ↓" if sort_desc else " ↑"
+        else:
+            indicator = ""
+        
+        html += f'''<th style="
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-right: 1px solid #e0e0e0;
+            cursor: pointer;
+        " onclick="document.getElementById('{table_key}_sort_{col_idx}').click();">
+            {col}{indicator}
+        </th>'''
+    
+    html += '</tr>'
+    html += '</thead>'
+    html += '<tbody>'
+    
+    # Add data rows
+    for idx, row in df_sorted.iterrows():
+        html += '<tr style="border-bottom: 1px solid #f0f2f6;">'
+        for col in df.columns:
+            html += f'<td style="padding: 10px 12px; border-right: 1px solid #f0f2f6;">{row[col]}</td>'
+        html += '</tr>'
+    
+    html += '</tbody>'
+    html += '</table>'
+    
+    st.markdown(html, unsafe_allow_html=True)
 
 # ============================================================
 # HEADER
