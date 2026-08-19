@@ -1534,15 +1534,6 @@ with tab2:
                                     f"by {deleting_user}!"
                                 )
                                 st.rerun()
-                        with col2:
-                            if st.button(
-                                "❌ Cancel",
-                                use_container_width=True,
-                                key=f"cancel_delete_{series_num}"
-                            ):
-                                st.session_state.confirm_delete = False
-                                st.session_state.delete_series_num = None
-                                st.rerun()
                     with expander:
                         c.execute("""
                             SELECT *
@@ -2435,11 +2426,27 @@ with tab5:
     if all_comparison_players:
         comparison_options = ["Choose Player"] + all_comparison_players
         
-        col1, col2 = st.columns(2)
+        st.markdown("""
+        <div style="padding: 12px; background: linear-gradient(135deg, rgba(255, 107, 0, 0.1) 0%, rgba(30, 144, 255, 0.1) 100%); border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #FF6B00;">
+        </div>
+        """, unsafe_allow_html=True)
+        
+        col1, col_vs, col2 = st.columns([2, 0.5, 2])
+        
         with col1:
+            st.markdown("<p style='text-align: center; color: #FF6B00; font-weight: bold;'>👤 Player 1</p>", unsafe_allow_html=True)
             player1 = st.selectbox("Player 1", comparison_options, key="comp_p1")
+        
+        with col_vs:
+            st.write("")
+            st.write("")
+            st.markdown("<p style='text-align: center; font-size: 1.2em; font-weight: bold;'>VS</p>", unsafe_allow_html=True)
+        
         with col2:
+            st.markdown("<p style='text-align: center; color: #1E90FF; font-weight: bold;'>👤 Player 2</p>", unsafe_allow_html=True)
             player2 = st.selectbox("Player 2", comparison_options, key="comp_p2")
+        
+        st.divider()
         
         if player1 != "Choose Player" and player2 != "Choose Player" and player1 != player2:
             # Build comparison table
