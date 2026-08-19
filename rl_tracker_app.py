@@ -301,7 +301,7 @@ st.markdown("""
     margin-bottom: 20px;
     letter-spacing: 2px;
 ">
-🎮 OPE GAMING 🎮
+🎮 OPE GAMING CLAN 🎮
 </div>
 """, unsafe_allow_html=True)
 st.divider()
@@ -768,7 +768,29 @@ with tab1:
                 if not all_valid:
                     st.error(error_msg)
                 else:
+                    # Determine wins needed and filter out games after series is won
+                    wins_needed = 2 if bo_num == 3 else 3
+                    games_to_log = []
+                    t1_wins = 0
+                    t2_wins = 0
+                    
                     for game in series_games:
+                        # Add game only if series isn't already won
+                        if t1_wins < wins_needed and t2_wins < wins_needed:
+                            games_to_log.append(game)
+                            if game["winner"] == 1:
+                                t1_wins += 1
+                            else:
+                                t2_wins += 1
+                    
+                    # Warn if user entered games that won't count
+                    if len(games_to_log) < len(series_games):
+                        st.warning(
+                            f"⚠️ Series completed after {len(games_to_log)} games. "
+                            f"Game(s) {len(games_to_log)+1}-{len(series_games)} will not be logged."
+                        )
+                    
+                    for game in games_to_log:
                         t1_total = sum(
                             p["score"]
                             for p in game["team1_stats"]
