@@ -1394,184 +1394,79 @@ with tab2:
                     (series_num, bo, last_match)
                 )
         
-        st.markdown("## 📈 Series History")
-        
         for match_type in ["1v1", "2v2", "3v3"]:
-            with st.expander(f"{match_type} Series", expanded=True):
-                if not series_by_type[match_type]:
-                    st.info(f"📭 No {match_type} series yet")
-                else:
-                    for series_num, bo, last_match in series_by_type[
-                        match_type
-                    ]:
-                        c.execute("""
-                            SELECT team1_players, team2_players
-                            FROM matches
-                            WHERE series_number = ?
-                            ORDER BY match_number
-                            LIMIT 1
-                        """, (series_num,))
-                        first_match = c.fetchone()
-                        if first_match:
-                            t1_players = first_match[0]
-                            t2_players = first_match[1]
-                            player_info = (
-                                f"({t1_players} vs {t2_players})"
-                            )
-                            t1_list = t1_players.split(",")
-                            t2_list = t2_players.split(",")
-                        else:
-                            player_info = ""
-                            t1_list = []
-                            t2_list = []
-                        c.execute("""
-                            SELECT winner, COUNT(*)
-                            FROM matches
-                            WHERE series_number = ?
-                            GROUP BY winner
-                        """, (series_num,))
-                        wins_data = c.fetchall()
-                        t1_wins = 0
-                        t2_wins = 0
-                        for winner, count in wins_data:
-                            if winner == 1:
-                                t1_wins = count
-                            elif winner == 2:
-                                t2_wins = count
-                        if t1_wins > t2_wins:
-                            series_winner = " + ".join(t1_list)
-                            series_record = (
-                                f"{t1_wins}-{t2_wins}"
-                            )
-                        elif t2_wins > t1_wins:
-                            series_winner = " + ".join(t2_list)
-                            series_record = (
-                                f"{t2_wins}-{t1_wins}"
-                            )
-                        else:
-                            series_winner = "Tied"
-                            series_record = (
-                                f"{t1_wins}-{t2_wins}"
-                            )
-                        col1, col2 = st.columns([0.95, 0.05])
+            st.markdown(f"## {match_type}")
+            if not series_by_type[match_type]:
+                st.info(f"📭 No {match_type} series yet")
+            else:
+                for series_num, bo, last_match in series_by_type[match_type]:
+                    c.execute("""SELECT team1_players, team2_players FROM matches WHERE series_number = ? ORDER BY match_number LIMIT 1""", (series_num,))
+                    first_match = c.fetchone()
+                    if first_match:
+                        t1_players = first_match[0]
+                        t2_players = first_match[1]
+                        player_info = f"({t1_players} vs {t2_players})"
+                        t1_list = t1_players.split(",")
+                        t2_list = t2_players.split(",")
+                    else:
+                        player_info = ""
+                        t1_list = []
+                        t2_list = []
+                    c.execute("""SELECT winner, COUNT(*) FROM matches WHERE series_number = ? GROUP BY winner""", (series_num,))
+                    wins_data = c.fetchall()
+                    t1_wins = 0
+                    t2_wins = 0
+                    for winner, count in wins_data:
+                        if winner == 1:
+                            t1_wins = count
+                        elif winner == 2:
+                            t2_wins = count
+                    if t1_wins > t2_wins:
+                        series_winner = " + ".join(t1_list)
+                        series_record = f"{t1_wins}-{t2_wins}"
+                    elif t2_wins > t1_wins:
+                        series_winner = " + ".join(t2_list)
+                        series_record = f"{t2_wins}-{t1_wins}"
+                    else:
+                        series_winner = "Tied"
+                        series_record = f"{t1_wins}-{t2_wins}"
+                    col1, col2 = st.columns([0.95, 0.05])
+                    with col1:
+                        expander = st.expander(f"📊 Series {series_num} - {series_winner} Won {series_record} {player_info}", expanded=False)
+                    with col2:
+                        st.write("")
+                        if st.button("🗑️", key=f"delete_series_{series_num}", help="Delete this series", use_container_width=True):
+                            st.session_state.confirm_delete = True
+                            st.session_state.delete_series_num = series_num
+                    if st.session_state.get("confirm_delete", False) and st.session_state.get("delete_series_num") == series_num:
+                        st.divider()
+                        st.markdown(f"### 👤 Who is deleting Series {series_num}?")
+                        deleting_user = st.selectbox("Select your name", PLAYERS, key=f"delete_user_{series_num}")
+                        col1, col2 = st.columns(2)
                         with col1:
-                            expander = st.expander(
-                                f"📊 Series {series_num} - "
-                                f"{series_winner} Won "
-                                f"{series_record} "
-                                f"{player_info}",
-                                expanded=False
-                            )
-                            with expander:
-                                c.execute("""
-                                    SELECT *
-                                    FROM matches
-                                    WHERE series_number = ?
-                                    ORDER BY match_number
-                                """, (series_num,))
-                                matches = c.fetchall()
-                                for match in matches:
-                                    (
-                                        match_id,
-                                        sn,
-                                        mn,
-                                        b,
-                                        ts,
-                                        t1p,
-                                        t2p,
-                                        t1s,
-                                        t2s,
-                                        winner
-                                    ) = match
-                                    t1_players = t1p.split(",")
-                                    t2_players = t2p.split(",")
-                                    if winner == 1:
-                                        winner_text = (
-                                            " + ".join(t1_players)
-                                            + " Won"
-                                        )
-                                    elif winner == 2:
-                                        winner_text = (
-                                            " + ".join(t2_players)
-                                            + " Won"
-                                        )
-                                    else:
-                                        winner_text = "Match In Progress"
-                                    st.markdown(
-                                        f"**Game {mn}:** {t1p} ({t1s}) vs {t2p} ({t2s}) - {winner_text}"
-                                    )
-                        with col2:
-                            st.write("")
-                            if st.button(
-                                "🗑️",
-                                key=f"delete_series_{series_num}",
-                                help="Delete this series",
-                                use_container_width=True
-                            ):
-                                st.session_state.confirm_delete = True
-                                st.session_state.delete_series_num = (
-                                    series_num
-                                )
-                        if (
-                            st.session_state.get(
-                                "confirm_delete",
-                                False
-                            )
-                            and
-                            st.session_state.get(
-                                "delete_series_num"
-                            ) == series_num
-                        ):
-                            st.divider()
-                            st.markdown(
-                                f"### 👤 Who is deleting Series {series_num}?"
-                            )
-                            deleting_user = st.selectbox(
-                                "Select your name",
-                                PLAYERS,
-                                key=f"delete_user_{series_num}"
-                            )
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                if st.button(
-                                    "✅ Confirm Delete",
-                                    use_container_width=True,
-                                    key=f"confirm_delete_{series_num}"
-                                ):
-                                    c.execute("""
-                                        DELETE FROM player_stats
-                                        WHERE match_id IN
-                                        (
-                                            SELECT id
-                                            FROM matches
-                                            WHERE series_number = ?
-                                        )
-                                    """, (series_num,))
-                                    c.execute("""
-                                        DELETE FROM matches
-                                        WHERE series_number = ?
-                                    """, (series_num,))
-                                    c.execute("""
-                                        INSERT INTO activity_log
-                                        (
-                                            timestamp,
-                                            user_name,
-                                            action
-                                        )
-                                        VALUES (?, ?, ?)
-                                    """, (
-                                        datetime.now().isoformat(),
-                                        deleting_user,
-                                        "deleted a game"
-                                    ))
-                                    conn.commit()
-                                    st.session_state.confirm_delete = False
-                                    st.session_state.delete_series_num = None
-                                    st.success(
-                                        f"Series {series_num} deleted "
-                                    f"by {deleting_user}!"
-                                )
+                            if st.button("✅ Confirm Delete", use_container_width=True, key=f"confirm_delete_{series_num}"):
+                                c.execute("""DELETE FROM player_stats WHERE match_id IN (SELECT id FROM matches WHERE series_number = ?)""", (series_num,))
+                                c.execute("""DELETE FROM matches WHERE series_number = ?""", (series_num,))
+                                c.execute("""INSERT INTO activity_log (timestamp, user_name, action) VALUES (?, ?, ?)""", (datetime.now().isoformat(), deleting_user, "deleted a game"))
+                                conn.commit()
+                                st.session_state.confirm_delete = False
+                                st.session_state.delete_series_num = None
+                                st.success(f"Series {series_num} deleted by {deleting_user}!")
                                 st.rerun()
+                    with expander:
+                        c.execute("""SELECT * FROM matches WHERE series_number = ? ORDER BY match_number""", (series_num,))
+                        matches = c.fetchall()
+                        for match in matches:
+                            match_id, sn, mn, b, ts, t1p, t2p, t1s, t2s, winner = match
+                            t1_players = t1p.split(",")
+                            t2_players = t2p.split(",")
+                            if winner == 1:
+                                winner_text = " + ".join(t1_players) + " Won"
+                            elif winner == 2:
+                                winner_text = " + ".join(t2_players) + " Won"
+                            else:
+                                winner_text = "Match In Progress"
+                            st.markdown(f"**Game {mn}:** {t1p} ({t1s}) vs {t2p} ({t2s}) - {winner_text}")
                         c.execute("""
                             SELECT *
                             FROM matches
