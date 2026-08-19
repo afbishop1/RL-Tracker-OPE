@@ -1515,10 +1515,20 @@ with tab2:
                                 AND team = 2
                             """, (match_id,))
                             t2_goals = c.fetchone()[0] or 0
-                            st.markdown(
-                                f"**Match {mn}: {winner_text} "
-                                f"({t1_goals} - {t2_goals})**"
-                            )
+                            st.markdown(f"""
+                            <div style="
+                                background: linear-gradient(90deg, rgba(255,107,0,0.15) 0%, rgba(30,144,255,0.15) 100%);
+                                border-radius: 8px;
+                                padding: 12px 16px;
+                                margin-bottom: 12px;
+                                border-top: 2px solid #FF6B00;
+                                border-bottom: 2px solid #1E90FF;
+                            ">
+                                <div style="font-size: 1.1em; font-weight: bold; color: #E8EAED;">
+                                    🏆 Match {mn} <span style="color: #FFD700;">vs</span> {winner_text} <span style="color: #87CEEB;">({t1_goals} - {t2_goals})</span>
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
                             col1, col2 = st.columns(2)
                             with col1:
                                 st.markdown(
@@ -1547,14 +1557,18 @@ with tab2:
                                     AND team = 1
                                 """, (match_id,))
                                 for row in c.fetchall():
-                                    st.markdown(
-                                        f"**{row[0]}** · "
-                                        f"Score: {row[1]} "
-                                        f"Goals: {row[2]} "
-                                        f"Assists: {row[3]} "
-                                        f"Saves: {row[4]} "
-                                        f"Shots: {row[5]}"
-                                    )
+                                    st.markdown(f"""
+                                    <div style="background: rgba(255, 107, 0, 0.1); border-left: 3px solid #FF6B00; padding: 12px; border-radius: 6px; margin-bottom: 8px;">
+                                        <div style="font-weight: bold; color: #FFD700; margin-bottom: 6px;">{row[0]}</div>
+                                        <div style="font-size: 0.9em; color: #E8EAED; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                            <span>📍 Score: <b>{row[1]}</b></span>
+                                            <span>⚽ Goals: <b>{row[2]}</b></span>
+                                            <span>🎁 Assists: <b>{row[3]}</b></span>
+                                            <span>🛡️ Saves: <b>{row[4]}</b></span>
+                                            <span>🔫 Shots: <b>{row[5]}</b></span>
+                                        </div>
+                                    </div>
+                                    """, unsafe_allow_html=True)
                             with col2:
                                 st.markdown(
                                     """
@@ -1582,14 +1596,18 @@ with tab2:
                                     AND team = 2
                                 """, (match_id,))
                                 for row in c.fetchall():
-                                    st.markdown(
-                                        f"**{row[0]}** · "
-                                        f"Score: {row[1]} "
-                                        f"Goals: {row[2]} "
-                                        f"Assists: {row[3]} "
-                                        f"Saves: {row[4]} "
-                                        f"Shots: {row[5]}"
-                                    )
+                                    st.markdown(f"""
+                                    <div style="background: rgba(30, 144, 255, 0.1); border-left: 3px solid #1E90FF; padding: 12px; border-radius: 6px; margin-bottom: 8px;">
+                                        <div style="font-weight: bold; color: #87CEEB; margin-bottom: 6px;">{row[0]}</div>
+                                        <div style="font-size: 0.9em; color: #E8EAED; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                            <span>📍 Score: <b>{row[1]}</b></span>
+                                            <span>⚽ Goals: <b>{row[2]}</b></span>
+                                            <span>🎁 Assists: <b>{row[3]}</b></span>
+                                            <span>🛡️ Saves: <b>{row[4]}</b></span>
+                                            <span>🔫 Shots: <b>{row[5]}</b></span>
+                                        </div>
+                                    </div>
+                                    """, unsafe_allow_html=True)
                             st.divider()
                         st.markdown("### Series Totals")
                         c.execute("""
@@ -1611,14 +1629,18 @@ with tab2:
                             ORDER BY SUM(score) DESC
                         """, (series_num,))
                         for row in c.fetchall():
-                            st.markdown(
-                                f"**{row[0]}** · "
-                                f"Score: {row[1]} "
-                                f"Goals: {row[2]} "
-                                f"Assists: {row[3]} "
-                                f"Saves: {row[4]} "
-                                f"Shots: {row[5]}"
-                            )
+                            st.markdown(f"""
+                            <div style="background: rgba(255, 165, 0, 0.08); border: 1px solid rgba(255, 107, 0, 0.3); padding: 10px; border-radius: 6px; margin-bottom: 6px;">
+                                <div style="font-weight: bold; color: #FFD700; margin-bottom: 4px;">{row[0]}</div>
+                                <div style="font-size: 0.85em; color: #E8EAED; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
+                                    <span>📍 {row[1]}</span>
+                                    <span>⚽ {row[2]}</span>
+                                    <span>🎁 {row[3]}</span>
+                                    <span>🛡️ {row[4]}</span>
+                                    <span>🔫 {row[5]}</span>
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
             st.divider()
     # Activity Log
     st.markdown("## 📋 Activity Log")
