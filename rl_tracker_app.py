@@ -235,6 +235,200 @@ st.markdown("""
             gap: 2px;
         }
     }
+    /* ========================================================
+       HEADER & BRANDING
+       ======================================================== */
+    .ope-header {
+        background: linear-gradient(135deg, rgba(255, 107, 0, 0.15) 0%, rgba(30, 144, 255, 0.15) 100%);
+        border: 2px solid;
+        border-image: linear-gradient(90deg, var(--rl-orange) 0%, var(--rl-blue) 100%) 1;
+        border-radius: 16px;
+        padding: 40px 20px;
+        text-align: center;
+        margin-bottom: 30px;
+        box-shadow: 0 8px 32px rgba(255, 107, 0, 0.2);
+    }
+    .ope-logo {
+        font-size: 4em;
+        margin-bottom: 15px;
+        animation: bounce 2s infinite;
+    }
+    @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+    .ope-title {
+        background: linear-gradient(90deg, var(--rl-orange) 0%, var(--rl-blue) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-size: 3.5em !important;
+        font-weight: 900 !important;
+        margin: 10px 0 !important;
+        letter-spacing: 2px;
+    }
+    .ope-subtitle {
+        color: #E8EAED;
+        font-size: 1.2em;
+        margin: 10px 0 0 0 !important;
+        font-weight: 500;
+        letter-spacing: 1px;
+    }
+    /* ========================================================
+       GRADIENT DIVIDERS
+       ======================================================== */
+    [data-testid="stHorizontalBlock"] hr {
+        border: none;
+        height: 3px;
+        background: linear-gradient(90deg, var(--rl-orange) 0%, var(--rl-blue) 50%, var(--rl-orange) 100%);
+        margin: 20px 0;
+        border-radius: 2px;
+    }
+    /* ========================================================
+       FORM STYLING
+       ======================================================== */
+    [data-testid="stSelectbox"] > div {
+        background: linear-gradient(135deg, rgba(30, 50, 80, 0.6) 0%, rgba(15, 20, 40, 0.6) 100%);
+        border: 2px solid rgba(255, 107, 0, 0.3);
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+    [data-testid="stSelectbox"] > div:hover {
+        border-color: var(--rl-orange);
+        box-shadow: 0 4px 12px rgba(255, 107, 0, 0.2);
+    }
+    [data-testid="stNumberInput"] > div {
+        background: linear-gradient(135deg, rgba(30, 50, 80, 0.6) 0%, rgba(15, 20, 40, 0.6) 100%);
+        border: 2px solid rgba(30, 144, 255, 0.3);
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+    [data-testid="stNumberInput"] > div:hover {
+        border-color: var(--rl-blue);
+        box-shadow: 0 4px 12px rgba(30, 144, 255, 0.2);
+    }
+    .form-group {
+        background: rgba(15, 20, 40, 0.4);
+        border-left: 4px solid var(--rl-orange);
+        border-radius: 10px;
+        padding: 20px;
+        margin: 15px 0;
+    }
+    .form-group.blue {
+        border-left-color: var(--rl-blue);
+    }
+    /* ========================================================
+       STAT CARDS
+       ======================================================== */
+    .stat-card {
+        background: linear-gradient(135deg, rgba(30, 50, 80, 0.5) 0%, rgba(15, 20, 40, 0.5) 100%);
+        border: 2px solid;
+        border-radius: 12px;
+        padding: 20px;
+        margin: 10px 0;
+        text-align: center;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(255, 107, 0, 0.3);
+    }
+    .stat-card.orange {
+        border-color: var(--rl-orange);
+    }
+    .stat-card.orange:hover {
+        background: linear-gradient(135deg, rgba(255, 107, 0, 0.2) 0%, rgba(255, 140, 0, 0.1) 100%);
+    }
+    .stat-card.blue {
+        border-color: var(--rl-blue);
+    }
+    .stat-card.blue:hover {
+        background: linear-gradient(135deg, rgba(30, 144, 255, 0.2) 0%, rgba(65, 105, 225, 0.1) 100%);
+    }
+    .stat-card-title {
+        font-size: 1.2em;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .stat-card-value {
+        font-size: 2.5em;
+        font-weight: 900;
+        background: linear-gradient(90deg, var(--rl-orange) 0%, var(--rl-blue) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin: 10px 0;
+    }
+    .stat-card-label {
+        font-size: 0.9em;
+        color: #A0A0A8;
+    }
+    /* ========================================================
+       SERIES PROGRESS BAR
+       ======================================================== */
+    .series-progress {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin: 20px 0;
+        flex-wrap: wrap;
+    }
+    .series-game {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.2em;
+        border: 3px solid;
+        transition: all 0.3s ease;
+    }
+    .series-game.pending {
+        background: rgba(100, 100, 120, 0.3);
+        border-color: rgba(200, 200, 200, 0.3);
+        color: #808080;
+    }
+    .series-game.team1 {
+        background: linear-gradient(135deg, var(--rl-orange) 0%, #FF8C00 100%);
+        border-color: var(--rl-orange);
+        color: white;
+        box-shadow: 0 4px 15px rgba(255, 107, 0, 0.4);
+    }
+    .series-game.team2 {
+        background: linear-gradient(135deg, var(--rl-blue) 0%, #4169E1 100%);
+        border-color: var(--rl-blue);
+        color: white;
+        box-shadow: 0 4px 15px rgba(30, 144, 255, 0.4);
+    }
+    .series-game:hover {
+        transform: scale(1.1);
+    }
+    /* ========================================================
+       SUCCESS ANIMATION
+       ======================================================== */
+    @keyframes successPulse {
+        0% {
+            transform: scale(1);
+            opacity: 1;
+        }
+        50% {
+            transform: scale(1.05);
+            opacity: 0.8;
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+    .success-animation {
+        animation: successPulse 0.6s ease-in-out;
+    }
+    .stSuccess {
+        animation: successPulse 0.6s ease-in-out;
+    }
 </style>
 """, unsafe_allow_html=True)
 # ============================================================
@@ -441,6 +635,39 @@ def calculate_performance_rating(avg_goals, avg_assists, avg_saves, avg_shots,
     
     return round(rating, 2)
 
+def display_stat_card(player_name, value, emoji, card_type="orange"):
+    """
+    Display a record as a colorful stat card instead of a boring message.
+    """
+    color_class = "orange" if card_type == "orange" else "blue"
+    st.markdown(f"""
+    <div class="stat-card {color_class}">
+        <div class="stat-card-title">{emoji}</div>
+        <div class="stat-card-value">{value}</div>
+        <div class="stat-card-label">{player_name}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+# ============================================================
+# HEADER
+# ============================================================
+st.markdown("""
+<div class="ope-header">
+    <div class="ope-logo">🎮</div>
+    <h1 class="ope-title">OPE GAMING</h1>
+    <p class="ope-subtitle">Rocket League Match Tracker</p>
+</div>
+""", unsafe_allow_html=True)
+st.markdown("""
+<hr style="
+    border: none;
+    height: 3px;
+    background: linear-gradient(90deg, #FF6B00 0%, #1E90FF 50%, #FF6B00 100%);
+    margin: 20px 0;
+    border-radius: 2px;
+">
+""", unsafe_allow_html=True)
+
 # ============================================================
 # TABS
 # ============================================================
@@ -503,25 +730,34 @@ with tab1:
     # --------------------------------------------------------
     # FORMAT
     # --------------------------------------------------------
+    st.markdown("<h2 style='text-align: center; margin-bottom: 20px;'>⚙️ Match Settings</h2>", unsafe_allow_html=True)
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("**🏁 Series Format**")
+        st.markdown('<div class="form-group">', unsafe_allow_html=True)
+        st.markdown("#### 🏁 Series Format")
+        st.caption("How many games to win the series?")
         best_of = st.radio(
             "Choose format",
             ["Best of 3", "Best of 5"],
             horizontal=True,
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            key="best_of_select"
         )
+        st.markdown('</div>', unsafe_allow_html=True)
         bo_num = 3 if best_of == "Best of 3" else 5
         max_games = bo_num
     with col2:
-        st.markdown("**👥 Match Type**")
+        st.markdown('<div class="form-group blue">', unsafe_allow_html=True)
+        st.markdown("#### 👥 Match Type")
+        st.caption("How many players per team?")
         match_type = st.radio(
             "Choose type",
             ["1v1", "2v2", "3v3"],
             horizontal=True,
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            key="match_type_select"
         )
+        st.markdown('</div>', unsafe_allow_html=True)
         num_players = int(match_type[0])
     # --------------------------------------------------------
     # CURRENT SERIES
@@ -553,6 +789,46 @@ with tab1:
         f'<div class="series-header">Series {current_series} - {best_of}</div>',
         unsafe_allow_html=True
     )
+    
+    # Show series progress
+    c.execute("""
+        SELECT winner, COUNT(*) as count
+        FROM matches
+        WHERE series_number = ? AND winner IS NOT NULL
+        GROUP BY winner
+    """, (current_series,))
+    
+    wins = {1: 0, 2: 0}
+    for winner, count in c.fetchall():
+        wins[winner] = count
+    
+    wins_needed = 2 if best_of == "Best of 3" else 3
+    
+    # Build progress visualization
+    progress_html = '<div class="series-progress">'
+    max_games = 5 if best_of == "Best of 5" else 3
+    
+    for game_num in range(1, max_games + 1):
+        if game_num <= wins[1]:
+            progress_html += f'<div class="series-game team1">🟠 {game_num}</div>'
+        elif game_num <= wins[1] + wins[2]:
+            progress_html += f'<div class="series-game team2">🔵 {game_num}</div>'
+        else:
+            progress_html += f'<div class="series-game pending">{game_num}</div>'
+    
+    progress_html += '</div>'
+    st.markdown(progress_html, unsafe_allow_html=True)
+    
+    # Show series status
+    if wins[1] >= wins_needed:
+        st.markdown('<div style="text-align: center; padding: 10px; background: linear-gradient(135deg, rgba(255, 107, 0, 0.2) 0%, rgba(255, 140, 0, 0.1) 100%); border-radius: 8px; border-left: 4px solid #FF6B00; margin: 10px 0;"><strong>🏆 Series Won by Team 1!</strong></div>', unsafe_allow_html=True)
+    elif wins[2] >= wins_needed:
+        st.markdown('<div style="text-align: center; padding: 10px; background: linear-gradient(135deg, rgba(30, 144, 255, 0.2) 0%, rgba(65, 105, 225, 0.1) 100%); border-radius: 8px; border-left: 4px solid #1E90FF; margin: 10px 0;"><strong>🏆 Series Won by Team 2!</strong></div>', unsafe_allow_html=True)
+    else:
+        st.markdown(f'<div style="text-align: center; padding: 10px; background: rgba(100, 100, 120, 0.2); border-radius: 8px; margin: 10px 0;"><strong>Series: {wins[1]} - {wins[2]} (First to {wins_needed} wins)</strong></div>', unsafe_allow_html=True)
+    
+    st.markdown('<hr style="border: none; height: 2px; background: linear-gradient(90deg, #FF6B00 0%, #1E90FF 50%, #FF6B00 100%); margin: 20px 0;">', unsafe_allow_html=True)
+    
     # --------------------------------------------------------
     # TEAM SESSION STATE
     # --------------------------------------------------------
@@ -2457,7 +2733,6 @@ with tab6:
                 
                 # Most Goals in a Game
                 with col1:
-                    st.markdown("**🎯 Most Goals in a Game**")
                     c.execute("""
                         SELECT player_name, MAX(goals) as max_goals
                         FROM player_stats
@@ -2471,13 +2746,12 @@ with tab6:
                     """, (match_type_num,))
                     result = c.fetchone()
                     if result:
-                        st.success(f"{result[0]}: **{result[1]}** goals")
+                        display_stat_card(result[0], result[1], "🎯 Most Goals", "orange")
                     else:
                         st.info("No data")
                 
                 # Most Assists in a Game
                 with col2:
-                    st.markdown("**🎁 Most Assists in a Game**")
                     c.execute("""
                         SELECT player_name, MAX(assists) as max_assists
                         FROM player_stats
@@ -2491,7 +2765,7 @@ with tab6:
                     """, (match_type_num,))
                     result = c.fetchone()
                     if result:
-                        st.success(f"{result[0]}: **{result[1]}** assists")
+                        display_stat_card(result[0], result[1], "🎁 Most Assists", "blue")
                     else:
                         st.info("No data")
                 
@@ -2499,7 +2773,6 @@ with tab6:
                 
                 # Most Saves in a Game
                 with col1:
-                    st.markdown("**🛡️ Most Saves in a Game**")
                     c.execute("""
                         SELECT player_name, MAX(saves) as max_saves
                         FROM player_stats
@@ -2513,13 +2786,12 @@ with tab6:
                     """, (match_type_num,))
                     result = c.fetchone()
                     if result:
-                        st.success(f"{result[0]}: **{result[1]}** saves")
+                        display_stat_card(result[0], result[1], "🛡️ Most Saves", "orange")
                     else:
                         st.info("No data")
                 
                 # Most Shots in a Game
                 with col2:
-                    st.markdown("**🔫 Most Shots in a Game**")
                     c.execute("""
                         SELECT player_name, MAX(shots) as max_shots
                         FROM player_stats
@@ -2533,7 +2805,7 @@ with tab6:
                     """, (match_type_num,))
                     result = c.fetchone()
                     if result:
-                        st.success(f"{result[0]}: **{result[1]}** shots")
+                        display_stat_card(result[0], result[1], "🔫 Most Shots", "blue")
                     else:
                         st.info("No data")
                 
@@ -2541,7 +2813,6 @@ with tab6:
                 
                 # Highest Score in a Game
                 with col1:
-                    st.markdown("**⚡ Highest Score in a Game**")
                     c.execute("""
                         SELECT player_name, MAX(score) as max_score
                         FROM player_stats
@@ -2555,13 +2826,12 @@ with tab6:
                     """, (match_type_num,))
                     result = c.fetchone()
                     if result:
-                        st.success(f"{result[0]}: **{result[1]}** points")
+                        display_stat_card(result[0], result[1], "⚡ Highest Score", "blue")
                     else:
                         st.info("No data")
                 
                 # Most Games Played
                 with col2:
-                    st.markdown("**📊 Most Games Played**")
                     c.execute("""
                         SELECT player_name, COUNT(DISTINCT match_id) as games
                         FROM player_stats
@@ -2575,7 +2845,7 @@ with tab6:
                     """, (match_type_num,))
                     result = c.fetchone()
                     if result:
-                        st.success(f"{result[0]}: **{result[1]}** games")
+                        display_stat_card(result[0], result[1], "📊 Most Games", "orange")
                     else:
                         st.info("No data")
                 
@@ -2583,7 +2853,6 @@ with tab6:
                 
                 # Best Win %
                 with col1:
-                    st.markdown("**🏆 Best Win %**")
                     best_win_pct = 0
                     best_player = None
                     for player in all_players:
@@ -2619,7 +2888,7 @@ with tab6:
                                 best_player = player
                     
                     if best_player:
-                        st.success(f"{best_player}: **{best_win_pct:.1f}%**")
+                        display_stat_card(best_player, f"{best_win_pct:.1f}%", "🏆 Best Win %", "orange")
                     else:
                         st.info("Need 5+ games")
                 
@@ -2671,7 +2940,7 @@ with tab6:
                                 streak_player = player
                     
                     if streak_player:
-                        st.success(f"{streak_player}: **{best_streak}** wins")
+                        display_stat_card(streak_player, best_streak, "🔥 Win Streak", "blue")
                     else:
                         st.info("No wins yet")
 
