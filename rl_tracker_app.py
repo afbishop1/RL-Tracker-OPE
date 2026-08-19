@@ -717,7 +717,7 @@ def display_leaderboard(rankings_data):
 
 def sortable_table(df, table_key="default"):
     """
-    Display a DataFrame as HTML table with clickable integrated headers.
+    Display a DataFrame as HTML table with clickable headers embedded in table header row.
     """
     if df.empty:
         st.info("No data available")
@@ -743,17 +743,11 @@ def sortable_table(df, table_key="default"):
     except:
         df_sorted = df.sort_values(by=sort_col, ascending=not sort_desc)
     
-    # Create header buttons styled to look like table headers
+    # Create hidden buttons for each column header click
     cols = st.columns(len(df.columns), gap="small")
     for idx, col in enumerate(df.columns):
         with cols[idx]:
-            # Determine sort indicator
-            if col == sort_col:
-                indicator = " ↓" if sort_desc else " ↑"
-            else:
-                indicator = ""
-            
-            if st.button(f"{col}{indicator}", key=f"{table_key}_{idx}", use_container_width=True):
+            if st.button("", key=f"{table_key}_{idx}", label_visibility="collapsed"):
                 if st.session_state[f"{table_key}_sort_col"] == col:
                     st.session_state[f"{table_key}_sort_desc"] = not st.session_state[f"{table_key}_sort_desc"]
                 else:
@@ -761,8 +755,42 @@ def sortable_table(df, table_key="default"):
                     st.session_state[f"{table_key}_sort_desc"] = True
                 st.rerun()
     
-    # Display sorted table
-    left_aligned_table(df_sorted)
+    # Build HTML table with sortable headers
+    html = '<table style="width:100%; border-collapse: collapse; margin-top: -35px;">'
+    html += '<thead style="background: #f8f9fa; border-bottom: 1px solid #ddd;">'
+    html += '<tr>'
+    
+    for col in df.columns:
+        # Determine sort indicator
+        if col == sort_col:
+            indicator = " ↓" if sort_desc else " ↑"
+        else:
+            indicator = " ↕"
+        
+        html += f'''<th style="
+            padding: 8px 16px;
+            text-align: left;
+            color: #333;
+            font-weight: 600;
+            font-size: 13px;
+            border-right: 1px solid #ddd;
+            cursor: pointer;
+            user-select: none;
+        ">{col}{indicator}</th>'''
+    
+    html += '</tr></thead>'
+    html += '<tbody>'
+    
+    # Add data rows
+    for idx, row in df_sorted.iterrows():
+        html += '<tr style="border-bottom: 1px solid #eee;">'
+        for col in df.columns:
+            html += f'<td style="padding: 10px 16px; color: #333; border-right: 1px solid #eee; font-size: 13px;">{row[col]}</td>'
+        html += '</tr>'
+    
+    html += '</tbody></table>'
+    
+    st.markdown(html, unsafe_allow_html=True)
 
 # ============================================================
 # HEADER
