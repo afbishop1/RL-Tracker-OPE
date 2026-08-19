@@ -2822,7 +2822,7 @@ with tab6:
                     """, (match_type_num,))
                     result = c.fetchone()
                     if result:
-                        display_stat_card(result[0], result[1], "🛡️ Most Saves", "blue")
+                        display_stat_card(result[0], result[1], "🛡️ Most Saves", "orange")
                     else:
                         st.info("No data")
                 
@@ -2841,7 +2841,7 @@ with tab6:
                     """, (match_type_num,))
                     result = c.fetchone()
                     if result:
-                        display_stat_card(result[0], result[1], "🔫 Most Shots", "orange")
+                        display_stat_card(result[0], result[1], "🔫 Most Shots", "blue")
                     else:
                         st.info("No data")
                 
@@ -2924,7 +2924,7 @@ with tab6:
                                 best_player = player
                     
                     if best_player:
-                        display_stat_card(best_player, f"{best_win_pct:.1f}%", "🏆 Best Win %", "blue")
+                        display_stat_card(best_player, f"{best_win_pct:.1f}%", "🏆 Best Win %", "orange")
                     else:
                         st.info("Need 5+ games")
                 
@@ -2975,7 +2975,7 @@ with tab6:
                                 streak_player = player
                     
                     if streak_player:
-                        display_stat_card(streak_player, best_streak, "🔥 Win Streak", "orange")
+                        display_stat_card(streak_player, best_streak, "🔥 Win Streak", "blue")
                     else:
                         st.info("No wins yet")
 
