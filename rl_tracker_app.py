@@ -2363,22 +2363,8 @@ with tab5:
     # ====================================================
     st.markdown("## 🎮 Player Comparison")
     
-    c.execute("""
-        SELECT DISTINCT player_name
-        FROM player_stats
-        ORDER BY player_name
-    """)
-    all_comparison_players = [row[0] for row in c.fetchall()]
     
-    if all_comparison_players:
-        comparison_options = ["Choose Player"] + all_comparison_players
-        
-        st.markdown("""
-        <div style="padding: 12px; background: linear-gradient(135deg, rgba(255, 107, 0, 0.1) 0%, rgba(30, 144, 255, 0.1) 100%); border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #FF6B00;">
-        </div>
-        """, unsafe_allow_html=True)
-        
-        col1, col_vs, col2 = st.columns([2, 0.5, 2])
+    c.execute("""
         
         with col1:
             st.markdown("<p style='text-align: center; color: #FF6B00; font-weight: bold;'>👤 Player 1</p>", unsafe_allow_html=True)
