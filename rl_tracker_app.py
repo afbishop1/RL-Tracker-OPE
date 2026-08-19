@@ -193,6 +193,42 @@ def left_aligned_table(df):
         """,
         unsafe_allow_html=True
     )
+
+# ============================================================
+# SORTABLE TABLE FUNCTION
+# ============================================================
+def sortable_table(df, default_sort_col=None, default_sort_order="Highest to Lowest"):
+    """
+    Display a sortable table with sort controls.
+    """
+    if df.empty:
+        st.info("No data available")
+        return
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        sort_col = st.selectbox(
+            "Sort by",
+            df.columns,
+            index=0 if default_sort_col is None else list(df.columns).index(default_sort_col),
+            key=f"sort_col_{id(df)}"
+        )
+    
+    with col2:
+        sort_order = st.radio(
+            "Order",
+            ["Highest to Lowest", "Lowest to Highest"],
+            index=0 if default_sort_order == "Highest to Lowest" else 1,
+            horizontal=True,
+            key=f"sort_order_{id(df)}"
+        )
+    
+    # Sort the dataframe
+    ascending = sort_order == "Lowest to Highest"
+    df_sorted = df.sort_values(by=sort_col, ascending=ascending)
+    
+    left_aligned_table(df_sorted)
 # ============================================================
 # DATABASE SETUP
 # ============================================================
@@ -1457,7 +1493,7 @@ with tab3:
             "🏆 Wins",
             ascending=False
         )
-        left_aligned_table(df_wins)
+        sortable_table(df_wins, default_sort_col="🏆 Wins")
         st.divider()
         # ====================================================
         # CAREER TOTALS
@@ -1480,7 +1516,7 @@ with tab3:
                 "🤥 Excuses": stat["excuses"]
             })
         df_totals = pd.DataFrame(totals_data)
-        left_aligned_table(df_totals)
+        sortable_table(df_totals, default_sort_col="🎯 Score")
         st.divider()
         # ====================================================
         # PER GAME AVERAGES
@@ -1503,7 +1539,7 @@ with tab3:
                 "🤥 Avg Excuses": f"{stat['avg_excuses']:.2f}"
             })
         df_avg = pd.DataFrame(avg_data)
-        left_aligned_table(df_avg)
+        sortable_table(df_avg, default_sort_col="📍 Avg Score")
         st.divider()
         # ====================================================
         # MATCH TYPE CAREER TOTALS
@@ -1556,7 +1592,7 @@ with tab3:
                 
                 if type_totals:
                     df_type = pd.DataFrame(type_totals)
-                    left_aligned_table(df_type)
+                    sortable_table(df_type, default_sort_col="🎯 Score")
                 else:
                     st.info(f"No {match_type} games yet")
         
@@ -1611,7 +1647,7 @@ with tab3:
                 
                 if type_avgs:
                     df_type_avg = pd.DataFrame(type_avgs)
-                    left_aligned_table(df_type_avg)
+                    sortable_table(df_type_avg, default_sort_col="📍 Avg Score")
                 else:
                     st.info(f"No {match_type} games yet")
         
@@ -1684,7 +1720,7 @@ with tab4:
                 
                 h2h_data.sort(key=lambda x: x["🏆 Wins"], reverse=True)
                 df_h2h = pd.DataFrame(h2h_data)
-                left_aligned_table(df_h2h)
+                sortable_table(df_h2h, default_sort_col="🏆 Wins")
     
     st.divider()
     c.execute("""
