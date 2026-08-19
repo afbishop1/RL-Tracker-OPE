@@ -1506,8 +1506,10 @@ with tab3:
         left_aligned_table(df_avg)
         st.divider()
         # ====================================================
-        # MATCH TYPE TOTALS - INDIVIDUAL EXPANDERS
+        # MATCH TYPE CAREER TOTALS
         # ====================================================
+        st.markdown("## Match Type Career Totals")
+        
         for match_type in ["1v1", "2v2", "3v3"]:
             with st.expander(f"{match_type} Career Totals", expanded=False):
                 type_totals = []
@@ -1560,8 +1562,10 @@ with tab3:
         
         st.divider()
         # ====================================================
-        # MATCH TYPE PER-GAME AVERAGES - INDIVIDUAL EXPANDERS
+        # MATCH TYPE PER-GAME AVERAGES
         # ====================================================
+        st.markdown("## Match Type Per-Game Averages")
+        
         for match_type in ["1v1", "2v2", "3v3"]:
             with st.expander(f"{match_type} Per-Game Averages", expanded=False):
                 type_avgs = []
