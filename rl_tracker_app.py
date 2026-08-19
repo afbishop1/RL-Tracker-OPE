@@ -310,6 +310,36 @@ st.markdown("""
         border-color: var(--rl-blue);
         box-shadow: 0 4px 12px rgba(30, 144, 255, 0.2);
     }
+    /* Team 1 inputs - Orange */
+    .team1-inputs [data-testid="stSelectbox"] > div {
+        border: 2px solid var(--rl-orange) !important;
+    }
+    .team1-inputs [data-testid="stSelectbox"] > div:hover {
+        border-color: var(--rl-orange);
+        box-shadow: 0 4px 12px rgba(255, 107, 0, 0.4) !important;
+    }
+    .team1-inputs [data-testid="stNumberInput"] > div {
+        border: 2px solid var(--rl-orange) !important;
+    }
+    .team1-inputs [data-testid="stNumberInput"] > div:hover {
+        border-color: var(--rl-orange);
+        box-shadow: 0 4px 12px rgba(255, 107, 0, 0.4) !important;
+    }
+    /* Team 2 inputs - Blue */
+    .team2-inputs [data-testid="stSelectbox"] > div {
+        border: 2px solid var(--rl-blue) !important;
+    }
+    .team2-inputs [data-testid="stSelectbox"] > div:hover {
+        border-color: var(--rl-blue);
+        box-shadow: 0 4px 12px rgba(30, 144, 255, 0.4) !important;
+    }
+    .team2-inputs [data-testid="stNumberInput"] > div {
+        border: 2px solid var(--rl-blue) !important;
+    }
+    .team2-inputs [data-testid="stNumberInput"] > div:hover {
+        border-color: var(--rl-blue);
+        box-shadow: 0 4px 12px rgba(30, 144, 255, 0.4) !important;
+    }
     .form-group {
         background: rgba(15, 20, 40, 0.4);
         border-left: 4px solid var(--rl-orange);
@@ -847,6 +877,7 @@ with tab1:
     col1, col2 = st.columns(2)
     player_options = ["Choose Player"] + PLAYERS
     with col1:
+        st.markdown('<div class="team1-inputs">', unsafe_allow_html=True)
         st.markdown(
             """
             <div style="
@@ -875,7 +906,9 @@ with tab1:
                 label_visibility="collapsed",
                 key=f"team1_p{i}_r{st.session_state.reset_counter}"
             )
+        st.markdown('</div>', unsafe_allow_html=True)
     with col2:
+        st.markdown('<div class="team2-inputs">', unsafe_allow_html=True)
         st.markdown(
             """
             <div style="
@@ -904,6 +937,7 @@ with tab1:
                 label_visibility="collapsed",
                 key=f"team2_p{i}_r{st.session_state.reset_counter}"
             )
+        st.markdown('</div>', unsafe_allow_html=True)
     st.divider()
     # --------------------------------------------------------
     # GAME STATS
@@ -918,6 +952,7 @@ with tab1:
             col1, col2 = st.columns(2)
             # TEAM 1
             with col1:
+                st.markdown('<div class="team1-inputs">', unsafe_allow_html=True)
                 st.markdown(
                     """
                     <div style="
@@ -982,8 +1017,10 @@ with tab1:
                         "excuse_used": excuse_val
                     })
                     st.markdown("---")
+                st.markdown('</div>', unsafe_allow_html=True)
             # TEAM 2
             with col2:
+                st.markdown('<div class="team2-inputs">', unsafe_allow_html=True)
                 st.markdown(
                     """
                     <div style="
@@ -1048,6 +1085,7 @@ with tab1:
                         "excuse_used": excuse_val
                     })
                     st.markdown("---")
+                st.markdown('</div>', unsafe_allow_html=True)
             # WINNER
             team1_display = " + ".join(
                 st.session_state.series_team1
