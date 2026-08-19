@@ -386,7 +386,13 @@ def read_scoreboard_image(image_bytes):
     Returns extracted data as a dict with teams, players, scores, and stats.
     """
     try:
-        client = Anthropic()
+        # Get API key from Streamlit secrets
+        api_key = st.secrets.get("ANTHROPIC_API_KEY")
+        if not api_key:
+            st.error("❌ API key not configured. Please set ANTHROPIC_API_KEY in Streamlit secrets.")
+            return None
+        
+        client = Anthropic(api_key=api_key)
         base64_image = base64.standard_b64encode(image_bytes).decode("utf-8")
         
         message = client.messages.create(
@@ -490,6 +496,14 @@ with tab1:
     # ====================================================
     with st.expander("📸 Read from Scoreboard Image", expanded=False):
         st.markdown("Upload a screenshot of the match scoreboard and I'll extract the stats automatically!")
+        
+        st.info("""
+        **First time setup:**
+        1. Get your Anthropic API key from [console.anthropic.com](https://console.anthropic.com)
+        2. Go to your Streamlit Cloud app settings
+        3. Add secret: `ANTHROPIC_API_KEY = your_key_here`
+        4. Redeploy the app
+        """)
         
         uploaded_image = st.file_uploader(
             "Choose a scoreboard image",
