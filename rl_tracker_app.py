@@ -1078,7 +1078,7 @@ with tab2:
                         series_record = (
                             f"{t1_wins}-{t2_wins}"
                         )
-                    col1, col2 = st.columns([0.9, 0.1])
+                    col1, col2 = st.columns([0.95, 0.05])
                     with col1:
                         expander = st.expander(
                             f"📊 Series {series_num} - "
@@ -1088,10 +1088,12 @@ with tab2:
                             expanded=False
                         )
                     with col2:
+                        st.write("")
                         if st.button(
                             "🗑️",
                             key=f"delete_series_{series_num}",
-                            help="Delete this series"
+                            help="Delete this series",
+                            use_container_width=True
                         ):
                             st.session_state.confirm_delete = True
                             st.session_state.delete_series_num = (
