@@ -375,13 +375,14 @@ def calculate_performance_rating(avg_goals, avg_assists, avg_saves, avg_shots,
 # ============================================================
 # TABS
 # ============================================================
-tab1, tab2, tab3, tab4, tab5 = st.tabs(
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
     [
         "🎯 Log Match",
         "📊 Series History",
         "🏆 Player Stats",
         "👥 Matchups",
-        "📊 Analysis"
+        "📊 Analysis",
+        "🏅 Records"
     ]
 )
 # ============================================================
@@ -2376,6 +2377,402 @@ The **Performance Rating** combines your stats into a single 0-10 score:
 
 This shows you're better than wins alone, because you're performing well across multiple categories.
             """)
+
+# ============================================================
+# TAB 6 - RECORDS
+# ============================================================
+with tab6:
+    if st.button(
+        "🔄 Refresh Data",
+        use_container_width=True,
+        key="refresh_tab6"
+    ):
+        st.rerun()
+    st.divider()
+    
+    # Get all players
+    c.execute("SELECT DISTINCT player_name FROM player_stats ORDER BY player_name")
+    all_players = [row[0] for row in c.fetchall()]
+    
+    if not all_players:
+        st.info("📭 No records yet - start logging matches!")
+    else:
+        # ====================================================
+        # INDIVIDUAL RECORDS
+        # ====================================================
+        st.markdown("## 🎮 Individual Records")
+        
+        for match_type in ["1v1", "2v2", "3v3"]:
+            with st.expander(f"{match_type} Records", expanded=True):
+                match_type_num = 1 if match_type == "2v2" else (2 if match_type == "3v3" else 0)
+                
+                col1, col2 = st.columns(2)
+                
+                # Most Goals in a Game
+                with col1:
+                    st.markdown("**🎯 Most Goals in a Game**")
+                    c.execute("""
+                        SELECT player_name, MAX(goals) as max_goals
+                        FROM player_stats
+                        WHERE match_id IN (
+                            SELECT id FROM matches
+                            WHERE (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', ''))) = ?
+                        )
+                        GROUP BY player_name
+                        ORDER BY max_goals DESC
+                        LIMIT 1
+                    """, (match_type_num,))
+                    result = c.fetchone()
+                    if result:
+                        st.success(f"{result[0]}: **{result[1]}** goals")
+                    else:
+                        st.info("No data")
+                
+                # Most Assists in a Game
+                with col2:
+                    st.markdown("**🎁 Most Assists in a Game**")
+                    c.execute("""
+                        SELECT player_name, MAX(assists) as max_assists
+                        FROM player_stats
+                        WHERE match_id IN (
+                            SELECT id FROM matches
+                            WHERE (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', ''))) = ?
+                        )
+                        GROUP BY player_name
+                        ORDER BY max_assists DESC
+                        LIMIT 1
+                    """, (match_type_num,))
+                    result = c.fetchone()
+                    if result:
+                        st.success(f"{result[0]}: **{result[1]}** assists")
+                    else:
+                        st.info("No data")
+                
+                col1, col2 = st.columns(2)
+                
+                # Most Saves in a Game
+                with col1:
+                    st.markdown("**🛡️ Most Saves in a Game**")
+                    c.execute("""
+                        SELECT player_name, MAX(saves) as max_saves
+                        FROM player_stats
+                        WHERE match_id IN (
+                            SELECT id FROM matches
+                            WHERE (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', ''))) = ?
+                        )
+                        GROUP BY player_name
+                        ORDER BY max_saves DESC
+                        LIMIT 1
+                    """, (match_type_num,))
+                    result = c.fetchone()
+                    if result:
+                        st.success(f"{result[0]}: **{result[1]}** saves")
+                    else:
+                        st.info("No data")
+                
+                # Most Shots in a Game
+                with col2:
+                    st.markdown("**🔫 Most Shots in a Game**")
+                    c.execute("""
+                        SELECT player_name, MAX(shots) as max_shots
+                        FROM player_stats
+                        WHERE match_id IN (
+                            SELECT id FROM matches
+                            WHERE (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', ''))) = ?
+                        )
+                        GROUP BY player_name
+                        ORDER BY max_shots DESC
+                        LIMIT 1
+                    """, (match_type_num,))
+                    result = c.fetchone()
+                    if result:
+                        st.success(f"{result[0]}: **{result[1]}** shots")
+                    else:
+                        st.info("No data")
+                
+                col1, col2 = st.columns(2)
+                
+                # Highest Score in a Game
+                with col1:
+                    st.markdown("**⚡ Highest Score in a Game**")
+                    c.execute("""
+                        SELECT player_name, MAX(score) as max_score
+                        FROM player_stats
+                        WHERE match_id IN (
+                            SELECT id FROM matches
+                            WHERE (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', ''))) = ?
+                        )
+                        GROUP BY player_name
+                        ORDER BY max_score DESC
+                        LIMIT 1
+                    """, (match_type_num,))
+                    result = c.fetchone()
+                    if result:
+                        st.success(f"{result[0]}: **{result[1]}** points")
+                    else:
+                        st.info("No data")
+                
+                # Most Games Played
+                with col2:
+                    st.markdown("**📊 Most Games Played**")
+                    c.execute("""
+                        SELECT player_name, COUNT(DISTINCT match_id) as games
+                        FROM player_stats
+                        WHERE match_id IN (
+                            SELECT id FROM matches
+                            WHERE (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', ''))) = ?
+                        )
+                        GROUP BY player_name
+                        ORDER BY games DESC
+                        LIMIT 1
+                    """, (match_type_num,))
+                    result = c.fetchone()
+                    if result:
+                        st.success(f"{result[0]}: **{result[1]}** games")
+                    else:
+                        st.info("No data")
+                
+                col1, col2 = st.columns(2)
+                
+                # Best Win %
+                with col1:
+                    st.markdown("**🏆 Best Win %**")
+                    best_win_pct = 0
+                    best_player = None
+                    for player in all_players:
+                        c.execute("""
+                            SELECT COUNT(*)
+                            FROM matches
+                            WHERE
+                                (
+                                    team1_players LIKE ? AND winner = 1
+                                    AND (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', ''))) = ?
+                                )
+                                OR
+                                (
+                                    team2_players LIKE ? AND winner = 2
+                                    AND (LENGTH(team2_players) - LENGTH(REPLACE(team2_players, ',', ''))) = ?
+                                )
+                        """, (f"%{player}%", match_type_num, f"%{player}%", match_type_num))
+                        wins = c.fetchone()[0]
+                        
+                        c.execute("""
+                            SELECT COUNT(*)
+                            FROM matches
+                            WHERE
+                                (team1_players LIKE ? OR team2_players LIKE ?)
+                                AND (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', ''))) = ?
+                        """, (f"%{player}%", f"%{player}%", match_type_num))
+                        total = c.fetchone()[0]
+                        
+                        if total >= 5:  # Minimum 5 games
+                            pct = (wins / total * 100) if total > 0 else 0
+                            if pct > best_win_pct:
+                                best_win_pct = pct
+                                best_player = player
+                    
+                    if best_player:
+                        st.success(f"{best_player}: **{best_win_pct:.1f}%**")
+                    else:
+                        st.info("Need 5+ games")
+                
+                # Win Streak
+                with col2:
+                    st.markdown("**🔥 Current Win Streak**")
+                    best_streak = 0
+                    streak_player = None
+                    
+                    for player in all_players:
+                        c.execute("""
+                            SELECT id FROM matches
+                            WHERE
+                                (
+                                    team1_players LIKE ? AND winner = 1
+                                    AND (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', ''))) = ?
+                                )
+                                OR
+                                (
+                                    team2_players LIKE ? AND winner = 2
+                                    AND (LENGTH(team2_players) - LENGTH(REPLACE(team2_players, ',', ''))) = ?
+                                )
+                            ORDER BY id DESC
+                        """, (f"%{player}%", match_type_num, f"%{player}%", match_type_num))
+                        wins = c.fetchall()
+                        
+                        if wins:
+                            current_streak = 0
+                            for i, (win_id,) in enumerate(wins):
+                                # Check if next game (before this one) was also a win
+                                if i == 0:
+                                    current_streak = 1
+                                else:
+                                    # If there's a gap, streak is broken
+                                    c.execute("""
+                                        SELECT COUNT(*) FROM matches
+                                        WHERE id > ? AND id < ?
+                                        AND (
+                                            (team1_players LIKE ? AND winner = 2)
+                                            OR (team2_players LIKE ? AND winner = 1)
+                                        )
+                                    """, (wins[i][0], wins[i-1][0], f"%{player}%", f"%{player}%"))
+                                    if c.fetchone()[0] > 0:
+                                        break
+                                    current_streak += 1
+                            
+                            if current_streak > best_streak:
+                                best_streak = current_streak
+                                streak_player = player
+                    
+                    if streak_player:
+                        st.success(f"{streak_player}: **{best_streak}** wins")
+                    else:
+                        st.info("No wins yet")
+        
+        st.divider()
+        # ====================================================
+        # TEAM RECORDS
+        # ====================================================
+        st.markdown("## 🤝 Team Records (2v2 & 3v3)")
+        
+        for match_type in ["2v2", "3v3"]:
+            with st.expander(f"{match_type} Team Records", expanded=True):
+                match_type_num = 1 if match_type == "2v2" else 2
+                
+                # Get all teams
+                c.execute("""
+                    SELECT DISTINCT team1_players FROM matches
+                    WHERE (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', ''))) = ?
+                    UNION
+                    SELECT DISTINCT team2_players FROM matches
+                    WHERE (LENGTH(team2_players) - LENGTH(REPLACE(team2_players, ',', ''))) = ?
+                """, (match_type_num, match_type_num))
+                teams = set()
+                for (team,) in c.fetchall():
+                    teams.add(tuple(sorted(team.split(","))))
+                
+                if teams:
+                    col1, col2 = st.columns(2)
+                    
+                    # Most Combined Goals
+                    with col1:
+                        st.markdown("**🎯 Most Combined Goals**")
+                        best_goals = 0
+                        best_team = None
+                        
+                        for team in teams:
+                            team_str = ",".join(team)
+                            c.execute("""
+                                SELECT SUM(ps.goals)
+                                FROM player_stats ps
+                                WHERE ps.player_name IN ({})
+                            """.format(",".join(["?"] * len(team))), list(team))
+                            total_goals = c.fetchone()[0] or 0
+                            
+                            if total_goals > best_goals:
+                                best_goals = total_goals
+                                best_team = team
+                        
+                        if best_team:
+                            team_display = " + ".join(best_team)
+                            st.success(f"{team_display}: **{best_goals}** goals")
+                        else:
+                            st.info("No data")
+                    
+                    # Highest Combined Score
+                    with col2:
+                        st.markdown("**⚡ Highest Combined Score**")
+                        best_score = 0
+                        best_team = None
+                        
+                        for team in teams:
+                            team_str = ",".join(team)
+                            c.execute("""
+                                SELECT SUM(ps.score)
+                                FROM player_stats ps
+                                WHERE ps.player_name IN ({})
+                            """.format(",".join(["?"] * len(team))), list(team))
+                            total_score = c.fetchone()[0] or 0
+                            
+                            if total_score > best_score:
+                                best_score = total_score
+                                best_team = team
+                        
+                        if best_team:
+                            team_display = " + ".join(best_team)
+                            st.success(f"{team_display}: **{best_score}** points")
+                        else:
+                            st.info("No data")
+                    
+                    col1, col2 = st.columns(2)
+                    
+                    # Best Team Win %
+                    with col1:
+                        st.markdown("**🏆 Best Team Win %**")
+                        best_pct = 0
+                        best_team = None
+                        
+                        for team in teams:
+                            c.execute("""
+                                SELECT COUNT(*)
+                                FROM matches
+                                WHERE team1_players = ? AND winner = 1
+                                OR team2_players = ? AND winner = 2
+                            """, (f"{','.join(team)}", f"{','.join(team)}"))
+                            wins = c.fetchone()[0]
+                            
+                            c.execute("""
+                                SELECT COUNT(*)
+                                FROM matches
+                                WHERE team1_players = ? OR team2_players = ?
+                            """, (f"{','.join(team)}", f"{','.join(team)}"))
+                            total = c.fetchone()[0]
+                            
+                            if total > 0:
+                                pct = (wins / total * 100)
+                                if pct > best_pct:
+                                    best_pct = pct
+                                    best_team = team
+                        
+                        if best_team:
+                            team_display = " + ".join(best_team)
+                            st.success(f"{team_display}: **{best_pct:.1f}%**")
+                        else:
+                            st.info("No data")
+                    
+                    # Largest Blowout
+                    with col2:
+                        st.markdown("**💥 Largest Blowout**")
+                        best_diff = 0
+                        blowout_team = None
+                        blowout_opp = None
+                        
+                        c.execute("""
+                            SELECT id, team1_players, team2_players, team1_score, team2_score
+                            FROM matches
+                            WHERE (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', ''))) = ?
+                        """, (match_type_num,))
+                        
+                        for match_id, t1, t2, s1, s2 in c.fetchall():
+                            diff1 = s1 - s2
+                            diff2 = s2 - s1
+                            
+                            if diff1 > best_diff:
+                                best_diff = diff1
+                                blowout_team = t1
+                                blowout_opp = t2
+                            if diff2 > best_diff:
+                                best_diff = diff2
+                                blowout_team = t2
+                                blowout_opp = t1
+                        
+                        if blowout_team:
+                            t1_display = " + ".join(blowout_team.split(","))
+                            t2_display = " + ".join(blowout_opp.split(","))
+                            st.success(f"{t1_display} beat {t2_display} by **{best_diff}** goals")
+                        else:
+                            st.info("No data")
+                else:
+                    st.info(f"No {match_type} games yet")
 
 # ============================================================
 # CLOSE DATABASE
