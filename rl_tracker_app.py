@@ -166,6 +166,75 @@ st.markdown("""
     .rl-stats-table td * {
         text-align: left !important;
     }
+    /* ========================================================
+       PREMIUM TAB STYLING
+       ======================================================== */
+    [data-testid="stTabs"] {
+        gap: 0;
+    }
+    [data-testid="stTabs"] [role="tablist"] {
+        background: linear-gradient(90deg, rgba(10, 14, 39, 0.8) 0%, rgba(5, 9, 19, 0.8) 100%);
+        border-bottom: 3px solid transparent;
+        border-image: linear-gradient(90deg, var(--rl-orange) 0%, var(--rl-blue) 100%) 1;
+        padding: 10px 0;
+        gap: 5px;
+    }
+    [data-testid="stTabs"] [role="tab"] {
+        background: rgba(30, 50, 80, 0.4);
+        border: 2px solid rgba(255, 107, 0, 0.3);
+        border-radius: 12px 12px 0 0;
+        padding: 12px 16px !important;
+        margin: 0 4px;
+        color: #E8EAED !important;
+        font-weight: 600;
+        font-size: 0.95em;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+    }
+    [data-testid="stTabs"] [role="tab"]:hover {
+        background: linear-gradient(135deg, rgba(255, 107, 0, 0.2) 0%, rgba(30, 144, 255, 0.2) 100%);
+        border-color: var(--rl-orange);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255, 107, 0, 0.2);
+    }
+    [data-testid="stTabs"] [role="tab"][aria-selected="true"] {
+        background: linear-gradient(135deg, var(--rl-orange) 0%, #FF8C00 100%);
+        border: 2px solid var(--rl-orange);
+        color: white !important;
+        box-shadow: 0 6px 20px rgba(255, 107, 0, 0.4);
+        transform: translateY(-2px);
+    }
+    [data-testid="stTabs"] [role="tab"][aria-selected="true"]:hover {
+        box-shadow: 0 8px 25px rgba(255, 107, 0, 0.5);
+    }
+    /* ========================================================
+       MOBILE OPTIMIZATION
+       ======================================================== */
+    @media (max-width: 768px) {
+        [data-testid="stTabs"] [role="tab"] {
+            padding: 10px 10px !important;
+            font-size: 0.85em;
+            margin: 0 2px;
+        }
+        [data-testid="stTabs"] [role="tablist"] {
+            overflow-x: auto;
+            padding: 8px 0;
+        }
+        [data-testid="stMainBlockContainer"] {
+            padding: 1rem;
+        }
+    }
+    @media (max-width: 480px) {
+        [data-testid="stTabs"] [role="tab"] {
+            padding: 8px 8px !important;
+            font-size: 0.75em;
+            margin: 0 1px;
+            border-radius: 8px;
+        }
+        [data-testid="stTabs"] [role="tablist"] {
+            gap: 2px;
+        }
+    }
 </style>
 """, unsafe_allow_html=True)
 # ============================================================
@@ -378,8 +447,8 @@ def calculate_performance_rating(avg_goals, avg_assists, avg_saves, avg_shots,
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
     [
         "🎯 Log Match",
-        "📊 Series History",
-        "🏆 Player Stats",
+        "📈 History", 
+        "🏆 Stats",
         "👥 Matchups",
         "📊 Analysis",
         "🏅 Records"
