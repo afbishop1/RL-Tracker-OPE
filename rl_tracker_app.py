@@ -2995,7 +2995,7 @@ with tab6:
                                 streak_player = player
                     
                     if streak_player:
-                        display_stat_card(streak_player, best_streak, "🔥 Win Streak", colors[color_idx % 2])
+                        display_stat_card(streak_player, best_streak, "🔥 Win Streak", "orange")
                     else:
                         st.info("No wins yet")
 
