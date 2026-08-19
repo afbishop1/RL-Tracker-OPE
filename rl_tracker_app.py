@@ -848,77 +848,109 @@ def display_leaderboard(rankings_data):
     # Display podium for top 3
     if len(top_3) > 0:
         st.markdown("### 🏆 Top 3 Rankings")
-        podium_html = '<div class="leaderboard-podium">'
         
-        podium_classes = ["podium-2nd", "podium-1st", "podium-3rd"]
-        medals = ["🥈", "🥇", "🥉"]
+        # Create columns for podium
+        if len(top_3) == 1:
+            cols = st.columns([1])
+            podium_data = [(top_3[0], 0, "🥇")]
+        elif len(top_3) == 2:
+            cols = st.columns([1, 1])
+            podium_data = [(top_3[0], 0, "🥇"), (top_3[1], 1, "🥈")]
+        else:
+            cols = st.columns([1, 1, 1])
+            podium_data = [(top_3[0], 0, "🥇"), (top_3[1], 1, "🥈"), (top_3[2], 2, "🥉")]
         
-        for idx, player_data in enumerate(top_3):
-            rank = player_data["🏅 Rank"]
-            name = player_data["🎮 Player"]
-            rating = player_data["⭐ Rating"]
-            
-            # Handle both Games and W-L format
-            if "📊 Games" in player_data:
-                games_text = f"{player_data['📊 Games']} game{'s' if player_data['📊 Games'] != 1 else ''}"
-            else:
-                games_text = player_data.get("📊 W-L", "")
-            
-            podium_html += f'''
-            <div class="podium-card {podium_classes[idx]}">
-                <div class="podium-rank">{medals[idx]}</div>
-                <div class="podium-name">{name}</div>
-                <div class="podium-rating">{rating:.2f}</div>
-                <div class="podium-games">{games_text}</div>
-            </div>
-            '''
+        podium_styles = [
+            "background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);",
+            "background: linear-gradient(135deg, #C0C0C0 0%, #808080 100%);",
+            "background: linear-gradient(135deg, #CD7F32 0%, #8B4513 100%);"
+        ]
         
-        podium_html += '</div>'
-        st.markdown(podium_html, unsafe_allow_html=True)
+        for col_idx, (player_data, idx, medal) in enumerate(podium_data):
+            with cols[col_idx]:
+                name = player_data["🎮 Player"]
+                rating = player_data["⭐ Rating"]
+                
+                # Handle both Games and W-L format
+                if "📊 Games" in player_data:
+                    games_text = f"{player_data['📊 Games']} game{'s' if player_data['📊 Games'] != 1 else ''}"
+                else:
+                    games_text = player_data.get("📊 W-L", "")
+                
+                st.markdown(f"""
+                <div style="
+                    text-align: center;
+                    border-radius: 12px;
+                    padding: 20px;
+                    color: white;
+                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+                    {podium_styles[idx]}
+                    min-height: 200px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                ">
+                    <div style="font-size: 2.5em; margin-bottom: 10px;">{medal}</div>
+                    <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{name}</div>
+                    <div style="font-size: 1.8em; font-weight: bold; margin-bottom: 5px;">{rating:.2f}</div>
+                    <div style="font-size: 0.9em; opacity: 0.9;">{games_text}</div>
+                </div>
+                """, unsafe_allow_html=True)
     
     # Display remaining players as cards
     if len(remaining) > 0:
         st.markdown("### 📊 Other Players")
-        cards_html = '<div class="leaderboard-cards">'
         
-        for player_data in remaining:
-            rank = player_data["🏅 Rank"]
-            name = player_data["🎮 Player"]
-            rating = player_data["⭐ Rating"]
-            
-            # Handle both Games and W-L format
-            if "📊 Games" in player_data:
-                games_text = f"{player_data['📊 Games']} games"
-            else:
-                games_text = player_data.get("📊 W-L", "")
-            
-            # Get average stats
-            avg_goals = float(player_data["⚽ Avg Goals"])
-            avg_assists = float(player_data["🎁 Avg Assists"])
-            avg_saves = float(player_data["🛡️ Avg Saves"])
-            
-            # Rating bar (0-10 scale)
-            bar_width = (rating / 10) * 100
-            
-            cards_html += f'''
-            <div class="leaderboard-card">
-                <div class="leaderboard-rank">#{rank}</div>
-                <div class="leaderboard-name">{name}</div>
-                <div class="rating-value">⭐ {rating:.2f}</div>
-                <div class="rating-bar">
-                    <div class="rating-fill" style="width: {bar_width}%"></div>
-                </div>
-                <div class="stat-badges">
-                    <span class="stat-badge">⚽ {avg_goals:.1f}</span>
-                    <span class="stat-badge">🎁 {avg_assists:.1f}</span>
-                    <span class="stat-badge">🛡️ {avg_saves:.1f}</span>
-                </div>
-                <div style="font-size: 0.8em; color: #999; margin-top: 6px;">{games_text}</div>
-            </div>
-            '''
+        # Create a grid of cards
+        cols = st.columns(2)
         
-        cards_html += '</div>'
-        st.markdown(cards_html, unsafe_allow_html=True)
+        for card_idx, player_data in enumerate(remaining):
+            col = cols[card_idx % 2]
+            
+            with col:
+                rank = player_data["🏅 Rank"]
+                name = player_data["🎮 Player"]
+                rating = player_data["⭐ Rating"]
+                
+                # Handle both Games and W-L format
+                if "📊 Games" in player_data:
+                    games_text = f"{player_data['📊 Games']} games"
+                else:
+                    games_text = player_data.get("📊 W-L", "")
+                
+                # Get average stats
+                avg_goals = float(player_data["⚽ Avg Goals"])
+                avg_assists = float(player_data["🎁 Avg Assists"])
+                avg_saves = float(player_data["🛡️ Avg Saves"])
+                
+                # Rating bar (0-10 scale)
+                bar_width = (rating / 10) * 100
+                
+                st.markdown(f"""
+                <div style="
+                    background: linear-gradient(135deg, rgba(30, 50, 80, 0.8) 0%, rgba(15, 20, 40, 0.8) 100%);
+                    border: 2px solid rgba(255, 107, 0, 0.3);
+                    border-radius: 10px;
+                    padding: 12px;
+                    text-align: center;
+                    color: white;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                    transition: all 0.3s ease;
+                ">
+                    <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 6px;">#{rank}</div>
+                    <div style="font-size: 0.95em; font-weight: bold; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{name}</div>
+                    <div style="font-size: 0.85em; color: #FFD700; font-weight: bold; margin-bottom: 6px;">⭐ {rating:.2f}</div>
+                    <div style="background: rgba(100, 100, 100, 0.3); height: 6px; border-radius: 3px; overflow: hidden; margin: 8px 0;">
+                        <div style="height: 100%; background: linear-gradient(90deg, #FF6B00 0%, #FFD700 100%); width: {bar_width}%; transition: width 0.3s ease;"></div>
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; font-size: 0.75em; margin-bottom: 6px;">
+                        <span style="background: rgba(30, 144, 255, 0.3); border: 1px solid rgba(30, 144, 255, 0.6); border-radius: 12px; padding: 2px 6px; color: #87CEEB;">⚽ {avg_goals:.1f}</span>
+                        <span style="background: rgba(30, 144, 255, 0.3); border: 1px solid rgba(30, 144, 255, 0.6); border-radius: 12px; padding: 2px 6px; color: #87CEEB;">🎁 {avg_assists:.1f}</span>
+                        <span style="background: rgba(30, 144, 255, 0.3); border: 1px solid rgba(30, 144, 255, 0.6); border-radius: 12px; padding: 2px 6px; color: #87CEEB;">🛡️ {avg_saves:.1f}</span>
+                    </div>
+                    <div style="font-size: 0.8em; color: #999;">{games_text}</div>
+                </div>
+                """, unsafe_allow_html=True)
 
 # ============================================================
 # HEADER
