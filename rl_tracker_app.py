@@ -2177,6 +2177,26 @@ with tab5:
                         left_aligned_table(df_type_rating)
                     else:
                         st.info(f"No {match_type} games yet")
+            
+            st.divider()
+            st.markdown("""
+### 📊 How Rating is Calculated
+
+The **Performance Rating** combines your stats into a single 0-10 score:
+
+1. **Normalize each stat** - Compare your average to the best player's average
+2. **Apply weights** to determine importance:
+   - ⚽ **Goals: 40%** (most important, wins games)
+   - 🎁 **Assists: 30%** (team play)
+   - 🛡️ **Saves: 20%** (defense)
+   - 🔫 **Shots: 10%** (efficiency)
+3. **Final Rating** = (Goals×0.40) + (Assists×0.30) + (Saves×0.20) + (Shots×0.10)
+
+**Example:** If you have the best Goals average (10.0), average Assists (7.5), average Saves (8.0), and average Shots (6.0):
+- Rating = (10.0×0.40) + (7.5×0.30) + (8.0×0.20) + (6.0×0.10) = **8.35**
+
+This shows you're better than wins alone, because you're performing well across multiple categories.
+            """)
 
 # ============================================================
 # CLOSE DATABASE
