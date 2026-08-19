@@ -1462,6 +1462,44 @@ with tab2:
                                 f"{player_info}",
                                 expanded=False
                             )
+                            with expander:
+                                c.execute("""
+                                    SELECT *
+                                    FROM matches
+                                    WHERE series_number = ?
+                                    ORDER BY match_number
+                                """, (series_num,))
+                                matches = c.fetchall()
+                                for match in matches:
+                                    (
+                                        match_id,
+                                        sn,
+                                        mn,
+                                        b,
+                                        ts,
+                                        t1p,
+                                        t2p,
+                                        t1s,
+                                        t2s,
+                                        winner
+                                    ) = match
+                                    t1_players = t1p.split(",")
+                                    t2_players = t2p.split(",")
+                                    if winner == 1:
+                                        winner_text = (
+                                            " + ".join(t1_players)
+                                            + " Won"
+                                        )
+                                    elif winner == 2:
+                                        winner_text = (
+                                            " + ".join(t2_players)
+                                            + " Won"
+                                        )
+                                    else:
+                                        winner_text = "Match In Progress"
+                                    st.markdown(
+                                        f"**Game {mn}:** {t1p} ({t1s}) vs {t2p} ({t2s}) - {winner_text}"
+                                    )
                         with col2:
                             st.write("")
                             if st.button(
@@ -1534,7 +1572,6 @@ with tab2:
                                     f"by {deleting_user}!"
                                 )
                                 st.rerun()
-                    with expander:
                         c.execute("""
                             SELECT *
                             FROM matches
