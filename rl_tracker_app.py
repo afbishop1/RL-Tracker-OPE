@@ -1512,7 +1512,7 @@ with tab2:
                                 border-bottom: 2px solid #1E90FF;
                             ">
                                 <div style="font-size: 1.1em; font-weight: bold; color: #E8EAED;">
-                                    🏆 Game {mn} <span style="color: #87CEEB;">({t1_goals} - {t2_goals})</span>
+                                    🏆 Game {mn} <span style="color: #FFD700;">{winner_text}</span> <span style="color: #87CEEB;">({t1_goals} - {t2_goals})</span>
                                 </div>
                             </div>
                             """, unsafe_allow_html=True)
