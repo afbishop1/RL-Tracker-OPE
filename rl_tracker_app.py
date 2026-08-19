@@ -717,7 +717,7 @@ def display_leaderboard(rankings_data):
 
 def sortable_table(df, table_key="default"):
     """
-    Display a DataFrame as HTML table with clickable headers for sorting.
+    Display a DataFrame as HTML table with clickable integrated headers.
     """
     if df.empty:
         st.info("No data available")
@@ -743,11 +743,16 @@ def sortable_table(df, table_key="default"):
     except:
         df_sorted = df.sort_values(by=sort_col, ascending=not sort_desc)
     
-    # Create clickable header
-    cols = st.columns(len(df.columns))
+    # Create header buttons styled to look like table headers
+    cols = st.columns(len(df.columns), gap="small")
     for idx, col in enumerate(df.columns):
         with cols[idx]:
-            indicator = " ⬇️" if (col == sort_col and sort_desc) else (" ⬆️" if col == sort_col else "")
+            # Determine sort indicator
+            if col == sort_col:
+                indicator = " ↓" if sort_desc else " ↑"
+            else:
+                indicator = ""
+            
             if st.button(f"{col}{indicator}", key=f"{table_key}_{idx}", use_container_width=True):
                 if st.session_state[f"{table_key}_sort_col"] == col:
                     st.session_state[f"{table_key}_sort_desc"] = not st.session_state[f"{table_key}_sort_desc"]
@@ -756,7 +761,7 @@ def sortable_table(df, table_key="default"):
                     st.session_state[f"{table_key}_sort_desc"] = True
                 st.rerun()
     
-    # Display table
+    # Display sorted table
     left_aligned_table(df_sorted)
 
 # ============================================================
