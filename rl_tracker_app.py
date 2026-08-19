@@ -2765,6 +2765,12 @@ with tab6:
             with st.expander(f"{match_type} Records", expanded=True):
                 match_type_num = 1 if match_type == "2v2" else (2 if match_type == "3v3" else 0)
                 
+                # Determine starting color to alternate between match types
+                # 1v1 ends orange, so 2v2/3v3 start blue
+                start_color = "orange" if match_type == "1v1" else "blue"
+                colors = ["orange", "blue"] if start_color == "orange" else ["blue", "orange"]
+                color_idx = 0
+                
                 col1, col2 = st.columns(2)
                 
                 # Most Goals in a Game
@@ -2782,9 +2788,11 @@ with tab6:
                     """, (match_type_num,))
                     result = c.fetchone()
                     if result:
-                        display_stat_card(result[0], result[1], "🎯 Most Goals", "orange")
+                        display_stat_card(result[0], result[1], "🎯 Most Goals", colors[color_idx % 2])
+                        color_idx += 1
                     else:
                         st.info("No data")
+                        color_idx += 1
                 
                 # Most Assists in a Game
                 with col2:
@@ -2801,9 +2809,11 @@ with tab6:
                     """, (match_type_num,))
                     result = c.fetchone()
                     if result:
-                        display_stat_card(result[0], result[1], "🎁 Most Assists", "blue")
+                        display_stat_card(result[0], result[1], "🎁 Most Assists", colors[color_idx % 2])
+                        color_idx += 1
                     else:
                         st.info("No data")
+                        color_idx += 1
                 
                 col1, col2 = st.columns(2)
                 
@@ -2822,9 +2832,11 @@ with tab6:
                     """, (match_type_num,))
                     result = c.fetchone()
                     if result:
-                        display_stat_card(result[0], result[1], "🛡️ Most Saves", "orange")
+                        display_stat_card(result[0], result[1], "🛡️ Most Saves", colors[color_idx % 2])
+                        color_idx += 1
                     else:
                         st.info("No data")
+                        color_idx += 1
                 
                 # Most Shots in a Game
                 with col2:
@@ -2841,9 +2853,11 @@ with tab6:
                     """, (match_type_num,))
                     result = c.fetchone()
                     if result:
-                        display_stat_card(result[0], result[1], "🔫 Most Shots", "blue")
+                        display_stat_card(result[0], result[1], "🔫 Most Shots", colors[color_idx % 2])
+                        color_idx += 1
                     else:
                         st.info("No data")
+                        color_idx += 1
                 
                 col1, col2 = st.columns(2)
                 
@@ -2862,9 +2876,11 @@ with tab6:
                     """, (match_type_num,))
                     result = c.fetchone()
                     if result:
-                        display_stat_card(result[0], result[1], "⚡ Highest Score", "orange")
+                        display_stat_card(result[0], result[1], "⚡ Highest Score", colors[color_idx % 2])
+                        color_idx += 1
                     else:
                         st.info("No data")
+                        color_idx += 1
                 
                 # Most Games Played
                 with col2:
@@ -2881,9 +2897,11 @@ with tab6:
                     """, (match_type_num,))
                     result = c.fetchone()
                     if result:
-                        display_stat_card(result[0], result[1], "📊 Most Games", "blue")
+                        display_stat_card(result[0], result[1], "📊 Most Games", colors[color_idx % 2])
+                        color_idx += 1
                     else:
                         st.info("No data")
+                        color_idx += 1
                 
                 col1, col2 = st.columns(2)
                 
@@ -2924,9 +2942,11 @@ with tab6:
                                 best_player = player
                     
                     if best_player:
-                        display_stat_card(best_player, f"{best_win_pct:.1f}%", "🏆 Best Win %", "orange")
+                        display_stat_card(best_player, f"{best_win_pct:.1f}%", "🏆 Best Win %", colors[color_idx % 2])
+                        color_idx += 1
                     else:
                         st.info("Need 5+ games")
+                        color_idx += 1
                 
                 # Win Streak
                 with col2:
@@ -2975,7 +2995,7 @@ with tab6:
                                 streak_player = player
                     
                     if streak_player:
-                        display_stat_card(streak_player, best_streak, "🔥 Win Streak", "orange")
+                        display_stat_card(streak_player, best_streak, "🔥 Win Streak", colors[color_idx % 2])
                     else:
                         st.info("No wins yet")
 
