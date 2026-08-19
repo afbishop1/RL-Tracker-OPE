@@ -651,24 +651,6 @@ def display_stat_card(player_name, value, emoji, card_type="orange"):
 # ============================================================
 # HEADER
 # ============================================================
-st.markdown("""
-<div class="ope-header">
-    <div class="ope-logo">🎮</div>
-    <h1 class="ope-title">OPE GAMING</h1>
-    <p class="ope-subtitle">Rocket League Match Tracker</p>
-</div>
-""", unsafe_allow_html=True)
-st.markdown("""
-<hr style="
-    border: none;
-    height: 3px;
-    background: linear-gradient(90deg, #FF6B00 0%, #1E90FF 50%, #FF6B00 100%);
-    margin: 20px 0;
-    border-radius: 2px;
-">
-""", unsafe_allow_html=True)
-
-# ============================================================
 # TABS
 # ============================================================
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
@@ -733,7 +715,6 @@ with tab1:
     st.markdown("<h2 style='text-align: center; margin-bottom: 20px;'>⚙️ Match Settings</h2>", unsafe_allow_html=True)
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown('<div class="form-group">', unsafe_allow_html=True)
         st.markdown("#### 🏁 Series Format")
         st.caption("How many games to win the series?")
         best_of = st.radio(
@@ -743,11 +724,9 @@ with tab1:
             label_visibility="collapsed",
             key="best_of_select"
         )
-        st.markdown('</div>', unsafe_allow_html=True)
         bo_num = 3 if best_of == "Best of 3" else 5
         max_games = bo_num
     with col2:
-        st.markdown('<div class="form-group blue">', unsafe_allow_html=True)
         st.markdown("#### 👥 Match Type")
         st.caption("How many players per team?")
         match_type = st.radio(
@@ -757,7 +736,6 @@ with tab1:
             label_visibility="collapsed",
             key="match_type_select"
         )
-        st.markdown('</div>', unsafe_allow_html=True)
         num_players = int(match_type[0])
     # --------------------------------------------------------
     # CURRENT SERIES
@@ -888,6 +866,7 @@ with tab1:
                 f"Player {i+1}",
                 player_options,
                 index=current_index,
+                label_visibility="collapsed",
                 key=f"team1_p{i}_r{st.session_state.reset_counter}"
             )
     with col2:
@@ -916,6 +895,7 @@ with tab1:
                 f"Player {i+1}",
                 player_options,
                 index=current_index,
+                label_visibility="collapsed",
                 key=f"team2_p{i}_r{st.session_state.reset_counter}"
             )
     st.divider()
@@ -2387,9 +2367,9 @@ with tab5:
         
         col1, col2 = st.columns(2)
         with col1:
-            player1 = st.selectbox("Player 1", comparison_options, key="comp_p1")
+            player1 = st.selectbox("Player 1", comparison_options, label_visibility="collapsed", key="comp_p1")
         with col2:
-            player2 = st.selectbox("Player 2", comparison_options, key="comp_p2")
+            player2 = st.selectbox("Player 2", comparison_options, label_visibility="collapsed", key="comp_p2")
         
         if player1 != "Choose Player" and player2 != "Choose Player" and player1 != player2:
             # Build comparison table
