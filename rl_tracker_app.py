@@ -458,24 +458,12 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
 # TAB 1 - LOG MATCH
 # ============================================================
 with tab1:
-    refresh_col, clear_col = st.columns(2)
-    with refresh_col:
-        if st.button(
-            "🔄 Refresh Data",
-            use_container_width=True,
-            key="refresh_tab1"
-        ):
-            st.rerun()
-    with clear_col:
-        if st.button(
-            "🔄 Clear Players/Scores",
-            use_container_width=True,
-            key="clear_main"
-        ):
-            st.session_state.reset_counter += 1
-            st.session_state.series_team1 = ["Choose Player"] * 3
-            st.session_state.series_team2 = ["Choose Player"] * 3
-            st.rerun()
+    if st.button(
+        "🔄 Refresh Data",
+        use_container_width=True,
+        key="refresh_tab1"
+    ):
+        st.rerun()
 
     # Button coloring
     st.markdown("""
@@ -486,16 +474,6 @@ with tab1:
                 if (btn.textContent.includes('Refresh Data')) {
                     btn.style.background =
                         'linear-gradient(90deg, #1E90FF 0%, #4169E1 100%)';
-                    btn.style.color = 'white';
-                    btn.style.border = 'none';
-                    btn.style.borderRadius = '8px';
-                    btn.style.fontWeight = 'bold';
-                    btn.style.fontSize = '1.6em';
-                    btn.style.padding = '20px 40px';
-                }
-                if (btn.textContent.includes('Clear Players/Scores')) {
-                    btn.style.background =
-                        'linear-gradient(90deg, #FF6B00 0%, #FF8C00 100%)';
                     btn.style.color = 'white';
                     btn.style.border = 'none';
                     btn.style.borderRadius = '8px';
