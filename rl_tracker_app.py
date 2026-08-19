@@ -717,7 +717,7 @@ def display_leaderboard(rankings_data):
 
 def sortable_table(df, table_key="default"):
     """
-    Display DataFrame with sortable headers embedded IN the table header row.
+    Display DataFrame with sortable headers above the table.
     """
     if df.empty:
         st.info("No data available")
@@ -743,16 +743,17 @@ def sortable_table(df, table_key="default"):
     except:
         df_sorted = df.sort_values(by=sort_col, ascending=not sort_desc)
     
-    # Create hidden sort buttons
+    # Create clickable header buttons
     cols = st.columns(len(df.columns), gap="small")
     for idx, col in enumerate(df.columns):
         with cols[idx]:
-            if st.button(
-                "▲▼",
-                key=f"{table_key}_sort_{idx}",
-                use_container_width=True,
-                label_visibility="collapsed"
-            ):
+            # Determine sort indicator
+            if col == sort_col:
+                indicator = " ↓" if sort_desc else " ↑"
+            else:
+                indicator = ""
+            
+            if st.button(f"{col}{indicator}", key=f"{table_key}_sort_{idx}", use_container_width=True):
                 if st.session_state[f"{table_key}_sort_col"] == col:
                     st.session_state[f"{table_key}_sort_desc"] = not st.session_state[f"{table_key}_sort_desc"]
                 else:
@@ -760,43 +761,8 @@ def sortable_table(df, table_key="default"):
                     st.session_state[f"{table_key}_sort_desc"] = True
                 st.rerun()
     
-    # Build HTML table with sortable headers
-    html = '<table style="width:100%; border-collapse: collapse;">'
-    html += '<thead>'
-    html += '<tr style="background-color: #f0f2f6; border-bottom: 2px solid #ddd;">'
-    
-    for col_idx, col in enumerate(df.columns):
-        # Determine indicator
-        if col == sort_col:
-            indicator = " ↓" if sort_desc else " ↑"
-        else:
-            indicator = ""
-        
-        html += f'''<th style="
-            padding: 12px;
-            text-align: left;
-            font-weight: 600;
-            border-right: 1px solid #e0e0e0;
-            cursor: pointer;
-        " onclick="document.getElementById('{table_key}_sort_{col_idx}').click();">
-            {col}{indicator}
-        </th>'''
-    
-    html += '</tr>'
-    html += '</thead>'
-    html += '<tbody>'
-    
-    # Add data rows
-    for idx, row in df_sorted.iterrows():
-        html += '<tr style="border-bottom: 1px solid #f0f2f6;">'
-        for col in df.columns:
-            html += f'<td style="padding: 10px 12px; border-right: 1px solid #f0f2f6;">{row[col]}</td>'
-        html += '</tr>'
-    
-    html += '</tbody>'
-    html += '</table>'
-    
-    st.markdown(html, unsafe_allow_html=True)
+    # Display sorted table
+    left_aligned_table(df_sorted)
 
 # ============================================================
 # HEADER
@@ -2517,9 +2483,9 @@ with tab5:
         
         col1, col2 = st.columns(2)
         with col1:
-            player1 = st.selectbox("Player 1", comparison_options, label_visibility="collapsed", key="comp_p1")
+            player1 = st.selectbox("Player 1", comparison_options, key="comp_p1")
         with col2:
-            player2 = st.selectbox("Player 2", comparison_options, label_visibility="collapsed", key="comp_p2")
+            player2 = st.selectbox("Player 2", comparison_options, key="comp_p2")
         
         if player1 != "Choose Player" and player2 != "Choose Player" and player1 != player2:
             # Build comparison table
