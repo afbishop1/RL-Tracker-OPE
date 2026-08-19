@@ -431,135 +431,6 @@ st.markdown("""
     .stSuccess {
         animation: successPulse 0.6s ease-in-out;
     }
-    /* ========================================================
-       LEADERBOARD STYLING
-       ======================================================== */
-    .leaderboard-podium {
-        display: flex;
-        justify-content: center;
-        align-items: flex-end;
-        gap: 10px;
-        margin: 20px 0;
-        flex-wrap: wrap;
-    }
-    .podium-card {
-        text-align: center;
-        border-radius: 12px;
-        padding: 20px;
-        color: white;
-        flex: 0 1 auto;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-        transition: transform 0.3s ease;
-    }
-    .podium-card:hover {
-        transform: translateY(-8px);
-    }
-    .podium-1st {
-        background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-        order: 2;
-        min-height: 280px;
-        min-width: 140px;
-    }
-    .podium-2nd {
-        background: linear-gradient(135deg, #C0C0C0 0%, #808080 100%);
-        order: 1;
-        min-height: 240px;
-        min-width: 140px;
-    }
-    .podium-3rd {
-        background: linear-gradient(135deg, #CD7F32 0%, #8B4513 100%);
-        order: 3;
-        min-height: 200px;
-        min-width: 140px;
-    }
-    .podium-rank {
-        font-size: 3em;
-        font-weight: bold;
-        margin-bottom: 10px;
-    }
-    .podium-name {
-        font-size: 1.1em;
-        font-weight: bold;
-        margin-bottom: 8px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    .podium-rating {
-        font-size: 1.8em;
-        font-weight: bold;
-        margin-bottom: 5px;
-    }
-    .podium-games {
-        font-size: 0.9em;
-        opacity: 0.9;
-    }
-    .leaderboard-cards {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        gap: 12px;
-        margin: 15px 0;
-    }
-    .leaderboard-card {
-        background: linear-gradient(135deg, rgba(30, 50, 80, 0.8) 0%, rgba(15, 20, 40, 0.8) 100%);
-        border: 2px solid rgba(255, 107, 0, 0.3);
-        border-radius: 10px;
-        padding: 12px;
-        text-align: center;
-        color: white;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    }
-    .leaderboard-card:hover {
-        border-color: var(--rl-orange);
-        box-shadow: 0 6px 16px rgba(255, 107, 0, 0.3);
-        transform: translateY(-4px);
-    }
-    .leaderboard-rank {
-        font-size: 1.2em;
-        font-weight: bold;
-        margin-bottom: 6px;
-    }
-    .leaderboard-name {
-        font-size: 0.95em;
-        font-weight: bold;
-        margin-bottom: 6px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    .rating-bar {
-        background: rgba(100, 100, 100, 0.3);
-        height: 6px;
-        border-radius: 3px;
-        overflow: hidden;
-        margin: 8px 0;
-    }
-    .rating-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #FF6B00 0%, #FFD700 100%);
-        transition: width 0.3s ease;
-    }
-    .rating-value {
-        font-size: 0.85em;
-        color: #FFD700;
-        font-weight: bold;
-        margin-bottom: 6px;
-    }
-    .stat-badges {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-        justify-content: center;
-        font-size: 0.75em;
-    }
-    .stat-badge {
-        background: rgba(30, 144, 255, 0.3);
-        border: 1px solid rgba(30, 144, 255, 0.6);
-        border-radius: 12px;
-        padding: 2px 6px;
-        color: #87CEEB;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -835,122 +706,14 @@ def display_stat_card(player_name, value, emoji, card_type="orange"):
 
 def display_leaderboard(rankings_data):
     """
-    Display rankings as leaderboard with podium for top 3 and cards for rest.
+    Display rankings as a table.
     """
     if not rankings_data:
         st.info("No data available")
         return
     
-    # Separate top 3 and rest
-    top_3 = rankings_data[:3]
-    remaining = rankings_data[3:]
-    
-    # Display podium for top 3
-    if len(top_3) > 0:
-        st.markdown("### 🏆 Top 3 Rankings")
-        
-        # Create columns for podium
-        if len(top_3) == 1:
-            cols = st.columns([1])
-            podium_data = [(top_3[0], 0, "🥇")]
-        elif len(top_3) == 2:
-            cols = st.columns([1, 1])
-            podium_data = [(top_3[0], 0, "🥇"), (top_3[1], 1, "🥈")]
-        else:
-            cols = st.columns([1, 1, 1])
-            podium_data = [(top_3[0], 0, "🥇"), (top_3[1], 1, "🥈"), (top_3[2], 2, "🥉")]
-        
-        podium_styles = [
-            "background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);",
-            "background: linear-gradient(135deg, #C0C0C0 0%, #808080 100%);",
-            "background: linear-gradient(135deg, #CD7F32 0%, #8B4513 100%);"
-        ]
-        
-        for col_idx, (player_data, idx, medal) in enumerate(podium_data):
-            with cols[col_idx]:
-                name = player_data["🎮 Player"]
-                rating = player_data["⭐ Rating"]
-                
-                # Handle both Games and W-L format
-                if "📊 Games" in player_data:
-                    games_text = f"{player_data['📊 Games']} game{'s' if player_data['📊 Games'] != 1 else ''}"
-                else:
-                    games_text = player_data.get("📊 W-L", "")
-                
-                st.markdown(f"""
-                <div style="
-                    text-align: center;
-                    border-radius: 12px;
-                    padding: 20px;
-                    color: white;
-                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-                    {podium_styles[idx]}
-                    min-height: 200px;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: center;
-                ">
-                    <div style="font-size: 2.5em; margin-bottom: 10px;">{medal}</div>
-                    <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{name}</div>
-                    <div style="font-size: 1.8em; font-weight: bold; margin-bottom: 5px;">{rating:.2f}</div>
-                    <div style="font-size: 0.9em; opacity: 0.9;">{games_text}</div>
-                </div>
-                """, unsafe_allow_html=True)
-    
-    # Display remaining players as cards
-    if len(remaining) > 0:
-        st.markdown("### 📊 Other Players")
-        
-        # Create a grid of cards
-        cols = st.columns(2)
-        
-        for card_idx, player_data in enumerate(remaining):
-            col = cols[card_idx % 2]
-            
-            with col:
-                rank = player_data["🏅 Rank"]
-                name = player_data["🎮 Player"]
-                rating = player_data["⭐ Rating"]
-                
-                # Handle both Games and W-L format
-                if "📊 Games" in player_data:
-                    games_text = f"{player_data['📊 Games']} games"
-                else:
-                    games_text = player_data.get("📊 W-L", "")
-                
-                # Get average stats
-                avg_goals = float(player_data["⚽ Avg Goals"])
-                avg_assists = float(player_data["🎁 Avg Assists"])
-                avg_saves = float(player_data["🛡️ Avg Saves"])
-                
-                # Rating bar (0-10 scale)
-                bar_width = (rating / 10) * 100
-                
-                st.markdown(f"""
-                <div style="
-                    background: linear-gradient(135deg, rgba(30, 50, 80, 0.8) 0%, rgba(15, 20, 40, 0.8) 100%);
-                    border: 2px solid rgba(255, 107, 0, 0.3);
-                    border-radius: 10px;
-                    padding: 12px;
-                    text-align: center;
-                    color: white;
-                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-                    transition: all 0.3s ease;
-                ">
-                    <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 6px;">#{rank}</div>
-                    <div style="font-size: 0.95em; font-weight: bold; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{name}</div>
-                    <div style="font-size: 0.85em; color: #FFD700; font-weight: bold; margin-bottom: 6px;">⭐ {rating:.2f}</div>
-                    <div style="background: rgba(100, 100, 100, 0.3); height: 6px; border-radius: 3px; overflow: hidden; margin: 8px 0;">
-                        <div style="height: 100%; background: linear-gradient(90deg, #FF6B00 0%, #FFD700 100%); width: {bar_width}%; transition: width 0.3s ease;"></div>
-                    </div>
-                    <div style="display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; font-size: 0.75em; margin-bottom: 6px;">
-                        <span style="background: rgba(30, 144, 255, 0.3); border: 1px solid rgba(30, 144, 255, 0.6); border-radius: 12px; padding: 2px 6px; color: #87CEEB;">⚽ {avg_goals:.1f}</span>
-                        <span style="background: rgba(30, 144, 255, 0.3); border: 1px solid rgba(30, 144, 255, 0.6); border-radius: 12px; padding: 2px 6px; color: #87CEEB;">🎁 {avg_assists:.1f}</span>
-                        <span style="background: rgba(30, 144, 255, 0.3); border: 1px solid rgba(30, 144, 255, 0.6); border-radius: 12px; padding: 2px 6px; color: #87CEEB;">🛡️ {avg_saves:.1f}</span>
-                    </div>
-                    <div style="font-size: 0.8em; color: #999;">{games_text}</div>
-                </div>
-                """, unsafe_allow_html=True)
+    df_rankings = pd.DataFrame(rankings_data)
+    left_aligned_table(df_rankings)
 
 # ============================================================
 # HEADER
@@ -2890,8 +2653,8 @@ with tab5:
             for idx, rating_data in enumerate(overall_ratings, 1):
                 rating_data["🏅 Rank"] = idx
             
-            st.markdown("## 🌟 Overall Performance Leaderboard")
-            display_leaderboard(overall_ratings)
+            df_overall = pd.DataFrame(overall_ratings)
+            left_aligned_table(df_overall)
             
             st.divider()
             # ====================================================
