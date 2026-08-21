@@ -1714,8 +1714,10 @@ with tab3:
                 all_m = supabase.table("matches").select("team1_players, team2_players, winner").execute()
                 wins = sum(
                     1 for m in all_m.data
-                    if (player in [p.strip() for p in m["team1_players"].split(",")] and m["winner"] == 1) or
-                       (player in [p.strip() for p in m["team2_players"].split(",")] and m["winner"] == 2)
+                    if m.get("team1_players") and m.get("team2_players") and (
+                        (player in [p.strip() for p in m["team1_players"].split(",")] and m["winner"] == 1) or
+                        (player in [p.strip() for p in m["team2_players"].split(",")] and m["winner"] == 2)
+                    )
                 )
             except Exception:
                 wins = 0
@@ -1725,8 +1727,10 @@ with tab3:
                 all_m = supabase.table("matches").select("team1_players, team2_players, winner").execute()
                 losses = sum(
                     1 for m in all_m.data
-                    if (player in [p.strip() for p in m["team1_players"].split(",")] and m["winner"] == 2) or
-                       (player in [p.strip() for p in m["team2_players"].split(",")] and m["winner"] == 1)
+                    if m.get("team1_players") and m.get("team2_players") and (
+                        (player in [p.strip() for p in m["team1_players"].split(",")] and m["winner"] == 2) or
+                        (player in [p.strip() for p in m["team2_players"].split(",")] and m["winner"] == 1)
+                    )
                 )
             except Exception:
                 losses = 0
@@ -1976,6 +1980,9 @@ with tab4:
             t2 = match["team2_players"]
             winner = match["winner"]
             
+            if not t1 or not t2:
+                continue
+            
             t1_list = t1.split(",")
             t2_list = t2.split(",")
             
@@ -2094,8 +2101,13 @@ with tab4:
         }
         
         for match in all_match_data:
-            t1_list = match["team1_players"].split(",")
-            t2_list = match["team2_players"].split(",")
+            t1 = match.get("team1_players")
+            t2 = match.get("team2_players")
+            if not t1 or not t2:
+                continue
+            
+            t1_list = t1.split(",")
+            t2_list = t2.split(",")
             winner = match["winner"]
             
             if len(t1_list) == 1:
