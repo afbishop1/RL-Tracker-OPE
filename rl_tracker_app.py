@@ -1466,13 +1466,17 @@ with tab2:
                             t2p = match["team2_players"]
                             winner = match["winner"]
                             
-                            t1_players = t1p.split(",")
-                            t2_players = t2p.split(",")
-                            if winner == 1:
-                                winner_text = " + ".join(t1_players) + " Won"
-                            elif winner == 2:
-                                winner_text = " + ".join(t2_players) + " Won"
+                            if t1p and t2p:
+                                t1_players = t1p.split(",")
+                                t2_players = t2p.split(",")
+                                if winner == 1:
+                                    winner_text = " + ".join(t1_players) + " Won"
+                                elif winner == 2:
+                                    winner_text = " + ".join(t2_players) + " Won"
+                                else:
+                                    winner_text = "Pending"
                             else:
+                                continue
                                 winner_text = "Pending"
                             
                             # Goals totals
