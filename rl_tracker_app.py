@@ -1705,46 +1705,27 @@ with tab3:
         # Get overall stats for each player
         overall_stats = {}
         for player in all_players_list:
-            # Wins
+            # Wins - simplified without .or_()
             try:
-                wins_resp = (
-                    supabase.table("matches")
-                    .select("id", count="exact")
-                    .or_(f"and(team1_players.ilike.%{player}%,winner.eq.1),and(team2_players.ilike.%{player}%,winner.eq.2)")
-                    .execute()
+                all_m = supabase.table("matches").select("team1_players, team2_players, winner").execute()
+                wins = sum(
+                    1 for m in all_m.data
+                    if (player in [p.strip() for p in m["team1_players"].split(",")] and m["winner"] == 1) or
+                       (player in [p.strip() for p in m["team2_players"].split(",")] and m["winner"] == 2)
                 )
-                wins = wins_resp.count or 0
             except Exception:
-                # Fallback: fetch all and filter in Python
-                try:
-                    all_m = supabase.table("matches").select("team1_players, team2_players, winner").execute()
-                    wins = sum(
-                        1 for m in all_m.data
-                        if (player in [p.strip() for p in m["team1_players"].split(",")] and m["winner"] == 1) or
-                           (player in [p.strip() for p in m["team2_players"].split(",")] and m["winner"] == 2)
-                    )
-                except Exception:
-                    wins = 0
+                wins = 0
             
-            # Losses
+            # Losses - simplified without .or_()
             try:
-                losses_resp = (
-                    supabase.table("matches")
-                    .select("id", count="exact")
-                    .or_(f"and(team1_players.ilike.%{player}%,winner.eq.2),and(team2_players.ilike.%{player}%,winner.eq.1)")
-                    .execute()
+                all_m = supabase.table("matches").select("team1_players, team2_players, winner").execute()
+                losses = sum(
+                    1 for m in all_m.data
+                    if (player in [p.strip() for p in m["team1_players"].split(",")] and m["winner"] == 2) or
+                       (player in [p.strip() for p in m["team2_players"].split(",")] and m["winner"] == 1)
                 )
-                losses = losses_resp.count or 0
             except Exception:
-                try:
-                    all_m = supabase.table("matches").select("team1_players, team2_players, winner").execute()
-                    losses = sum(
-                        1 for m in all_m.data
-                        if (player in [p.strip() for p in m["team1_players"].split(",")] and m["winner"] == 2) or
-                           (player in [p.strip() for p in m["team2_players"].split(",")] and m["winner"] == 1)
-                    )
-                except Exception:
-                    losses = 0
+                losses = 0
             
             games = wins + losses
             win_pct = (wins / games) * 100 if games > 0 else 0
