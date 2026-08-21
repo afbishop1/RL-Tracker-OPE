@@ -1,9 +1,10 @@
 import streamlit as st
-import sqlite3
 import pandas as pd
 from datetime import datetime
 from collections import defaultdict
 import pytz
+from supabase import create_client, Client
+
 # ============================================================
 # PAGE CONFIG
 # ============================================================
@@ -12,6 +13,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
 # ============================================================
 # CUSTOM CSS - ROCKET LEAGUE THEME
 # ============================================================
@@ -493,6 +495,7 @@ const observer = new MutationObserver(() => {
 observer.observe(document.body, { childList: true, subtree: true });
 </script>
 """, unsafe_allow_html=True)
+
 def left_aligned_table(df):
     """
     Displays a pandas DataFrame as an HTML table with
@@ -515,107 +518,49 @@ def left_aligned_table(df):
         """,
         unsafe_allow_html=True
     )
+
 # ============================================================
-# DATABASE SETUP
+# SUPABASE SETUP
 # ============================================================
-def init_db():
-    conn = sqlite3.connect("rl_matches.db")
-    c = conn.cursor()
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS matches
-        (
-            id INTEGER PRIMARY KEY,
-            series_number INTEGER,
-            match_number INTEGER,
-            best_of INTEGER,
-            timestamp TEXT,
-            team1_players TEXT,
-            team2_players TEXT,
-            team1_score INTEGER,
-            team2_score INTEGER,
-            winner INTEGER
-        )
-    """)
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS player_stats
-        (
-            id INTEGER PRIMARY KEY,
-            match_id INTEGER,
-            player_name TEXT,
-            team INTEGER,
-            score INTEGER,
-            goals INTEGER,
-            assists INTEGER,
-            saves INTEGER,
-            shots INTEGER,
-            excuse_used INTEGER,
-            FOREIGN KEY(match_id) REFERENCES matches(id)
-        )
-    """)
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS activity_log
-        (
-            id INTEGER PRIMARY KEY,
-            timestamp TEXT,
-            user_name TEXT,
-            action TEXT
-        )
-    """)
-    # Auto migration
-    try:
-        c.execute("PRAGMA table_info(player_stats)")
-        columns = [row[1] for row in c.fetchall()]
-        if "shots" not in columns:
-            c.execute(
-                "ALTER TABLE player_stats ADD COLUMN shots INTEGER DEFAULT 0"
-            )
-        if "excuse_used" not in columns:
-            c.execute(
-                "ALTER TABLE player_stats ADD COLUMN excuse_used INTEGER DEFAULT 0"
-            )
-        conn.commit()
-    except Exception as e:
-        print(f"Migration error: {e}")
-    conn.commit()
-    return conn
+@st.cache_resource
+def get_supabase() -> Client:
+    """Create and cache the Supabase client."""
+    url = st.secrets["supabase"]["url"]
+    key = st.secrets["supabase"]["key"]
+    return create_client(url, key)
+
+supabase = get_supabase()
 
 # ============================================================
 # AUTO-RENUMBER SERIES (QUICK FIX FOR DELETED SERIES)
 # ============================================================
 def renumber_series():
     """Renumber series sequentially if gaps exist from deletions"""
-    conn = sqlite3.connect("rl_matches.db")
-    c = conn.cursor()
-    
-    c.execute("""
-        SELECT DISTINCT series_number
-        FROM matches
-        ORDER BY series_number
-    """)
-    old_series = [row[0] for row in c.fetchall()]
-    
-    if not old_series:
-        conn.close()
-        return
-    
-    # Create mapping from old to new
-    old_to_new = {old_num: new_num for new_num, old_num in enumerate(old_series, 1)}
-    
-    # Update if there are gaps
-    if old_to_new != {i: i for i in range(1, len(old_series) + 1)}:
-        for old_num, new_num in old_to_new.items():
-            if old_num != new_num:
-                c.execute("""
-                    UPDATE matches
-                    SET series_number = ?
-                    WHERE series_number = ?
-                """, (new_num, old_num))
-        conn.commit()
-    
-    conn.close()
-conn = init_db()
+    try:
+        response = supabase.table("matches").select("series_number").order("series_number").execute()
+        if not response.data:
+            return
+        
+        old_series = sorted(list(set(row["series_number"] for row in response.data)))
+        
+        if not old_series:
+            return
+        
+        # Create mapping from old to new
+        old_to_new = {old_num: new_num for new_num, old_num in enumerate(old_series, 1)}
+        
+        # Update if there are gaps
+        expected = {i: i for i in range(1, len(old_series) + 1)}
+        if old_to_new != expected:
+            for old_num, new_num in old_to_new.items():
+                if old_num != new_num:
+                    supabase.table("matches").update({"series_number": new_num}).eq("series_number", old_num).execute()
+    except Exception as e:
+        print(f"Renumber series error: {e}")
+
+# Run renumber on startup
 renumber_series()
-c = conn.cursor()
+
 # ============================================================
 # PLAYERS
 # ============================================================
@@ -628,6 +573,7 @@ PLAYERS = [
     "BucciXman",
     "SirLagz54"
 ]
+
 # ============================================================
 # TITLE
 # ============================================================
@@ -666,6 +612,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 st.divider()
+
 # ============================================================
 # SESSION STATE
 # ============================================================
@@ -677,6 +624,7 @@ if "delete_series_num" not in st.session_state:
     st.session_state.delete_series_num = None
 if "reset_counter" not in st.session_state:
     st.session_state.reset_counter = 0
+
 # ============================================================
 # PERFORMANCE RATING CALCULATION
 # ============================================================
@@ -722,6 +670,18 @@ def display_leaderboard(rankings_data):
     left_aligned_table(df_rankings)
 
 # ============================================================
+# HELPER: Get match type filter value (comma count)
+# ============================================================
+def get_comma_count_for_type(match_type: str) -> int:
+    """Return the number of commas expected in team1_players for a match type."""
+    if match_type == "1v1":
+        return 0
+    elif match_type == "2v2":
+        return 1
+    else:  # 3v3
+        return 2
+
+# ============================================================
 # HEADER
 # ============================================================
 # TABS
@@ -736,6 +696,7 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
         "🏅 Records"
     ]
 )
+
 # ============================================================
 # TAB 1 - LOG MATCH
 # ============================================================
@@ -813,22 +774,32 @@ with tab1:
     # --------------------------------------------------------
     # CURRENT SERIES
     # --------------------------------------------------------
-    c.execute("""
-        SELECT series_number, match_number, best_of
-        FROM matches
-        ORDER BY series_number DESC, match_number DESC
-        LIMIT 1
-    """)
-    last_match = c.fetchone()
+    try:
+        last_match_resp = (
+            supabase.table("matches")
+            .select("series_number, match_number, best_of")
+            .order("series_number", desc=True)
+            .order("match_number", desc=True)
+            .limit(1)
+            .execute()
+        )
+        last_match = last_match_resp.data[0] if last_match_resp.data else None
+    except Exception:
+        last_match = None
+
     if last_match:
-        last_series, last_match_num, last_bo = last_match
-        c.execute("""
-            SELECT COUNT(*)
-            FROM matches
-            WHERE series_number = ?
-            AND winner IS NOT NULL
-        """, (last_series,))
-        wins_in_series = c.fetchone()[0]
+        last_series = last_match["series_number"]
+        last_bo = last_match["best_of"]
+        
+        wins_resp = (
+            supabase.table("matches")
+            .select("id", count="exact")
+            .eq("series_number", last_series)
+            .not_.is_("winner", "null")
+            .execute()
+        )
+        wins_in_series = wins_resp.count if wins_resp.count is not None else 0
+        
         wins_needed = 2 if last_bo == 3 else 3
         if wins_in_series >= wins_needed:
             current_series = last_series + 1
@@ -836,22 +807,28 @@ with tab1:
             current_series = last_series
     else:
         current_series = 1
+
     st.markdown(
         f'<div class="series-header">Series {current_series} - {best_of}</div>',
         unsafe_allow_html=True
     )
     
     # Show series progress
-    c.execute("""
-        SELECT winner, COUNT(*) as count
-        FROM matches
-        WHERE series_number = ? AND winner IS NOT NULL
-        GROUP BY winner
-    """, (current_series,))
-    
-    wins = {1: 0, 2: 0}
-    for winner, count in c.fetchall():
-        wins[winner] = count
+    try:
+        wins_resp = (
+            supabase.table("matches")
+            .select("winner")
+            .eq("series_number", current_series)
+            .not_.is_("winner", "null")
+            .execute()
+        )
+        wins = {1: 0, 2: 0}
+        for row in wins_resp.data:
+            w = row["winner"]
+            if w in wins:
+                wins[w] += 1
+    except Exception:
+        wins = {1: 0, 2: 0}
     
     wins_needed = 2 if best_of == "Best of 3" else 3
     
@@ -1234,102 +1211,57 @@ with tab1:
                             p["score"]
                             for p in game["team2_stats"]
                         )
-                        c.execute("""
-                            INSERT INTO matches
-                            (
-                                series_number,
-                                match_number,
-                                best_of,
-                                timestamp,
-                                team1_players,
-                                team2_players,
-                                team1_score,
-                                team2_score,
-                                winner
-                            )
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """, (
-                            current_series,
-                            game["game_num"],
-                            bo_num,
-                            datetime.now().isoformat(),
-                            ",".join(game["team1_players"]),
-                            ",".join(game["team2_players"]),
-                            t1_total,
-                            t2_total,
-                            game["winner"]
-                        ))
-                        match_id = c.lastrowid
+                        
+                        # Insert match
+                        match_insert = {
+                            "series_number": current_series,
+                            "match_number": game["game_num"],
+                            "best_of": bo_num,
+                            "timestamp": datetime.now().isoformat(),
+                            "team1_players": ",".join(game["team1_players"]),
+                            "team2_players": ",".join(game["team2_players"]),
+                            "team1_score": t1_total,
+                            "team2_score": t2_total,
+                            "winner": game["winner"]
+                        }
+                        match_resp = supabase.table("matches").insert(match_insert).execute()
+                        match_id = match_resp.data[0]["id"]
+                        
                         # Team 1 stats
                         for stat in game["team1_stats"]:
-                            c.execute("""
-                                INSERT INTO player_stats
-                                (
-                                    match_id,
-                                    player_name,
-                                    team,
-                                    score,
-                                    goals,
-                                    assists,
-                                    saves,
-                                    shots,
-                                    excuse_used
-                                )
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                            """, (
-                                match_id,
-                                stat["player"],
-                                1,
-                                int(stat["score"]),
-                                int(stat["goals"]),
-                                int(stat["assists"]),
-                                int(stat["saves"]),
-                                int(stat["shots"]),
-                                int(stat["excuse_used"])
-                            ))
+                            supabase.table("player_stats").insert({
+                                "match_id": match_id,
+                                "player_name": stat["player"],
+                                "team": 1,
+                                "score": int(stat["score"]),
+                                "goals": int(stat["goals"]),
+                                "assists": int(stat["assists"]),
+                                "saves": int(stat["saves"]),
+                                "shots": int(stat["shots"]),
+                                "excuse_used": int(stat["excuse_used"])
+                            }).execute()
+                        
                         # Team 2 stats
                         for stat in game["team2_stats"]:
-                            c.execute("""
-                                INSERT INTO player_stats
-                                (
-                                    match_id,
-                                    player_name,
-                                    team,
-                                    score,
-                                    goals,
-                                    assists,
-                                    saves,
-                                    shots,
-                                    excuse_used
-                                )
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                            """, (
-                                match_id,
-                                stat["player"],
-                                2,
-                                int(stat["score"]),
-                                int(stat["goals"]),
-                                int(stat["assists"]),
-                                int(stat["saves"]),
-                                int(stat["shots"]),
-                                int(stat["excuse_used"])
-                            ))
-                    conn.commit()
+                            supabase.table("player_stats").insert({
+                                "match_id": match_id,
+                                "player_name": stat["player"],
+                                "team": 2,
+                                "score": int(stat["score"]),
+                                "goals": int(stat["goals"]),
+                                "assists": int(stat["assists"]),
+                                "saves": int(stat["saves"]),
+                                "shots": int(stat["shots"]),
+                                "excuse_used": int(stat["excuse_used"])
+                            }).execute()
+                    
                     # Activity log
-                    c.execute("""
-                        INSERT INTO activity_log
-                        (
-                            timestamp,
-                            user_name,
-                            action
-                        )
-                        VALUES (?, ?, ?)
-                    """, (
-                        datetime.now().isoformat(),
-                        confirming_user,
-                        "entered a game"
-                    ))
-                    conn.commit()
+                    supabase.table("activity_log").insert({
+                        "timestamp": datetime.now().isoformat(),
+                        "user_name": confirming_user,
+                        "action": "entered a game"
+                    }).execute()
+                    
                     st.session_state.reset_counter += 1
                     st.session_state.series_team1 = [
                         "Choose Player"
@@ -1352,6 +1284,7 @@ with tab1:
             ):
                 st.session_state.confirm_submit = False
                 st.rerun()
+
 # ============================================================
 # TAB 2 - SERIES HISTORY
 # ============================================================
@@ -1363,13 +1296,25 @@ with tab2:
     ):
         st.rerun()
     st.divider()
-    c.execute("""
-        SELECT series_number, best_of, match_number
-        FROM matches
-        GROUP BY series_number
-        ORDER BY series_number DESC
-    """)
-    series_list = c.fetchall()
+    
+    try:
+        series_resp = (
+            supabase.table("matches")
+            .select("series_number, best_of, match_number")
+            .order("series_number", desc=True)
+            .execute()
+        )
+        # Group by series_number to get unique series
+        seen = set()
+        series_list = []
+        for row in series_resp.data:
+            sn = row["series_number"]
+            if sn not in seen:
+                seen.add(sn)
+                series_list.append((sn, row["best_of"], row["match_number"]))
+    except Exception:
+        series_list = []
+    
     if not series_list:
         st.info("📭 No matches logged yet")
     else:
@@ -1379,26 +1324,27 @@ with tab2:
             "3v3": []
         }
         for series_num, bo, last_match in series_list:
-            c.execute("""
-                SELECT team1_players
-                FROM matches
-                WHERE series_number = ?
-                ORDER BY match_number
-                LIMIT 1
-            """, (series_num,))
-            first_match = c.fetchone()
-            if first_match:
-                t1_players = first_match[0].split(",")
-                num_players_in_series = len(t1_players)
-                if num_players_in_series == 1:
-                    match_type = "1v1"
-                elif num_players_in_series == 2:
-                    match_type = "2v2"
-                else:
-                    match_type = "3v3"
-                series_by_type[match_type].append(
-                    (series_num, bo, last_match)
+            try:
+                first_match_resp = (
+                    supabase.table("matches")
+                    .select("team1_players")
+                    .eq("series_number", series_num)
+                    .order("match_number")
+                    .limit(1)
+                    .execute()
                 )
+                if first_match_resp.data:
+                    t1_players = first_match_resp.data[0]["team1_players"].split(",")
+                    num_players_in_series = len(t1_players)
+                    if num_players_in_series == 1:
+                        mt = "1v1"
+                    elif num_players_in_series == 2:
+                        mt = "2v2"
+                    else:
+                        mt = "3v3"
+                    series_by_type[mt].append((series_num, bo, last_match))
+            except Exception:
+                pass
         
         for match_type in ["1v1", "2v2", "3v3"]:
             st.markdown(f"## {match_type}")
@@ -1406,36 +1352,56 @@ with tab2:
                 st.info(f"📭 No {match_type} series yet")
             else:
                 for series_num, bo, last_match in series_by_type[match_type]:
-                    c.execute("""SELECT team1_players, team2_players FROM matches WHERE series_number = ? ORDER BY match_number LIMIT 1""", (series_num,))
-                    first_match = c.fetchone()
-                    if first_match:
-                        t1_players = first_match[0]
-                        t2_players = first_match[1]
-                        player_info = f"({t1_players} vs {t2_players})"
-                        t1_list = t1_players.split(",")
-                        t2_list = t2_players.split(",")
-                    else:
+                    try:
+                        first_match_resp = (
+                            supabase.table("matches")
+                            .select("team1_players, team2_players")
+                            .eq("series_number", series_num)
+                            .order("match_number")
+                            .limit(1)
+                            .execute()
+                        )
+                        if first_match_resp.data:
+                            t1_players = first_match_resp.data[0]["team1_players"]
+                            t2_players = first_match_resp.data[0]["team2_players"]
+                            player_info = f"({t1_players} vs {t2_players})"
+                            t1_list = t1_players.split(",")
+                            t2_list = t2_players.split(",")
+                        else:
+                            player_info = ""
+                            t1_list = []
+                            t2_list = []
+                        
+                        wins_resp = (
+                            supabase.table("matches")
+                            .select("winner")
+                            .eq("series_number", series_num)
+                            .execute()
+                        )
+                        t1_wins = 0
+                        t2_wins = 0
+                        for row in wins_resp.data:
+                            if row["winner"] == 1:
+                                t1_wins += 1
+                            elif row["winner"] == 2:
+                                t2_wins += 1
+                        
+                        if t1_wins > t2_wins:
+                            series_winner = " + ".join(t1_list)
+                            series_record = f"{t1_wins}-{t2_wins}"
+                        elif t2_wins > t1_wins:
+                            series_winner = " + ".join(t2_list)
+                            series_record = f"{t2_wins}-{t1_wins}"
+                        else:
+                            series_winner = "Tied"
+                            series_record = f"{t1_wins}-{t2_wins}"
+                    except Exception:
                         player_info = ""
+                        series_winner = "?"
+                        series_record = "?-?"
                         t1_list = []
                         t2_list = []
-                    c.execute("""SELECT winner, COUNT(*) FROM matches WHERE series_number = ? GROUP BY winner""", (series_num,))
-                    wins_data = c.fetchall()
-                    t1_wins = 0
-                    t2_wins = 0
-                    for winner, count in wins_data:
-                        if winner == 1:
-                            t1_wins = count
-                        elif winner == 2:
-                            t2_wins = count
-                    if t1_wins > t2_wins:
-                        series_winner = " + ".join(t1_list)
-                        series_record = f"{t1_wins}-{t2_wins}"
-                    elif t2_wins > t1_wins:
-                        series_winner = " + ".join(t2_list)
-                        series_record = f"{t2_wins}-{t1_wins}"
-                    else:
-                        series_winner = "Tied"
-                        series_record = f"{t1_wins}-{t2_wins}"
+                    
                     col1, col2 = st.columns([0.95, 0.05])
                     with col1:
                         expander = st.expander(f"📊 Series {series_num} - {series_winner} Won {series_record} {player_info}", expanded=False)
@@ -1444,6 +1410,7 @@ with tab2:
                         if st.button("🗑️", key=f"delete_series_{series_num}", help="Delete this series", use_container_width=True):
                             st.session_state.confirm_delete = True
                             st.session_state.delete_series_num = series_num
+                    
                     if st.session_state.get("confirm_delete", False) and st.session_state.get("delete_series_num") == series_num:
                         st.divider()
                         st.markdown(f"### 👤 Who is deleting Series {series_num}?")
@@ -1451,63 +1418,86 @@ with tab2:
                         col1, col2 = st.columns(2)
                         with col1:
                             if st.button("✅ Confirm Delete", use_container_width=True, key=f"confirm_delete_{series_num}"):
-                                c.execute("""DELETE FROM player_stats WHERE match_id IN (SELECT id FROM matches WHERE series_number = ?)""", (series_num,))
-                                c.execute("""DELETE FROM matches WHERE series_number = ?""", (series_num,))
-                                c.execute("""INSERT INTO activity_log (timestamp, user_name, action) VALUES (?, ?, ?)""", (datetime.now().isoformat(), deleting_user, "deleted a game"))
-                                conn.commit()
+                                # Get match IDs for this series
+                                matches_resp = (
+                                    supabase.table("matches")
+                                    .select("id")
+                                    .eq("series_number", series_num)
+                                    .execute()
+                                )
+                                match_ids = [m["id"] for m in matches_resp.data]
+                                
+                                # Delete player_stats first (or rely on cascade)
+                                for mid in match_ids:
+                                    supabase.table("player_stats").delete().eq("match_id", mid).execute()
+                                
+                                # Delete matches
+                                supabase.table("matches").delete().eq("series_number", series_num).execute()
+                                
+                                # Activity log
+                                supabase.table("activity_log").insert({
+                                    "timestamp": datetime.now().isoformat(),
+                                    "user_name": deleting_user,
+                                    "action": "deleted a game"
+                                }).execute()
+                                
                                 st.session_state.confirm_delete = False
                                 st.session_state.delete_series_num = None
                                 st.success(f"Series {series_num} deleted by {deleting_user}!")
                                 st.rerun()
+                    
                     with expander:
-                        c.execute("""
-                            SELECT *
-                            FROM matches
-                            WHERE series_number = ?
-                            ORDER BY match_number
-                        """, (series_num,))
-                        matches = c.fetchall()
+                        try:
+                            matches_resp = (
+                                supabase.table("matches")
+                                .select("*")
+                                .eq("series_number", series_num)
+                                .order("match_number")
+                                .execute()
+                            )
+                            matches = matches_resp.data
+                        except Exception:
+                            matches = []
+                        
                         for match in matches:
-                            (
-                                match_id,
-                                sn,
-                                mn,
-                                b,
-                                ts,
-                                t1p,
-                                t2p,
-                                t1s,
-                                t2s,
-                                winner
-                            ) = match
+                            match_id = match["id"]
+                            mn = match["match_number"]
+                            t1p = match["team1_players"]
+                            t2p = match["team2_players"]
+                            winner = match["winner"]
+                            
                             t1_players = t1p.split(",")
                             t2_players = t2p.split(",")
                             if winner == 1:
-                                winner_text = (
-                                    " + ".join(t1_players)
-                                    + " Won"
-                                )
+                                winner_text = " + ".join(t1_players) + " Won"
                             elif winner == 2:
-                                winner_text = (
-                                    " + ".join(t2_players)
-                                    + " Won"
-                                )
+                                winner_text = " + ".join(t2_players) + " Won"
                             else:
                                 winner_text = "Pending"
-                            c.execute("""
-                                SELECT SUM(goals)
-                                FROM player_stats
-                                WHERE match_id = ?
-                                AND team = 1
-                            """, (match_id,))
-                            t1_goals = c.fetchone()[0] or 0
-                            c.execute("""
-                                SELECT SUM(goals)
-                                FROM player_stats
-                                WHERE match_id = ?
-                                AND team = 2
-                            """, (match_id,))
-                            t2_goals = c.fetchone()[0] or 0
+                            
+                            # Goals totals
+                            try:
+                                t1_goals_resp = (
+                                    supabase.table("player_stats")
+                                    .select("goals")
+                                    .eq("match_id", match_id)
+                                    .eq("team", 1)
+                                    .execute()
+                                )
+                                t1_goals = sum(r["goals"] or 0 for r in t1_goals_resp.data)
+                                
+                                t2_goals_resp = (
+                                    supabase.table("player_stats")
+                                    .select("goals")
+                                    .eq("match_id", match_id)
+                                    .eq("team", 2)
+                                    .execute()
+                                )
+                                t2_goals = sum(r["goals"] or 0 for r in t2_goals_resp.data)
+                            except Exception:
+                                t1_goals = 0
+                                t2_goals = 0
+                            
                             st.markdown(f"""
                             <div style="
                                 background: linear-gradient(90deg, rgba(255,107,0,0.15) 0%, rgba(30,144,255,0.15) 100%);
@@ -1522,6 +1512,7 @@ with tab2:
                                 </div>
                             </div>
                             """, unsafe_allow_html=True)
+                            
                             col1, col2 = st.columns(2)
                             with col1:
                                 st.markdown(
@@ -1537,31 +1528,30 @@ with tab2:
                                     """,
                                     unsafe_allow_html=True
                                 )
-                                c.execute("""
-                                    SELECT
-                                        player_name,
-                                        score,
-                                        goals,
-                                        assists,
-                                        saves,
-                                        shots
-                                    FROM player_stats
-                                    WHERE match_id = ?
-                                    AND team = 1
-                                """, (match_id,))
-                                for row in c.fetchall():
-                                    st.markdown(f"""
-                                    <div style="background: rgba(255, 107, 0, 0.1); border-left: 3px solid #FF6B00; padding: 12px; border-radius: 6px; margin-bottom: 8px;">
-                                        <div style="font-weight: bold; color: #FFD700; margin-bottom: 6px;">{row[0]}</div>
-                                        <div style="font-size: 0.9em; color: #E8EAED; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                                            <span>📍 Score: <b>{row[1]}</b></span>
-                                            <span>⚽ Goals: <b>{row[2]}</b></span>
-                                            <span>🎁 Assists: <b>{row[3]}</b></span>
-                                            <span>🛡️ Saves: <b>{row[4]}</b></span>
-                                            <span>🔫 Shots: <b>{row[5]}</b></span>
+                                try:
+                                    t1_stats_resp = (
+                                        supabase.table("player_stats")
+                                        .select("player_name, score, goals, assists, saves, shots")
+                                        .eq("match_id", match_id)
+                                        .eq("team", 1)
+                                        .execute()
+                                    )
+                                    for row in t1_stats_resp.data:
+                                        st.markdown(f"""
+                                        <div style="background: rgba(255, 107, 0, 0.1); border-left: 3px solid #FF6B00; padding: 12px; border-radius: 6px; margin-bottom: 8px;">
+                                            <div style="font-weight: bold; color: #FFD700; margin-bottom: 6px;">{row['player_name']}</div>
+                                            <div style="font-size: 0.9em; color: #E8EAED; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                                <span>📍 Score: <b>{row['score']}</b></span>
+                                                <span>⚽ Goals: <b>{row['goals']}</b></span>
+                                                <span>🎁 Assists: <b>{row['assists']}</b></span>
+                                                <span>🛡️ Saves: <b>{row['saves']}</b></span>
+                                                <span>🔫 Shots: <b>{row['shots']}</b></span>
+                                            </div>
                                         </div>
-                                    </div>
-                                    """, unsafe_allow_html=True)
+                                        """, unsafe_allow_html=True)
+                                except Exception:
+                                    st.info("No stats")
+                            
                             with col2:
                                 st.markdown(
                                     """
@@ -1576,93 +1566,117 @@ with tab2:
                                     """,
                                     unsafe_allow_html=True
                                 )
-                                c.execute("""
-                                    SELECT
-                                        player_name,
-                                        score,
-                                        goals,
-                                        assists,
-                                        saves,
-                                        shots
-                                    FROM player_stats
-                                    WHERE match_id = ?
-                                    AND team = 2
-                                """, (match_id,))
-                                for row in c.fetchall():
+                                try:
+                                    t2_stats_resp = (
+                                        supabase.table("player_stats")
+                                        .select("player_name, score, goals, assists, saves, shots")
+                                        .eq("match_id", match_id)
+                                        .eq("team", 2)
+                                        .execute()
+                                    )
+                                    for row in t2_stats_resp.data:
+                                        st.markdown(f"""
+                                        <div style="background: rgba(30, 144, 255, 0.1); border-left: 3px solid #1E90FF; padding: 12px; border-radius: 6px; margin-bottom: 8px;">
+                                            <div style="font-weight: bold; color: #87CEEB; margin-bottom: 6px;">{row['player_name']}</div>
+                                            <div style="font-size: 0.9em; color: #E8EAED; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                                <span>📍 Score: <b>{row['score']}</b></span>
+                                                <span>⚽ Goals: <b>{row['goals']}</b></span>
+                                                <span>🎁 Assists: <b>{row['assists']}</b></span>
+                                                <span>🛡️ Saves: <b>{row['saves']}</b></span>
+                                                <span>🔫 Shots: <b>{row['shots']}</b></span>
+                                            </div>
+                                        </div>
+                                        """, unsafe_allow_html=True)
+                                except Exception:
+                                    st.info("No stats")
+                            
+                            st.divider()
+                        
+                        st.markdown("### Series Totals")
+                        try:
+                            # Get all match IDs for series
+                            match_ids_resp = (
+                                supabase.table("matches")
+                                .select("id")
+                                .eq("series_number", series_num)
+                                .execute()
+                            )
+                            match_ids = [m["id"] for m in match_ids_resp.data]
+                            
+                            if match_ids:
+                                totals_resp = (
+                                    supabase.table("player_stats")
+                                    .select("player_name, score, goals, assists, saves, shots")
+                                    .in_("match_id", match_ids)
+                                    .execute()
+                                )
+                                
+                                # Aggregate in Python
+                                player_totals = defaultdict(lambda: {"score": 0, "goals": 0, "assists": 0, "saves": 0, "shots": 0})
+                                for row in totals_resp.data:
+                                    p = row["player_name"]
+                                    player_totals[p]["score"] += row["score"] or 0
+                                    player_totals[p]["goals"] += row["goals"] or 0
+                                    player_totals[p]["assists"] += row["assists"] or 0
+                                    player_totals[p]["saves"] += row["saves"] or 0
+                                    player_totals[p]["shots"] += row["shots"] or 0
+                                
+                                sorted_totals = sorted(player_totals.items(), key=lambda x: x[1]["score"], reverse=True)
+                                for pname, totals in sorted_totals:
                                     st.markdown(f"""
-                                    <div style="background: rgba(30, 144, 255, 0.1); border-left: 3px solid #1E90FF; padding: 12px; border-radius: 6px; margin-bottom: 8px;">
-                                        <div style="font-weight: bold; color: #87CEEB; margin-bottom: 6px;">{row[0]}</div>
-                                        <div style="font-size: 0.9em; color: #E8EAED; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                                            <span>📍 Score: <b>{row[1]}</b></span>
-                                            <span>⚽ Goals: <b>{row[2]}</b></span>
-                                            <span>🎁 Assists: <b>{row[3]}</b></span>
-                                            <span>🛡️ Saves: <b>{row[4]}</b></span>
-                                            <span>🔫 Shots: <b>{row[5]}</b></span>
+                                    <div style="background: rgba(255, 165, 0, 0.08); border: 1px solid rgba(255, 107, 0, 0.3); padding: 10px; border-radius: 6px; margin-bottom: 6px;">
+                                        <div style="font-weight: bold; color: #FFD700; margin-bottom: 4px;">{pname}</div>
+                                        <div style="font-size: 0.85em; color: #E8EAED; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
+                                            <span>📍 {totals['score']}</span>
+                                            <span>⚽ {totals['goals']}</span>
+                                            <span>🎁 {totals['assists']}</span>
+                                            <span>🛡️ {totals['saves']}</span>
+                                            <span>🔫 {totals['shots']}</span>
                                         </div>
                                     </div>
                                     """, unsafe_allow_html=True)
-                            st.divider()
-                        st.markdown("### Series Totals")
-                        c.execute("""
-                            SELECT
-                                player_name,
-                                SUM(score),
-                                SUM(goals),
-                                SUM(assists),
-                                SUM(saves),
-                                SUM(shots)
-                            FROM player_stats
-                            WHERE match_id IN
-                            (
-                                SELECT id
-                                FROM matches
-                                WHERE series_number = ?
-                            )
-                            GROUP BY player_name
-                            ORDER BY SUM(score) DESC
-                        """, (series_num,))
-                        for row in c.fetchall():
-                            st.markdown(f"""
-                            <div style="background: rgba(255, 165, 0, 0.08); border: 1px solid rgba(255, 107, 0, 0.3); padding: 10px; border-radius: 6px; margin-bottom: 6px;">
-                                <div style="font-weight: bold; color: #FFD700; margin-bottom: 4px;">{row[0]}</div>
-                                <div style="font-size: 0.85em; color: #E8EAED; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
-                                    <span>📍 {row[1]}</span>
-                                    <span>⚽ {row[2]}</span>
-                                    <span>🎁 {row[3]}</span>
-                                    <span>🛡️ {row[4]}</span>
-                                    <span>🔫 {row[5]}</span>
-                                </div>
-                            </div>
-                            """, unsafe_allow_html=True)
+                        except Exception as e:
+                            st.info(f"Could not load series totals: {e}")
+            
             st.divider()
+    
     # Activity Log
     st.markdown("## 📋 Activity Log")
-    c.execute("""
-        SELECT timestamp, user_name, action
-        FROM activity_log
-        ORDER BY timestamp DESC
-        LIMIT 50
-    """)
-    logs = c.fetchall()
+    try:
+        logs_resp = (
+            supabase.table("activity_log")
+            .select("timestamp, user_name, action")
+            .order("timestamp", desc=True)
+            .limit(50)
+            .execute()
+        )
+        logs = logs_resp.data
+    except Exception:
+        logs = []
+    
     if not logs:
         st.info("📭 No activity yet")
     else:
         eastern = pytz.timezone("US/Eastern")
-        for timestamp, user_name, action in logs:
-            ts = datetime.fromisoformat(timestamp)
-            ts_utc = (
-                pytz.UTC.localize(ts)
-                if ts.tzinfo is None
-                else ts
-            )
-            ts_eastern = ts_utc.astimezone(eastern)
-            ts_str = ts_eastern.strftime(
-                "%m/%d %I:%M %p"
-            )
-            st.markdown(
-                f"**{user_name}** {action} · {ts_str}"
-            )
+        for log in logs:
+            timestamp = log["timestamp"]
+            user_name = log["user_name"]
+            action = log["action"]
+            try:
+                # Handle both with and without timezone
+                if "Z" in timestamp or "+" in timestamp or timestamp.endswith("00"):
+                    ts = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+                else:
+                    ts = datetime.fromisoformat(timestamp)
+                
+                ts_utc = pytz.UTC.localize(ts) if ts.tzinfo is None else ts
+                ts_eastern = ts_utc.astimezone(eastern)
+                ts_str = ts_eastern.strftime("%m/%d %I:%M %p")
+            except Exception:
+                ts_str = timestamp
+            st.markdown(f"**{user_name}** {action} · {ts_str}")
     st.divider()
+
 # ============================================================
 # TAB 3 - PLAYER STATS
 # ============================================================
@@ -1674,88 +1688,84 @@ with tab3:
     ):
         st.rerun()
     st.divider()
-    c.execute("""
-        SELECT DISTINCT player_name
-        FROM player_stats
-        ORDER BY player_name
-    """)
-    all_players_list = [
-        row[0]
-        for row in c.fetchall()
-    ]
+    
+    try:
+        players_resp = (
+            supabase.table("player_stats")
+            .select("player_name")
+            .execute()
+        )
+        all_players_list = sorted(list(set(row["player_name"] for row in players_resp.data)))
+    except Exception:
+        all_players_list = []
+    
     if not all_players_list:
         st.info("📭 No player data yet")
     else:
         # Get overall stats for each player
         overall_stats = {}
         for player in all_players_list:
-            c.execute("""
-                SELECT COUNT(*)
-                FROM matches
-                WHERE
-                    (
-                        team1_players LIKE ?
-                        AND winner = 1
+            # Wins
+            try:
+                wins_resp = (
+                    supabase.table("matches")
+                    .select("id", count="exact")
+                    .or_(f"and(team1_players.ilike.%{player}%,winner.eq.1),and(team2_players.ilike.%{player}%,winner.eq.2)")
+                    .execute()
+                )
+                wins = wins_resp.count or 0
+            except Exception:
+                # Fallback: fetch all and filter in Python
+                try:
+                    all_m = supabase.table("matches").select("team1_players, team2_players, winner").execute()
+                    wins = sum(
+                        1 for m in all_m.data
+                        if (player in [p.strip() for p in m["team1_players"].split(",")] and m["winner"] == 1) or
+                           (player in [p.strip() for p in m["team2_players"].split(",")] and m["winner"] == 2)
                     )
-                    OR
-                    (
-                        team2_players LIKE ?
-                        AND winner = 2
+                except Exception:
+                    wins = 0
+            
+            # Losses
+            try:
+                losses_resp = (
+                    supabase.table("matches")
+                    .select("id", count="exact")
+                    .or_(f"and(team1_players.ilike.%{player}%,winner.eq.2),and(team2_players.ilike.%{player}%,winner.eq.1)")
+                    .execute()
+                )
+                losses = losses_resp.count or 0
+            except Exception:
+                try:
+                    all_m = supabase.table("matches").select("team1_players, team2_players, winner").execute()
+                    losses = sum(
+                        1 for m in all_m.data
+                        if (player in [p.strip() for p in m["team1_players"].split(",")] and m["winner"] == 2) or
+                           (player in [p.strip() for p in m["team2_players"].split(",")] and m["winner"] == 1)
                     )
-            """, (
-                f"%{player}%",
-                f"%{player}%"
-            ))
-            wins = c.fetchone()[0]
-            c.execute("""
-                SELECT COUNT(*)
-                FROM matches
-                WHERE
-                    (
-                        team1_players LIKE ?
-                        AND winner = 2
-                    )
-                    OR
-                    (
-                        team2_players LIKE ?
-                        AND winner = 1
-                    )
-            """, (
-                f"%{player}%",
-                f"%{player}%"
-            ))
-            losses = c.fetchone()[0]
+                except Exception:
+                    losses = 0
+            
             games = wins + losses
-            win_pct = (
-                (wins / games) * 100
-                if games > 0
-                else 0
-            )
-            c.execute("""
-                SELECT
-                    SUM(score),
-                    SUM(goals),
-                    SUM(assists),
-                    SUM(saves),
-                    SUM(shots),
-                    SUM(excuse_used)
-                FROM player_stats
-                WHERE player_name = ?
-            """, (player,))
-            (
-                score,
-                goals,
-                assists,
-                saves,
-                shots,
-                excuses
-            ) = c.fetchone()
-            score = score or 0
-            goals = goals or 0
-            assists = assists or 0
-            saves = saves or 0
-            shots = shots or 0
-            excuses = excuses or 0
+            win_pct = (wins / games) * 100 if games > 0 else 0
+            
+            # Aggregated stats
+            try:
+                stats_resp = (
+                    supabase.table("player_stats")
+                    .select("score, goals, assists, saves, shots, excuse_used")
+                    .eq("player_name", player)
+                    .execute()
+                )
+                score = sum(r["score"] or 0 for r in stats_resp.data)
+                goals = sum(r["goals"] or 0 for r in stats_resp.data)
+                assists = sum(r["assists"] or 0 for r in stats_resp.data)
+                saves = sum(r["saves"] or 0 for r in stats_resp.data)
+                shots = sum(r["shots"] or 0 for r in stats_resp.data)
+                excuses = sum(r["excuse_used"] or 0 for r in stats_resp.data)
+            except Exception:
+                score = goals = assists = saves = shots = excuses = 0
+            
             overall_stats[player] = {
                 "wins": wins,
                 "losses": losses,
@@ -1774,6 +1784,7 @@ with tab3:
                 "avg_shots": shots / games if games else 0,
                 "avg_excuses": excuses / games if games else 0
             }
+        
         # ====================================================
         # OVERALL CAREER STATS TABLE
         # ====================================================
@@ -1789,22 +1800,16 @@ with tab3:
                 "📈 Win %": stat["win_pct"]
             })
         df_wins = pd.DataFrame(wins_data)
-        df_wins = df_wins.sort_values(
-            "🏆 Wins",
-            ascending=False
-        )
+        df_wins = df_wins.sort_values("🏆 Wins", ascending=False)
         left_aligned_table(df_wins)
         st.divider()
+        
         # ====================================================
         # CAREER TOTALS
         # ====================================================
         st.markdown("### Career Totals (All Matches)")
         totals_data = []
-        for player in sorted(
-            all_players_list,
-            key=lambda p: overall_stats[p]["wins"],
-            reverse=True
-        ):
+        for player in sorted(all_players_list, key=lambda p: overall_stats[p]["wins"], reverse=True):
             stat = overall_stats[player]
             totals_data.append({
                 "🎮 Player": player,
@@ -1818,16 +1823,13 @@ with tab3:
         df_totals = pd.DataFrame(totals_data)
         left_aligned_table(df_totals)
         st.divider()
+        
         # ====================================================
         # PER GAME AVERAGES
         # ====================================================
         st.markdown("### Per-Game Averages (All Matches)")
         avg_data = []
-        for player in sorted(
-            all_players_list,
-            key=lambda p: overall_stats[p]["wins"],
-            reverse=True
-        ):
+        for player in sorted(all_players_list, key=lambda p: overall_stats[p]["wins"], reverse=True):
             stat = overall_stats[player]
             avg_data.append({
                 "🎮 Player": player,
@@ -1841,6 +1843,7 @@ with tab3:
         df_avg = pd.DataFrame(avg_data)
         left_aligned_table(df_avg)
         st.divider()
+        
         # ====================================================
         # MATCH TYPE CAREER TOTALS
         # ====================================================
@@ -1849,46 +1852,49 @@ with tab3:
         for match_type in ["1v1", "2v2", "3v3"]:
             with st.expander(f"{match_type} Career Totals", expanded=False):
                 type_totals = []
-                for player in sorted(
-                    all_players_list,
-                    key=lambda p: overall_stats[p]["wins"],
-                    reverse=True
-                ):
-                    # Get stats for this match type
-                    c.execute("""
-                        SELECT
-                            SUM(score),
-                            SUM(goals),
-                            SUM(assists),
-                            SUM(saves),
-                            SUM(shots),
-                            SUM(excuse_used),
-                            COUNT(DISTINCT match_id)
-                        FROM player_stats
-                        WHERE player_name = ?
-                        AND match_id IN (
-                            SELECT id FROM matches
-                            WHERE 
-                                (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', '')))
-                                = ?
+                comma_count = get_comma_count_for_type(match_type)
+                
+                for player in sorted(all_players_list, key=lambda p: overall_stats[p]["wins"], reverse=True):
+                    try:
+                        # Get all matches of this type
+                        all_matches = supabase.table("matches").select("id, team1_players").execute()
+                        type_match_ids = [
+                            m["id"] for m in all_matches.data
+                            if (m["team1_players"].count(",") == comma_count)
+                        ]
+                        
+                        if not type_match_ids:
+                            continue
+                        
+                        stats_resp = (
+                            supabase.table("player_stats")
+                            .select("score, goals, assists, saves, shots, excuse_used, match_id")
+                            .eq("player_name", player)
+                            .in_("match_id", type_match_ids)
+                            .execute()
                         )
-                    """, (
-                        player,
-                        1 if match_type == "2v2" else (2 if match_type == "3v3" else 0)
-                    ))
-                    result = c.fetchone()
-                    if result and result[6]:  # Has games in this match type
-                        score, goals, assists, saves, shots, excuses, games = result
-                        type_totals.append({
-                            "🎮 Player": player,
-                            "🎯 Score": score or 0,
-                            "⚽ Goals": goals or 0,
-                            "🎁 Assists": assists or 0,
-                            "🛡️ Saves": saves or 0,
-                            "🔫 Shots": shots or 0,
-                            "🤥 Excuses": excuses or 0,
-                            "📊 Games": games
-                        })
+                        
+                        if stats_resp.data:
+                            score = sum(r["score"] or 0 for r in stats_resp.data)
+                            goals = sum(r["goals"] or 0 for r in stats_resp.data)
+                            assists = sum(r["assists"] or 0 for r in stats_resp.data)
+                            saves = sum(r["saves"] or 0 for r in stats_resp.data)
+                            shots = sum(r["shots"] or 0 for r in stats_resp.data)
+                            excuses = sum(r["excuse_used"] or 0 for r in stats_resp.data)
+                            games = len(set(r["match_id"] for r in stats_resp.data))
+                            
+                            type_totals.append({
+                                "🎮 Player": player,
+                                "🎯 Score": score,
+                                "⚽ Goals": goals,
+                                "🎁 Assists": assists,
+                                "🛡️ Saves": saves,
+                                "🔫 Shots": shots,
+                                "🤥 Excuses": excuses,
+                                "📊 Games": games
+                            })
+                    except Exception:
+                        pass
                 
                 if type_totals:
                     df_type = pd.DataFrame(type_totals)
@@ -1897,6 +1903,7 @@ with tab3:
                     st.info(f"No {match_type} games yet")
         
         st.divider()
+        
         # ====================================================
         # MATCH TYPE PER-GAME AVERAGES
         # ====================================================
@@ -1905,45 +1912,47 @@ with tab3:
         for match_type in ["1v1", "2v2", "3v3"]:
             with st.expander(f"{match_type} Per-Game Averages", expanded=False):
                 type_avgs = []
-                for player in sorted(
-                    all_players_list,
-                    key=lambda p: overall_stats[p]["wins"],
-                    reverse=True
-                ):
-                    # Get stats for this match type
-                    c.execute("""
-                        SELECT
-                            SUM(score),
-                            SUM(goals),
-                            SUM(assists),
-                            SUM(saves),
-                            SUM(shots),
-                            SUM(excuse_used),
-                            COUNT(DISTINCT match_id)
-                        FROM player_stats
-                        WHERE player_name = ?
-                        AND match_id IN (
-                            SELECT id FROM matches
-                            WHERE 
-                                (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', '')))
-                                = ?
+                comma_count = get_comma_count_for_type(match_type)
+                
+                for player in sorted(all_players_list, key=lambda p: overall_stats[p]["wins"], reverse=True):
+                    try:
+                        all_matches = supabase.table("matches").select("id, team1_players").execute()
+                        type_match_ids = [
+                            m["id"] for m in all_matches.data
+                            if (m["team1_players"].count(",") == comma_count)
+                        ]
+                        
+                        if not type_match_ids:
+                            continue
+                        
+                        stats_resp = (
+                            supabase.table("player_stats")
+                            .select("score, goals, assists, saves, shots, excuse_used, match_id")
+                            .eq("player_name", player)
+                            .in_("match_id", type_match_ids)
+                            .execute()
                         )
-                    """, (
-                        player,
-                        1 if match_type == "2v2" else (2 if match_type == "3v3" else 0)
-                    ))
-                    result = c.fetchone()
-                    if result and result[6]:  # Has games in this match type
-                        score, goals, assists, saves, shots, excuses, games = result
-                        type_avgs.append({
-                            "🎮 Player": player,
-                            "📍 Avg Score": f"{(score or 0) / games:.1f}",
-                            "⚽ Avg Goals": f"{(goals or 0) / games:.2f}",
-                            "🎁 Avg Assists": f"{(assists or 0) / games:.2f}",
-                            "🛡️ Avg Saves": f"{(saves or 0) / games:.2f}",
-                            "🔫 Avg Shots": f"{(shots or 0) / games:.2f}",
-                            "🤥 Avg Excuses": f"{(excuses or 0) / games:.2f}"
-                        })
+                        
+                        if stats_resp.data:
+                            score = sum(r["score"] or 0 for r in stats_resp.data)
+                            goals = sum(r["goals"] or 0 for r in stats_resp.data)
+                            assists = sum(r["assists"] or 0 for r in stats_resp.data)
+                            saves = sum(r["saves"] or 0 for r in stats_resp.data)
+                            shots = sum(r["shots"] or 0 for r in stats_resp.data)
+                            excuses = sum(r["excuse_used"] or 0 for r in stats_resp.data)
+                            games = len(set(r["match_id"] for r in stats_resp.data))
+                            
+                            type_avgs.append({
+                                "🎮 Player": player,
+                                "📍 Avg Score": f"{score / games:.1f}",
+                                "⚽ Avg Goals": f"{goals / games:.2f}",
+                                "🎁 Avg Assists": f"{assists / games:.2f}",
+                                "🛡️ Avg Saves": f"{saves / games:.2f}",
+                                "🔫 Avg Shots": f"{shots / games:.2f}",
+                                "🤥 Avg Excuses": f"{excuses / games:.2f}"
+                            })
+                    except Exception:
+                        pass
                 
                 if type_avgs:
                     df_type_avg = pd.DataFrame(type_avgs)
@@ -1952,8 +1961,9 @@ with tab3:
                     st.info(f"No {match_type} games yet")
         
         st.divider()
+
 # ============================================================
-# TAB 4 - TEAMS
+# TAB 4 - TEAMS / MATCHUPS
 # ============================================================
 with tab4:
     if st.button(
@@ -1968,16 +1978,19 @@ with tab4:
     # ====================================================
     st.markdown("## 🤝 Best Teams")
     
-    c.execute("""
-        SELECT id, team1_players, team2_players, winner
-        FROM matches
-    """)
-    all_match_data = c.fetchall()
+    try:
+        all_match_data = supabase.table("matches").select("id, team1_players, team2_players, winner").execute().data
+    except Exception:
+        all_match_data = []
     
     if all_match_data:
         partnerships = defaultdict(lambda: {"wins": 0, "losses": 0})
         
-        for match_id, t1, t2, winner in all_match_data:
+        for match in all_match_data:
+            t1 = match["team1_players"]
+            t2 = match["team2_players"]
+            winner = match["winner"]
+            
             t1_list = t1.split(",")
             t2_list = t2.split(",")
             
@@ -1990,13 +2003,10 @@ with tab4:
             
             if winner == 1:
                 partnerships[t1_team]["wins"] += 1
-            else:
-                partnerships[t1_team]["losses"] += 1
-            
-            if winner == 2:
-                partnerships[t2_team]["wins"] += 1
-            else:
                 partnerships[t2_team]["losses"] += 1
+            else:
+                partnerships[t2_team]["wins"] += 1
+                partnerships[t1_team]["losses"] += 1
         
         if partnerships:
             partnership_list = []
@@ -2023,18 +2033,19 @@ with tab4:
             st.info("No 2v2 or 3v3 teams yet")
     
     st.divider()
+    
     # ====================================================
     # 1V1 HEAD-TO-HEAD
     # ====================================================
     st.markdown("## 1v1 Head-to-Head")
     
-    c.execute("""
-        SELECT id, team1_players, team2_players, winner
-        FROM matches
-        WHERE 
-            (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', ''))) = 0
-    """)
-    one_v_one_matches = c.fetchall()
+    try:
+        one_v_one_matches = [
+            m for m in all_match_data
+            if m["team1_players"].count(",") == 0
+        ]
+    except Exception:
+        one_v_one_matches = []
     
     if not one_v_one_matches:
         st.info("📭 No 1v1 matches yet")
@@ -2042,9 +2053,10 @@ with tab4:
         # Build head-to-head records
         h2h_records = defaultdict(lambda: defaultdict(lambda: {"wins": 0, "losses": 0}))
         
-        for match_id, t1, t2, winner in one_v_one_matches:
-            p1 = t1.strip()
-            p2 = t2.strip()
+        for match in one_v_one_matches:
+            p1 = match["team1_players"].strip()
+            p2 = match["team2_players"].strip()
+            winner = match["winner"]
             
             if winner == 1:
                 h2h_records[p1][p2]["wins"] += 1
@@ -2054,12 +2066,13 @@ with tab4:
                 h2h_records[p1][p2]["losses"] += 1
         
         # Display for each player
-        c.execute("""
-            SELECT DISTINCT player_name
-            FROM player_stats
-            ORDER BY player_name
-        """)
-        all_players_with_stats = [row[0] for row in c.fetchall()]
+        try:
+            all_players_with_stats = sorted(list(set(
+                row["player_name"] for row in 
+                supabase.table("player_stats").select("player_name").execute().data
+            )))
+        except Exception:
+            all_players_with_stats = []
         
         for player in all_players_with_stats:
             if player not in h2h_records or not h2h_records[player]:
@@ -2083,183 +2096,90 @@ with tab4:
                 left_aligned_table(df_h2h)
     
     st.divider()
-    c.execute("""
-        SELECT
-            id,
-            team1_players,
-            team2_players,
-            winner
-        FROM matches
-    """)
-    all_matches = c.fetchall()
-    if not all_matches:
-        st.info("📭 No team data yet")
-    else:
+    
+    # Detailed 2v2 / 3v3 teams + matchups (kept from original logic)
+    if all_match_data:
         partnerships_by_type = {
-            "2v2": defaultdict(
-                lambda: {
-                    "wins": 0,
-                    "losses": 0
-                }
-            ),
-            "3v3": defaultdict(
-                lambda: {
-                    "wins": 0,
-                    "losses": 0
-                }
-            )
+            "2v2": defaultdict(lambda: {"wins": 0, "losses": 0}),
+            "3v3": defaultdict(lambda: {"wins": 0, "losses": 0})
         }
         matchups_by_type = {
-            "2v2": defaultdict(
-                lambda: defaultdict(
-                    lambda: {
-                        "wins": 0,
-                        "losses": 0
-                    }
-                )
-            ),
-            "3v3": defaultdict(
-                lambda: defaultdict(
-                    lambda: {
-                        "wins": 0,
-                        "losses": 0
-                    }
-                )
-            )
+            "2v2": defaultdict(lambda: defaultdict(lambda: {"wins": 0, "losses": 0})),
+            "3v3": defaultdict(lambda: defaultdict(lambda: {"wins": 0, "losses": 0}))
         }
-        for match_id, t1, t2, winner in all_matches:
-            t1_list = t1.split(",")
-            t2_list = t2.split(",")
+        
+        for match in all_match_data:
+            t1_list = match["team1_players"].split(",")
+            t2_list = match["team2_players"].split(",")
+            winner = match["winner"]
+            
             if len(t1_list) == 1:
-                match_type = "1v1"
-            elif len(t1_list) == 2:
-                match_type = "2v2"
-            else:
-                match_type = "3v3"
-            if match_type == "1v1":
                 continue
-            partnerships = partnerships_by_type[
-                match_type
-            ]
-            matchups = matchups_by_type[
-                match_type
-            ]
-            if match_type == "2v2":
+            elif len(t1_list) == 2:
+                mt = "2v2"
+            else:
+                mt = "3v3"
+            
+            partnerships = partnerships_by_type[mt]
+            matchups = matchups_by_type[mt]
+            
+            if mt == "2v2":
                 t1_pairs = []
                 for i in range(len(t1_list)):
                     for j in range(i + 1, len(t1_list)):
-                        pair = tuple(
-                            sorted(
-                                [
-                                    t1_list[i],
-                                    t1_list[j]
-                                ]
-                            )
-                        )
+                        pair = tuple(sorted([t1_list[i], t1_list[j]]))
                         t1_pairs.append(pair)
                         if winner == 1:
                             partnerships[pair]["wins"] += 1
                         else:
                             partnerships[pair]["losses"] += 1
+                
                 t2_pairs = []
                 for i in range(len(t2_list)):
                     for j in range(i + 1, len(t2_list)):
-                        pair = tuple(
-                            sorted(
-                                [
-                                    t2_list[i],
-                                    t2_list[j]
-                                ]
-                            )
-                        )
+                        pair = tuple(sorted([t2_list[i], t2_list[j]]))
                         t2_pairs.append(pair)
                         if winner == 2:
                             partnerships[pair]["wins"] += 1
                         else:
                             partnerships[pair]["losses"] += 1
             else:
-                t1_team = tuple(
-                    sorted(t1_list)
-                )
-                t2_team = tuple(
-                    sorted(t2_list)
-                )
+                t1_team = tuple(sorted(t1_list))
+                t2_team = tuple(sorted(t2_list))
                 if winner == 1:
-                    partnerships[
-                        t1_team
-                    ]["wins"] += 1
+                    partnerships[t1_team]["wins"] += 1
                 else:
-                    partnerships[
-                        t1_team
-                    ]["losses"] += 1
+                    partnerships[t1_team]["losses"] += 1
                 if winner == 2:
-                    partnerships[
-                        t2_team
-                    ]["wins"] += 1
+                    partnerships[t2_team]["wins"] += 1
                 else:
-                    partnerships[
-                        t2_team
-                    ]["losses"] += 1
+                    partnerships[t2_team]["losses"] += 1
                 t1_pairs = [t1_team]
                 t2_pairs = [t2_team]
+            
             # Matchups
             for t1_pair in t1_pairs:
                 for t2_pair in t2_pairs:
                     if winner == 1:
-                        matchups[
-                            t1_pair
-                        ][
-                            t2_pair
-                        ]["wins"] += 1
-                        matchups[
-                            t2_pair
-                        ][
-                            t1_pair
-                        ]["losses"] += 1
+                        matchups[t1_pair][t2_pair]["wins"] += 1
+                        matchups[t2_pair][t1_pair]["losses"] += 1
                     else:
-                        matchups[
-                            t1_pair
-                        ][
-                            t2_pair
-                        ]["losses"] += 1
-                        matchups[
-                            t2_pair
-                        ][
-                            t1_pair
-                        ]["wins"] += 1
+                        matchups[t1_pair][t2_pair]["losses"] += 1
+                        matchups[t2_pair][t1_pair]["wins"] += 1
+        
         # Display teams
-        for match_type in ["2v2", "3v3"]:
-            partnerships = partnerships_by_type[
-                match_type
-            ]
-            matchups = matchups_by_type[
-                match_type
-            ]
-            st.markdown(
-                f"## {match_type} Teams"
-            )
+        for mt in ["2v2", "3v3"]:
+            partnerships = partnerships_by_type[mt]
+            matchups = matchups_by_type[mt]
+            st.markdown(f"## {mt} Teams")
             if not partnerships:
-                st.info(
-                    f"📭 No {match_type} team data yet"
-                )
+                st.info(f"📭 No {mt} team data yet")
             else:
                 part_data = []
                 for partnership_tuple, record in partnerships.items():
-                    total = (
-                        record["wins"]
-                        +
-                        record["losses"]
-                    )
-                    win_pct = (
-                        record["wins"]
-                        / total
-                        * 100
-                        if total > 0
-                        else 0
-                    )
-                    display = " + ".join(
-                        partnership_tuple
-                    )
+                    total = record["wins"] + record["losses"]
+                    win_pct = (record["wins"] / total * 100) if total > 0 else 0
+                    display = " + ".join(partnership_tuple)
                     part_data.append({
                         "partnership": partnership_tuple,
                         "display": display,
@@ -2268,23 +2188,14 @@ with tab4:
                         "total": total,
                         "win_pct": win_pct
                     })
-                part_data.sort(
-                    key=lambda x: x["wins"],
-                    reverse=True
-                )
+                part_data.sort(key=lambda x: x["wins"], reverse=True)
+                
                 for partnership_info in part_data:
-                    part_tuple = (
-                        partnership_info["partnership"]
-                    )
-                    total = (
-                        partnership_info["total"]
-                    )
-                    win_pct = (
-                        partnership_info["win_pct"]
-                    )
+                    part_tuple = partnership_info["partnership"]
+                    total = partnership_info["total"]
+                    win_pct = partnership_info["win_pct"]
                     with st.expander(
-                        f"🤝 "
-                        f"{partnership_info['display']} · "
+                        f"🤝 {partnership_info['display']} · "
                         f"{partnership_info['wins']}-"
                         f"{partnership_info['losses']} "
                         f"({win_pct:.1f}%)",
@@ -2297,31 +2208,13 @@ with tab4:
                             f"{win_pct:.1f}% Win Rate**"
                         )
                         st.divider()
-                        st.markdown(
-                            "**Head-to-Head vs Other Teams:**"
-                        )
+                        st.markdown("**Head-to-Head vs Other Teams:**")
                         matchup_records = []
                         if part_tuple in matchups:
-                            for opponent_tuple, record in matchups[
-                                part_tuple
-                            ].items():
-                                h2h_total = (
-                                    record["wins"]
-                                    +
-                                    record["losses"]
-                                )
-                                h2h_pct = (
-                                    record["wins"]
-                                    / h2h_total
-                                    * 100
-                                    if h2h_total > 0
-                                    else 0
-                                )
-                                opponent_display = (
-                                    " + ".join(
-                                        opponent_tuple
-                                    )
-                                )
+                            for opponent_tuple, record in matchups[part_tuple].items():
+                                h2h_total = record["wins"] + record["losses"]
+                                h2h_pct = (record["wins"] / h2h_total * 100) if h2h_total > 0 else 0
+                                opponent_display = " + ".join(opponent_tuple)
                                 matchup_records.append({
                                     "opponent": opponent_display,
                                     "wins": record["wins"],
@@ -2330,10 +2223,7 @@ with tab4:
                                     "pct": h2h_pct
                                 })
                         if matchup_records:
-                            matchup_records.sort(
-                                key=lambda x: x["wins"],
-                                reverse=True
-                            )
+                            matchup_records.sort(key=lambda x: x["wins"], reverse=True)
                             for matchup in matchup_records:
                                 st.markdown(
                                     f"vs **{matchup['opponent']}** · "
@@ -2342,12 +2232,11 @@ with tab4:
                                     f"({matchup['pct']:.1f}%)"
                                 )
                         else:
-                            st.markdown(
-                                "*No matchup data yet*"
-                            )
+                            st.markdown("*No matchup data yet*")
                 st.divider()
+
 # ============================================================
-# TAB 5 - LEADERBOARD
+# TAB 5 - ANALYSIS / LEADERBOARD
 # ============================================================
 with tab5:
     if st.button(
@@ -2363,12 +2252,13 @@ with tab5:
     # ====================================================
     st.markdown("## 🎮 Player Comparison")
     
-    c.execute("""
-        SELECT DISTINCT player_name
-        FROM player_stats
-        ORDER BY player_name
-    """)
-    all_comparison_players = [row[0] for row in c.fetchall()]
+    try:
+        all_comparison_players = sorted(list(set(
+            row["player_name"] for row in
+            supabase.table("player_stats").select("player_name").execute().data
+        )))
+    except Exception:
+        all_comparison_players = []
     
     if all_comparison_players:
         comparison_options = ["Choose Player"] + all_comparison_players
@@ -2399,76 +2289,111 @@ with tab5:
                 row = {"📊 Stat": stat_name}
                 for player in [player1, player2]:
                     if stat_name == "Games":
-                        c.execute("""
-                            SELECT COUNT(DISTINCT match_id) FROM player_stats WHERE player_name = ?
-                        """, (player,))
-                        games_val = c.fetchone()[0]
-                        row[player] = games_val
+                        try:
+                            g_resp = (
+                                supabase.table("player_stats")
+                                .select("match_id")
+                                .eq("player_name", player)
+                                .execute()
+                            )
+                            row[player] = len(set(r["match_id"] for r in g_resp.data))
+                        except Exception:
+                            row[player] = 0
                     elif stat_name == "Wins":
-                        c.execute("""
-                            SELECT COUNT(*)
-                            FROM matches
-                            WHERE
-                                (team1_players LIKE ? AND winner = 1)
-                                OR (team2_players LIKE ? AND winner = 2)
-                        """, (f"%{player}%", f"%{player}%"))
-                        row[player] = c.fetchone()[0]
+                        try:
+                            all_m = supabase.table("matches").select("team1_players, team2_players, winner").execute().data
+                            row[player] = sum(
+                                1 for m in all_m
+                                if (player in m["team1_players"] and m["winner"] == 1) or
+                                   (player in m["team2_players"] and m["winner"] == 2)
+                            )
+                        except Exception:
+                            row[player] = 0
                     elif stat_name == "Losses":
-                        c.execute("""
-                            SELECT COUNT(*)
-                            FROM matches
-                            WHERE
-                                (team1_players LIKE ? AND winner = 2)
-                                OR (team2_players LIKE ? AND winner = 1)
-                        """, (f"%{player}%", f"%{player}%"))
-                        row[player] = c.fetchone()[0]
+                        try:
+                            all_m = supabase.table("matches").select("team1_players, team2_players, winner").execute().data
+                            row[player] = sum(
+                                1 for m in all_m
+                                if (player in m["team1_players"] and m["winner"] == 2) or
+                                   (player in m["team2_players"] and m["winner"] == 1)
+                            )
+                        except Exception:
+                            row[player] = 0
                     elif stat_name == "Win %":
-                        c.execute("""
-                            SELECT COUNT(*)
-                            FROM matches
-                            WHERE
-                                (team1_players LIKE ? AND winner = 1)
-                                OR (team2_players LIKE ? AND winner = 2)
-                        """, (f"%{player}%", f"%{player}%"))
-                        wins = c.fetchone()[0]
-                        c.execute("""
-                            SELECT COUNT(DISTINCT match_id) FROM player_stats WHERE player_name = ?
-                        """, (player,))
-                        total = c.fetchone()[0]
-                        pct = (wins / total * 100) if total > 0 else 0
-                        row[player] = f"{pct:.1f}%"
+                        try:
+                            all_m = supabase.table("matches").select("team1_players, team2_players, winner").execute().data
+                            wins = sum(
+                                1 for m in all_m
+                                if (player in m["team1_players"] and m["winner"] == 1) or
+                                   (player in m["team2_players"] and m["winner"] == 2)
+                            )
+                            g_resp = (
+                                supabase.table("player_stats")
+                                .select("match_id")
+                                .eq("player_name", player)
+                                .execute()
+                            )
+                            total = len(set(r["match_id"] for r in g_resp.data))
+                            pct = (wins / total * 100) if total > 0 else 0
+                            row[player] = f"{pct:.1f}%"
+                        except Exception:
+                            row[player] = "0.0%"
                     elif stat_name == "Avg Goals":
-                        c.execute("""
-                            SELECT SUM(goals), COUNT(DISTINCT match_id)
-                            FROM player_stats WHERE player_name = ?
-                        """, (player,))
-                        goals, games = c.fetchone()
-                        avg = (goals or 0) / games if games > 0 else 0
-                        row[player] = f"{avg:.2f}"
+                        try:
+                            s_resp = (
+                                supabase.table("player_stats")
+                                .select("goals, match_id")
+                                .eq("player_name", player)
+                                .execute()
+                            )
+                            goals = sum(r["goals"] or 0 for r in s_resp.data)
+                            games = len(set(r["match_id"] for r in s_resp.data))
+                            avg = goals / games if games > 0 else 0
+                            row[player] = f"{avg:.2f}"
+                        except Exception:
+                            row[player] = "0.00"
                     elif stat_name == "Avg Assists":
-                        c.execute("""
-                            SELECT SUM(assists), COUNT(DISTINCT match_id)
-                            FROM player_stats WHERE player_name = ?
-                        """, (player,))
-                        assists, games = c.fetchone()
-                        avg = (assists or 0) / games if games > 0 else 0
-                        row[player] = f"{avg:.2f}"
+                        try:
+                            s_resp = (
+                                supabase.table("player_stats")
+                                .select("assists, match_id")
+                                .eq("player_name", player)
+                                .execute()
+                            )
+                            assists = sum(r["assists"] or 0 for r in s_resp.data)
+                            games = len(set(r["match_id"] for r in s_resp.data))
+                            avg = assists / games if games > 0 else 0
+                            row[player] = f"{avg:.2f}"
+                        except Exception:
+                            row[player] = "0.00"
                     elif stat_name == "Avg Saves":
-                        c.execute("""
-                            SELECT SUM(saves), COUNT(DISTINCT match_id)
-                            FROM player_stats WHERE player_name = ?
-                        """, (player,))
-                        saves, games = c.fetchone()
-                        avg = (saves or 0) / games if games > 0 else 0
-                        row[player] = f"{avg:.2f}"
+                        try:
+                            s_resp = (
+                                supabase.table("player_stats")
+                                .select("saves, match_id")
+                                .eq("player_name", player)
+                                .execute()
+                            )
+                            saves = sum(r["saves"] or 0 for r in s_resp.data)
+                            games = len(set(r["match_id"] for r in s_resp.data))
+                            avg = saves / games if games > 0 else 0
+                            row[player] = f"{avg:.2f}"
+                        except Exception:
+                            row[player] = "0.00"
                     elif stat_name == "Avg Shots":
-                        c.execute("""
-                            SELECT SUM(shots), COUNT(DISTINCT match_id)
-                            FROM player_stats WHERE player_name = ?
-                        """, (player,))
-                        shots, games = c.fetchone()
-                        avg = (shots or 0) / games if games > 0 else 0
-                        row[player] = f"{avg:.2f}"
+                        try:
+                            s_resp = (
+                                supabase.table("player_stats")
+                                .select("shots, match_id")
+                                .eq("player_name", player)
+                                .execute()
+                            )
+                            shots = sum(r["shots"] or 0 for r in s_resp.data)
+                            games = len(set(r["match_id"] for r in s_resp.data))
+                            avg = shots / games if games > 0 else 0
+                            row[player] = f"{avg:.2f}"
+                        except Exception:
+                            row[player] = "0.00"
                 
                 stats_list.append(row)
             
@@ -2484,13 +2409,13 @@ with tab5:
     # ====================================================
     st.markdown("## 🏅 Leaderboard")
     
-    # Get all players with stats
-    c.execute("""
-        SELECT DISTINCT player_name
-        FROM player_stats
-        ORDER BY player_name
-    """)
-    leaderboard_players = [row[0] for row in c.fetchall()]
+    try:
+        leaderboard_players = sorted(list(set(
+            row["player_name"] for row in
+            supabase.table("player_stats").select("player_name").execute().data
+        )))
+    except Exception:
+        leaderboard_players = []
     
     if not leaderboard_players:
         st.info("📭 No player data yet")
@@ -2498,33 +2423,30 @@ with tab5:
         # Calculate averages for all players first
         player_stats_dict = {}
         for player in leaderboard_players:
-            c.execute("""
-                SELECT
-                    COUNT(DISTINCT match_id),
-                    SUM(goals),
-                    SUM(assists),
-                    SUM(saves),
-                    SUM(shots)
-                FROM player_stats
-                WHERE player_name = ?
-            """, (player,))
-            result = c.fetchone()
-            
-            if result:
-                games, total_goals, total_assists, total_saves, total_shots = result
-                if games > 0:
-                    avg_goals = (total_goals or 0) / games
-                    avg_assists = (total_assists or 0) / games
-                    avg_saves = (total_saves or 0) / games
-                    avg_shots = (total_shots or 0) / games
-                    
-                    player_stats_dict[player] = {
-                        'games': games,
-                        'avg_goals': avg_goals,
-                        'avg_assists': avg_assists,
-                        'avg_saves': avg_saves,
-                        'avg_shots': avg_shots
-                    }
+            try:
+                s_resp = (
+                    supabase.table("player_stats")
+                    .select("goals, assists, saves, shots, match_id")
+                    .eq("player_name", player)
+                    .execute()
+                )
+                if s_resp.data:
+                    games = len(set(r["match_id"] for r in s_resp.data))
+                    if games > 0:
+                        avg_goals = sum(r["goals"] or 0 for r in s_resp.data) / games
+                        avg_assists = sum(r["assists"] or 0 for r in s_resp.data) / games
+                        avg_saves = sum(r["saves"] or 0 for r in s_resp.data) / games
+                        avg_shots = sum(r["shots"] or 0 for r in s_resp.data) / games
+                        
+                        player_stats_dict[player] = {
+                            'games': games,
+                            'avg_goals': avg_goals,
+                            'avg_assists': avg_assists,
+                            'avg_saves': avg_saves,
+                            'avg_shots': avg_shots
+                        }
+            except Exception:
+                pass
         
         # Find max values from calculated stats
         if player_stats_dict:
@@ -2551,39 +2473,21 @@ with tab5:
                     max_goals, max_assists, max_saves, max_shots
                 )
                 
-                # Get wins
-                c.execute("""
-                    SELECT COUNT(*)
-                    FROM matches
-                    WHERE
-                        (
-                            team1_players LIKE ?
-                            AND winner = 1
-                        )
-                        OR
-                        (
-                            team2_players LIKE ?
-                            AND winner = 2
-                        )
-                """, (f"%{player}%", f"%{player}%"))
-                wins = c.fetchone()[0]
-                
-                # Get losses
-                c.execute("""
-                    SELECT COUNT(*)
-                    FROM matches
-                    WHERE
-                        (
-                            team1_players LIKE ?
-                            AND winner = 2
-                        )
-                        OR
-                        (
-                            team2_players LIKE ?
-                            AND winner = 1
-                        )
-                """, (f"%{player}%", f"%{player}%"))
-                losses = c.fetchone()[0]
+                # Get wins / losses
+                try:
+                    all_m = supabase.table("matches").select("team1_players, team2_players, winner").execute().data
+                    wins = sum(
+                        1 for m in all_m
+                        if (player in m["team1_players"] and m["winner"] == 1) or
+                           (player in m["team2_players"] and m["winner"] == 2)
+                    )
+                    losses = sum(
+                        1 for m in all_m
+                        if (player in m["team1_players"] and m["winner"] == 2) or
+                           (player in m["team2_players"] and m["winner"] == 1)
+                    )
+                except Exception:
+                    wins = losses = 0
                 
                 total_games = wins + losses
                 win_pct = (wins / total_games * 100) if total_games > 0 else 0
@@ -2609,6 +2513,7 @@ with tab5:
             left_aligned_table(df_overall)
             
             st.divider()
+            
             # ====================================================
             # MATCH TYPE PERFORMANCE RATINGS
             # ====================================================
@@ -2616,58 +2521,59 @@ with tab5:
             
             for match_type in ["1v1", "2v2", "3v3"]:
                 with st.expander(f"{match_type} Performance Rating", expanded=False):
-                    # Calculate for this match type
                     type_ratings = []
+                    comma_count = get_comma_count_for_type(match_type)
+                    
                     for player in leaderboard_players:
-                        c.execute("""
-                            SELECT
-                                COUNT(DISTINCT match_id),
-                                SUM(goals),
-                                SUM(assists),
-                                SUM(saves),
-                                SUM(shots)
-                            FROM player_stats
-                            WHERE player_name = ?
-                            AND match_id IN (
-                                SELECT id FROM matches
-                                WHERE 
-                                    (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', '')))
-                                    = ?
-                            )
-                        """, (
-                            player,
-                            1 if match_type == "2v2" else (2 if match_type == "3v3" else 0)
-                        ))
-                        result = c.fetchone()
-                        
-                        if result and result[0]:  # Has games in this type
-                            games, total_goals, total_assists, total_saves, total_shots = result
-                            avg_goals = (total_goals or 0) / games
-                            avg_assists = (total_assists or 0) / games
-                            avg_saves = (total_saves or 0) / games
-                            avg_shots = (total_shots or 0) / games
+                        try:
+                            all_matches = supabase.table("matches").select("id, team1_players").execute().data
+                            type_match_ids = [
+                                m["id"] for m in all_matches
+                                if m["team1_players"].count(",") == comma_count
+                            ]
                             
-                            # Get max for this type
-                            type_max_goals = max([s['avg_goals'] for s in player_stats_dict.values()]) or 1
-                            type_max_assists = max([s['avg_assists'] for s in player_stats_dict.values()]) or 1
-                            type_max_saves = max([s['avg_saves'] for s in player_stats_dict.values()]) or 1
-                            type_max_shots = max([s['avg_shots'] for s in player_stats_dict.values()]) or 1
+                            if not type_match_ids:
+                                continue
                             
-                            rating = calculate_performance_rating(
-                                avg_goals, avg_assists, avg_saves, avg_shots,
-                                type_max_goals, type_max_assists, type_max_saves, type_max_shots
+                            s_resp = (
+                                supabase.table("player_stats")
+                                .select("goals, assists, saves, shots, match_id")
+                                .eq("player_name", player)
+                                .in_("match_id", type_match_ids)
+                                .execute()
                             )
                             
-                            type_ratings.append({
-                                "🏅 Rank": 0,
-                                "🎮 Player": player,
-                                "⭐ Rating": rating,
-                                "⚽ Avg Goals": f"{avg_goals:.2f}",
-                                "🎁 Avg Assists": f"{avg_assists:.2f}",
-                                "🛡️ Avg Saves": f"{avg_saves:.2f}",
-                                "🔫 Avg Shots": f"{avg_shots:.2f}",
-                                "📊 Games": games
-                            })
+                            if s_resp.data:
+                                games = len(set(r["match_id"] for r in s_resp.data))
+                                if games > 0:
+                                    avg_goals = sum(r["goals"] or 0 for r in s_resp.data) / games
+                                    avg_assists = sum(r["assists"] or 0 for r in s_resp.data) / games
+                                    avg_saves = sum(r["saves"] or 0 for r in s_resp.data) / games
+                                    avg_shots = sum(r["shots"] or 0 for r in s_resp.data) / games
+                                    
+                                    # Use overall max for consistency (or recalculate per type if preferred)
+                                    type_max_goals = max_goals
+                                    type_max_assists = max_assists
+                                    type_max_saves = max_saves
+                                    type_max_shots = max_shots
+                                    
+                                    rating = calculate_performance_rating(
+                                        avg_goals, avg_assists, avg_saves, avg_shots,
+                                        type_max_goals, type_max_assists, type_max_saves, type_max_shots
+                                    )
+                                    
+                                    type_ratings.append({
+                                        "🏅 Rank": 0,
+                                        "🎮 Player": player,
+                                        "⭐ Rating": rating,
+                                        "⚽ Avg Goals": f"{avg_goals:.2f}",
+                                        "🎁 Avg Assists": f"{avg_assists:.2f}",
+                                        "🛡️ Avg Saves": f"{avg_saves:.2f}",
+                                        "🔫 Avg Shots": f"{avg_shots:.2f}",
+                                        "📊 Games": games
+                                    })
+                        except Exception:
+                            pass
                     
                     if type_ratings:
                         type_ratings.sort(key=lambda x: x["⭐ Rating"], reverse=True)
@@ -2711,9 +2617,13 @@ with tab6:
         st.rerun()
     st.divider()
     
-    # Get all players
-    c.execute("SELECT DISTINCT player_name FROM player_stats ORDER BY player_name")
-    all_players = [row[0] for row in c.fetchall()]
+    try:
+        all_players = sorted(list(set(
+            row["player_name"] for row in
+            supabase.table("player_stats").select("player_name").execute().data
+        )))
+    except Exception:
+        all_players = []
     
     if not all_players:
         st.info("📭 No records yet - start logging matches!")
@@ -2725,145 +2635,161 @@ with tab6:
         
         for match_type in ["1v1", "2v2", "3v3"]:
             with st.expander(f"{match_type} Records", expanded=True):
-                match_type_num = 1 if match_type == "2v2" else (2 if match_type == "3v3" else 0)
+                comma_count = get_comma_count_for_type(match_type)
                 
                 # Determine starting color to alternate between match types
-                # 1v1 ends orange, so 2v2/3v3 start blue
                 start_color = "orange" if match_type == "1v1" else "blue"
                 colors = ["orange", "blue"] if start_color == "orange" else ["blue", "orange"]
                 color_idx = 0
+                
+                # Get match IDs of this type once
+                try:
+                    all_matches = supabase.table("matches").select("id, team1_players").execute().data
+                    type_match_ids = [
+                        m["id"] for m in all_matches
+                        if m["team1_players"].count(",") == comma_count
+                    ]
+                except Exception:
+                    type_match_ids = []
                 
                 col1, col2 = st.columns(2)
                 
                 # Most Goals in a Game
                 with col1:
-                    c.execute("""
-                        SELECT player_name, MAX(goals) as max_goals
-                        FROM player_stats
-                        WHERE match_id IN (
-                            SELECT id FROM matches
-                            WHERE (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', ''))) = ?
-                        )
-                        GROUP BY player_name
-                        ORDER BY max_goals DESC
-                        LIMIT 1
-                    """, (match_type_num,))
-                    result = c.fetchone()
-                    if result:
-                        display_stat_card(result[0], result[1], "🎯 Most Goals", colors[color_idx % 2])
-                        color_idx += 1
+                    if type_match_ids:
+                        try:
+                            stats = (
+                                supabase.table("player_stats")
+                                .select("player_name, goals")
+                                .in_("match_id", type_match_ids)
+                                .order("goals", desc=True)
+                                .limit(1)
+                                .execute()
+                            )
+                            if stats.data:
+                                display_stat_card(stats.data[0]["player_name"], stats.data[0]["goals"], "🎯 Most Goals", colors[color_idx % 2])
+                            else:
+                                st.info("No data")
+                        except Exception:
+                            st.info("No data")
                     else:
                         st.info("No data")
-                        color_idx += 1
+                    color_idx += 1
                 
                 # Most Assists in a Game
                 with col2:
-                    c.execute("""
-                        SELECT player_name, MAX(assists) as max_assists
-                        FROM player_stats
-                        WHERE match_id IN (
-                            SELECT id FROM matches
-                            WHERE (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', ''))) = ?
-                        )
-                        GROUP BY player_name
-                        ORDER BY max_assists DESC
-                        LIMIT 1
-                    """, (match_type_num,))
-                    result = c.fetchone()
-                    if result:
-                        display_stat_card(result[0], result[1], "🎁 Most Assists", colors[color_idx % 2])
-                        color_idx += 1
+                    if type_match_ids:
+                        try:
+                            stats = (
+                                supabase.table("player_stats")
+                                .select("player_name, assists")
+                                .in_("match_id", type_match_ids)
+                                .order("assists", desc=True)
+                                .limit(1)
+                                .execute()
+                            )
+                            if stats.data:
+                                display_stat_card(stats.data[0]["player_name"], stats.data[0]["assists"], "🎁 Most Assists", colors[color_idx % 2])
+                            else:
+                                st.info("No data")
+                        except Exception:
+                            st.info("No data")
                     else:
                         st.info("No data")
-                        color_idx += 1
+                    color_idx += 1
                 
                 col1, col2 = st.columns(2)
                 
                 # Most Saves in a Game
                 with col1:
-                    c.execute("""
-                        SELECT player_name, MAX(saves) as max_saves
-                        FROM player_stats
-                        WHERE match_id IN (
-                            SELECT id FROM matches
-                            WHERE (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', ''))) = ?
-                        )
-                        GROUP BY player_name
-                        ORDER BY max_saves DESC
-                        LIMIT 1
-                    """, (match_type_num,))
-                    result = c.fetchone()
-                    if result:
-                        display_stat_card(result[0], result[1], "🛡️ Most Saves", colors[color_idx % 2])
-                        color_idx += 1
+                    if type_match_ids:
+                        try:
+                            stats = (
+                                supabase.table("player_stats")
+                                .select("player_name, saves")
+                                .in_("match_id", type_match_ids)
+                                .order("saves", desc=True)
+                                .limit(1)
+                                .execute()
+                            )
+                            if stats.data:
+                                display_stat_card(stats.data[0]["player_name"], stats.data[0]["saves"], "🛡️ Most Saves", colors[color_idx % 2])
+                            else:
+                                st.info("No data")
+                        except Exception:
+                            st.info("No data")
                     else:
                         st.info("No data")
-                        color_idx += 1
+                    color_idx += 1
                 
                 # Most Shots in a Game
                 with col2:
-                    c.execute("""
-                        SELECT player_name, MAX(shots) as max_shots
-                        FROM player_stats
-                        WHERE match_id IN (
-                            SELECT id FROM matches
-                            WHERE (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', ''))) = ?
-                        )
-                        GROUP BY player_name
-                        ORDER BY max_shots DESC
-                        LIMIT 1
-                    """, (match_type_num,))
-                    result = c.fetchone()
-                    if result:
-                        display_stat_card(result[0], result[1], "🔫 Most Shots", colors[color_idx % 2])
-                        color_idx += 1
+                    if type_match_ids:
+                        try:
+                            stats = (
+                                supabase.table("player_stats")
+                                .select("player_name, shots")
+                                .in_("match_id", type_match_ids)
+                                .order("shots", desc=True)
+                                .limit(1)
+                                .execute()
+                            )
+                            if stats.data:
+                                display_stat_card(stats.data[0]["player_name"], stats.data[0]["shots"], "🔫 Most Shots", colors[color_idx % 2])
+                            else:
+                                st.info("No data")
+                        except Exception:
+                            st.info("No data")
                     else:
                         st.info("No data")
-                        color_idx += 1
+                    color_idx += 1
                 
                 col1, col2 = st.columns(2)
                 
                 # Highest Score in a Game
                 with col1:
-                    c.execute("""
-                        SELECT player_name, MAX(score) as max_score
-                        FROM player_stats
-                        WHERE match_id IN (
-                            SELECT id FROM matches
-                            WHERE (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', ''))) = ?
-                        )
-                        GROUP BY player_name
-                        ORDER BY max_score DESC
-                        LIMIT 1
-                    """, (match_type_num,))
-                    result = c.fetchone()
-                    if result:
-                        display_stat_card(result[0], result[1], "⚡ Highest Score", colors[color_idx % 2])
-                        color_idx += 1
+                    if type_match_ids:
+                        try:
+                            stats = (
+                                supabase.table("player_stats")
+                                .select("player_name, score")
+                                .in_("match_id", type_match_ids)
+                                .order("score", desc=True)
+                                .limit(1)
+                                .execute()
+                            )
+                            if stats.data:
+                                display_stat_card(stats.data[0]["player_name"], stats.data[0]["score"], "⚡ Highest Score", colors[color_idx % 2])
+                            else:
+                                st.info("No data")
+                        except Exception:
+                            st.info("No data")
                     else:
                         st.info("No data")
-                        color_idx += 1
+                    color_idx += 1
                 
                 # Most Games Played
                 with col2:
-                    c.execute("""
-                        SELECT player_name, COUNT(DISTINCT match_id) as games
-                        FROM player_stats
-                        WHERE match_id IN (
-                            SELECT id FROM matches
-                            WHERE (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', ''))) = ?
-                        )
-                        GROUP BY player_name
-                        ORDER BY games DESC
-                        LIMIT 1
-                    """, (match_type_num,))
-                    result = c.fetchone()
-                    if result:
-                        display_stat_card(result[0], result[1], "📊 Most Games", colors[color_idx % 2])
-                        color_idx += 1
+                    if type_match_ids:
+                        try:
+                            stats = (
+                                supabase.table("player_stats")
+                                .select("player_name, match_id")
+                                .in_("match_id", type_match_ids)
+                                .execute()
+                            )
+                            if stats.data:
+                                from collections import Counter
+                                counts = Counter(r["player_name"] for r in stats.data)
+                                top = counts.most_common(1)[0]
+                                display_stat_card(top[0], top[1], "📊 Most Games", colors[color_idx % 2])
+                            else:
+                                st.info("No data")
+                        except Exception:
+                            st.info("No data")
                     else:
                         st.info("No data")
-                        color_idx += 1
+                    color_idx += 1
                 
                 col1, col2 = st.columns(2)
                 
@@ -2872,96 +2798,72 @@ with tab6:
                     best_win_pct = 0
                     best_player = None
                     for player in all_players:
-                        c.execute("""
-                            SELECT COUNT(*)
-                            FROM matches
-                            WHERE
-                                (
-                                    team1_players LIKE ? AND winner = 1
-                                    AND (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', ''))) = ?
-                                )
-                                OR
-                                (
-                                    team2_players LIKE ? AND winner = 2
-                                    AND (LENGTH(team2_players) - LENGTH(REPLACE(team2_players, ',', ''))) = ?
-                                )
-                        """, (f"%{player}%", match_type_num, f"%{player}%", match_type_num))
-                        wins = c.fetchone()[0]
-                        
-                        c.execute("""
-                            SELECT COUNT(*)
-                            FROM matches
-                            WHERE
-                                (team1_players LIKE ? OR team2_players LIKE ?)
-                                AND (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', ''))) = ?
-                        """, (f"%{player}%", f"%{player}%", match_type_num))
-                        total = c.fetchone()[0]
-                        
-                        if total >= 5:  # Minimum 5 games
-                            pct = (wins / total * 100) if total > 0 else 0
-                            if pct > best_win_pct:
-                                best_win_pct = pct
-                                best_player = player
+                        try:
+                            all_m = supabase.table("matches").select("id, team1_players, team2_players, winner").execute().data
+                            type_matches = [
+                                m for m in all_m
+                                if m["team1_players"].count(",") == comma_count
+                            ]
+                            wins = sum(
+                                1 for m in type_matches
+                                if (player in m["team1_players"] and m["winner"] == 1) or
+                                   (player in m["team2_players"] and m["winner"] == 2)
+                            )
+                            total = sum(
+                                1 for m in type_matches
+                                if player in m["team1_players"] or player in m["team2_players"]
+                            )
+                            if total >= 5:
+                                pct = (wins / total * 100) if total > 0 else 0
+                                if pct > best_win_pct:
+                                    best_win_pct = pct
+                                    best_player = player
+                        except Exception:
+                            pass
                     
                     if best_player:
                         display_stat_card(best_player, f"{best_win_pct:.1f}%", "🏆 Best Win %", colors[color_idx % 2])
-                        color_idx += 1
                     else:
                         st.info("Need 5+ games")
-                        color_idx += 1
+                    color_idx += 1
                 
-                # Win Streak
+                # Win Streak (simplified - current consecutive wins from most recent)
                 with col2:
                     best_streak = 0
                     streak_player = None
                     
                     for player in all_players:
-                        c.execute("""
-                            SELECT id FROM matches
-                            WHERE
-                                (
-                                    team1_players LIKE ? AND winner = 1
-                                    AND (LENGTH(team1_players) - LENGTH(REPLACE(team1_players, ',', ''))) = ?
-                                )
-                                OR
-                                (
-                                    team2_players LIKE ? AND winner = 2
-                                    AND (LENGTH(team2_players) - LENGTH(REPLACE(team2_players, ',', ''))) = ?
-                                )
-                            ORDER BY id DESC
-                        """, (f"%{player}%", match_type_num, f"%{player}%", match_type_num))
-                        wins = c.fetchall()
-                        
-                        if wins:
+                        try:
+                            # Get matches involving player of this type, ordered by id desc
+                            all_m = (
+                                supabase.table("matches")
+                                .select("id, team1_players, team2_players, winner")
+                                .order("id", desc=True)
+                                .execute()
+                            ).data
+                            
+                            type_matches = [
+                                m for m in all_m
+                                if m["team1_players"].count(",") == comma_count and
+                                   (player in m["team1_players"] or player in m["team2_players"])
+                            ]
+                            
                             current_streak = 0
-                            for i, (win_id,) in enumerate(wins):
-                                # Check if next game (before this one) was also a win
-                                if i == 0:
-                                    current_streak = 1
-                                else:
-                                    # If there's a gap, streak is broken
-                                    c.execute("""
-                                        SELECT COUNT(*) FROM matches
-                                        WHERE id > ? AND id < ?
-                                        AND (
-                                            (team1_players LIKE ? AND winner = 2)
-                                            OR (team2_players LIKE ? AND winner = 1)
-                                        )
-                                    """, (wins[i][0], wins[i-1][0], f"%{player}%", f"%{player}%"))
-                                    if c.fetchone()[0] > 0:
-                                        break
+                            for m in type_matches:
+                                won = (player in m["team1_players"] and m["winner"] == 1) or \
+                                      (player in m["team2_players"] and m["winner"] == 2)
+                                if won:
                                     current_streak += 1
+                                else:
+                                    break
                             
                             if current_streak > best_streak:
                                 best_streak = current_streak
                                 streak_player = player
+                        except Exception:
+                            pass
                     
-                    if streak_player:
+                    if streak_player and best_streak > 0:
                         display_stat_card(streak_player, best_streak, "🔥 Win Streak", "orange")
                     else:
                         st.info("No wins yet")
-
-# ============================================================
-# CLOSE DATABASE
-# ============================================================
-conn.close()
