@@ -1,4 +1,4 @@
-import streamlit as st
+limport streamlit as st
 import pandas as pd
 from datetime import datetime
 from collections import defaultdict
@@ -1843,34 +1843,37 @@ with tab3:
                 type_totals = []
                 comma_count = get_comma_count_for_type(match_type)
                 
+                # Get all matches of this type once
+                try:
+                    all_matches = supabase.table("matches").select("id, team1_players").execute()
+                    type_match_ids = set(
+                        m["id"] for m in all_matches.data
+                        if m.get("team1_players") and (m["team1_players"].count(",") == comma_count)
+                    )
+                except Exception:
+                    type_match_ids = set()
+                
+                if not type_match_ids:
+                    st.info(f"No {match_type} games yet")
+                    continue
+                
                 for player in sorted(all_players_list, key=lambda p: overall_stats[p]["wins"], reverse=True):
                     try:
-                        # Get all matches of this type
-                        all_matches = supabase.table("matches").select("id, team1_players").execute()
-                        type_match_ids = [
-                            m["id"] for m in all_matches.data
-                            if (m["team1_players"].count(",") == comma_count)
+                        # Filter cached stats by player name and match type
+                        player_stats = [
+                            r for r in all_player_stats 
+                            if r.get("player_name") and r["player_name"].strip() == player.strip() 
+                            and r.get("match_id") in type_match_ids
                         ]
                         
-                        if not type_match_ids:
-                            continue
-                        
-                        stats_resp = (
-                            supabase.table("player_stats")
-                            .select("score, goals, assists, saves, shots, excuse_used, match_id")
-                            .eq("player_name", player.strip())
-                            .in_("match_id", type_match_ids)
-                            .execute()
-                        )
-                        
-                        if stats_resp.data:
-                            score = sum(int(r["score"] or 0) for r in stats_resp.data)
-                            goals = sum(int(r["goals"] or 0) for r in stats_resp.data)
-                            assists = sum(int(r["assists"] or 0) for r in stats_resp.data)
-                            saves = sum(int(r["saves"] or 0) for r in stats_resp.data)
-                            shots = sum(int(r["shots"] or 0) for r in stats_resp.data)
-                            excuses = sum(int(r["excuse_used"] or 0) for r in stats_resp.data)
-                            games = len(set(r["match_id"] for r in stats_resp.data))
+                        if player_stats:
+                            score = sum(int(r.get("score") or 0) for r in player_stats)
+                            goals = sum(int(r.get("goals") or 0) for r in player_stats)
+                            assists = sum(int(r.get("assists") or 0) for r in player_stats)
+                            saves = sum(int(r.get("saves") or 0) for r in player_stats)
+                            shots = sum(int(r.get("shots") or 0) for r in player_stats)
+                            excuses = sum(int(r.get("excuse_used") or 0) for r in player_stats)
+                            games = len(set(r["match_id"] for r in player_stats))
                             
                             type_totals.append({
                                 "🎮 Player": player,
@@ -1903,33 +1906,37 @@ with tab3:
                 type_avgs = []
                 comma_count = get_comma_count_for_type(match_type)
                 
+                # Get all matches of this type once
+                try:
+                    all_matches = supabase.table("matches").select("id, team1_players").execute()
+                    type_match_ids = set(
+                        m["id"] for m in all_matches.data
+                        if m.get("team1_players") and (m["team1_players"].count(",") == comma_count)
+                    )
+                except Exception:
+                    type_match_ids = set()
+                
+                if not type_match_ids:
+                    st.info(f"No {match_type} games yet")
+                    continue
+                
                 for player in sorted(all_players_list, key=lambda p: overall_stats[p]["wins"], reverse=True):
                     try:
-                        all_matches = supabase.table("matches").select("id, team1_players").execute()
-                        type_match_ids = [
-                            m["id"] for m in all_matches.data
-                            if (m["team1_players"].count(",") == comma_count)
+                        # Filter cached stats by player name and match type
+                        player_stats = [
+                            r for r in all_player_stats 
+                            if r.get("player_name") and r["player_name"].strip() == player.strip() 
+                            and r.get("match_id") in type_match_ids
                         ]
                         
-                        if not type_match_ids:
-                            continue
-                        
-                        stats_resp = (
-                            supabase.table("player_stats")
-                            .select("score, goals, assists, saves, shots, excuse_used, match_id")
-                            .eq("player_name", player.strip())
-                            .in_("match_id", type_match_ids)
-                            .execute()
-                        )
-                        
-                        if stats_resp.data:
-                            score = sum(int(r["score"] or 0) for r in stats_resp.data)
-                            goals = sum(int(r["goals"] or 0) for r in stats_resp.data)
-                            assists = sum(int(r["assists"] or 0) for r in stats_resp.data)
-                            saves = sum(int(r["saves"] or 0) for r in stats_resp.data)
-                            shots = sum(int(r["shots"] or 0) for r in stats_resp.data)
-                            excuses = sum(int(r["excuse_used"] or 0) for r in stats_resp.data)
-                            games = len(set(r["match_id"] for r in stats_resp.data))
+                        if player_stats:
+                            score = sum(int(r.get("score") or 0) for r in player_stats)
+                            goals = sum(int(r.get("goals") or 0) for r in player_stats)
+                            assists = sum(int(r.get("assists") or 0) for r in player_stats)
+                            saves = sum(int(r.get("saves") or 0) for r in player_stats)
+                            shots = sum(int(r.get("shots") or 0) for r in player_stats)
+                            excuses = sum(int(r.get("excuse_used") or 0) for r in player_stats)
+                            games = len(set(r["match_id"] for r in player_stats))
                             
                             type_avgs.append({
                                 "🎮 Player": player,
