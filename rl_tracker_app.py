@@ -1745,14 +1745,14 @@ with tab3:
             games = wins + losses
             win_pct = (wins / games) * 100 if games > 0 else 0
             
-            # Aggregated stats - use cached all_player_stats with local filtering
+            # Aggregated stats - use cached all_player_stats with proper local filtering
             player_stats = [r for r in all_player_stats if r.get("player_name") and r["player_name"].strip() == player.strip()]
-            score = sum(r.get("score") or 0 for r in player_stats)
-            goals = sum(r.get("goals") or 0 for r in player_stats)
-            assists = sum(r.get("assists") or 0 for r in player_stats)
-            saves = sum(r.get("saves") or 0 for r in player_stats)
-            shots = sum(r.get("shots") or 0 for r in player_stats)
-            excuses = sum(r.get("excuse_used") or 0 for r in player_stats)
+            score = sum(int(r.get("score") or 0) for r in player_stats)
+            goals = sum(int(r.get("goals") or 0) for r in player_stats)
+            assists = sum(int(r.get("assists") or 0) for r in player_stats)
+            saves = sum(int(r.get("saves") or 0) for r in player_stats)
+            shots = sum(int(r.get("shots") or 0) for r in player_stats)
+            excuses = sum(int(r.get("excuse_used") or 0) for r in player_stats)
             
             overall_stats[player] = {
                 "wins": wins,
@@ -1863,12 +1863,12 @@ with tab3:
                         )
                         
                         if stats_resp.data:
-                            score = sum(r["score"] or 0 for r in stats_resp.data)
-                            goals = sum(r["goals"] or 0 for r in stats_resp.data)
-                            assists = sum(r["assists"] or 0 for r in stats_resp.data)
-                            saves = sum(r["saves"] or 0 for r in stats_resp.data)
-                            shots = sum(r["shots"] or 0 for r in stats_resp.data)
-                            excuses = sum(r["excuse_used"] or 0 for r in stats_resp.data)
+                            score = sum(int(r["score"] or 0) for r in stats_resp.data)
+                            goals = sum(int(r["goals"] or 0) for r in stats_resp.data)
+                            assists = sum(int(r["assists"] or 0) for r in stats_resp.data)
+                            saves = sum(int(r["saves"] or 0) for r in stats_resp.data)
+                            shots = sum(int(r["shots"] or 0) for r in stats_resp.data)
+                            excuses = sum(int(r["excuse_used"] or 0) for r in stats_resp.data)
                             games = len(set(r["match_id"] for r in stats_resp.data))
                             
                             type_totals.append({
@@ -1922,12 +1922,12 @@ with tab3:
                         )
                         
                         if stats_resp.data:
-                            score = sum(r["score"] or 0 for r in stats_resp.data)
-                            goals = sum(r["goals"] or 0 for r in stats_resp.data)
-                            assists = sum(r["assists"] or 0 for r in stats_resp.data)
-                            saves = sum(r["saves"] or 0 for r in stats_resp.data)
-                            shots = sum(r["shots"] or 0 for r in stats_resp.data)
-                            excuses = sum(r["excuse_used"] or 0 for r in stats_resp.data)
+                            score = sum(int(r["score"] or 0) for r in stats_resp.data)
+                            goals = sum(int(r["goals"] or 0) for r in stats_resp.data)
+                            assists = sum(int(r["assists"] or 0) for r in stats_resp.data)
+                            saves = sum(int(r["saves"] or 0) for r in stats_resp.data)
+                            shots = sum(int(r["shots"] or 0) for r in stats_resp.data)
+                            excuses = sum(int(r["excuse_used"] or 0) for r in stats_resp.data)
                             games = len(set(r["match_id"] for r in stats_resp.data))
                             
                             type_avgs.append({
