@@ -1745,23 +1745,14 @@ with tab3:
             games = wins + losses
             win_pct = (wins / games) * 100 if games > 0 else 0
             
-            # Aggregated stats - use simpler eq() with stripped names
-            try:
-                stats_resp = (
-                    supabase.table("player_stats")
-                    .select("score, goals, assists, saves, shots, excuse_used")
-                    .eq("player_name", player.strip())
-                    .execute()
-                )
-                player_data = stats_resp.data if stats_resp.data else []
-                score = sum(r.get("score") or 0 for r in player_data)
-                goals = sum(r.get("goals") or 0 for r in player_data)
-                assists = sum(r.get("assists") or 0 for r in player_data)
-                saves = sum(r.get("saves") or 0 for r in player_data)
-                shots = sum(r.get("shots") or 0 for r in player_data)
-                excuses = sum(r.get("excuse_used") or 0 for r in player_data)
-            except Exception as e:
-                score = goals = assists = saves = shots = excuses = 0
+            # Aggregated stats - use cached all_player_stats with local filtering
+            player_stats = [r for r in all_player_stats if r.get("player_name") and r["player_name"].strip() == player.strip()]
+            score = sum(r.get("score") or 0 for r in player_stats)
+            goals = sum(r.get("goals") or 0 for r in player_stats)
+            assists = sum(r.get("assists") or 0 for r in player_stats)
+            saves = sum(r.get("saves") or 0 for r in player_stats)
+            shots = sum(r.get("shots") or 0 for r in player_stats)
+            excuses = sum(r.get("excuse_used") or 0 for r in player_stats)
             
             overall_stats[player] = {
                 "wins": wins,
