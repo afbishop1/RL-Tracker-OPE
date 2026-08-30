@@ -2651,7 +2651,7 @@ with tab6:
                     all_matches = supabase.table("matches").select("id, team1_players").execute().data
                     type_match_ids = [
                         m["id"] for m in all_matches
-                        if m["team1_players"].count(",") == comma_count
+                        if m.get("team1_players") and (m["team1_players"].count(",") == comma_count)
                     ]
                 except Exception:
                     type_match_ids = []
