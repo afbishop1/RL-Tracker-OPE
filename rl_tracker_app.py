@@ -1801,6 +1801,7 @@ with tab3:
             stat = overall_stats[player]
             totals_data.append({
                 "🎮 Player": player,
+                "📊 Games": stat["games"],
                 "🎯 Score": stat["score"],
                 "⚽ Goals": stat["goals"],
                 "🎁 Assists": stat["assists"],
@@ -1873,13 +1874,13 @@ with tab3:
                             
                             type_totals.append({
                                 "🎮 Player": player,
+                                "📊 Games": games,
                                 "🎯 Score": score,
                                 "⚽ Goals": goals,
                                 "🎁 Assists": assists,
                                 "🛡️ Saves": saves,
                                 "🔫 Shots": shots,
-                                "🤥 Excuses": excuses,
-                                "📊 Games": games
+                                "🤥 Excuses": excuses
                             })
                     except Exception:
                         pass
