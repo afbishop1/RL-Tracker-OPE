@@ -1695,7 +1695,7 @@ with tab3:
     
     # Fetch all player_stats once and cache it
     try:
-        all_stats_resp = supabase.table("player_stats").select("score, goals, assists, saves, shots, excuse_used").execute()
+        all_stats_resp = supabase.table("player_stats").select("player_name, score, goals, assists, saves, shots, excuse_used").execute()
         all_player_stats = all_stats_resp.data if all_stats_resp.data else []
     except Exception:
         all_player_stats = []
