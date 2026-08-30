@@ -1693,6 +1693,13 @@ with tab3:
         st.rerun()
     st.divider()
     
+    # Fetch all player_stats once and cache it
+    try:
+        all_stats_resp = supabase.table("player_stats").select("*").execute()
+        all_player_stats = all_stats_resp.data if all_stats_resp.data else []
+    except Exception:
+        all_player_stats = []
+    
     try:
         players_resp = (
             supabase.table("player_stats")
@@ -1738,21 +1745,16 @@ with tab3:
             games = wins + losses
             win_pct = (wins / games) * 100 if games > 0 else 0
             
-            # Aggregated stats
+            # Aggregated stats - use cached all_player_stats
             try:
-                stats_resp = (
-                    supabase.table("player_stats")
-                    .select("score, goals, assists, saves, shots, excuse_used")
-                    .eq("player_name", player)
-                    .execute()
-                )
-                score = sum(r["score"] or 0 for r in stats_resp.data)
-                goals = sum(r["goals"] or 0 for r in stats_resp.data)
-                assists = sum(r["assists"] or 0 for r in stats_resp.data)
-                saves = sum(r["saves"] or 0 for r in stats_resp.data)
-                shots = sum(r["shots"] or 0 for r in stats_resp.data)
-                excuses = sum(r["excuse_used"] or 0 for r in stats_resp.data)
-            except Exception:
+                player_stats = [r for r in all_player_stats if r.get("player_name", "").strip().lower() == player.strip().lower()]
+                score = sum(r.get("score") or 0 for r in player_stats)
+                goals = sum(r.get("goals") or 0 for r in player_stats)
+                assists = sum(r.get("assists") or 0 for r in player_stats)
+                saves = sum(r.get("saves") or 0 for r in player_stats)
+                shots = sum(r.get("shots") or 0 for r in player_stats)
+                excuses = sum(r.get("excuse_used") or 0 for r in player_stats)
+            except Exception as e:
                 score = goals = assists = saves = shots = excuses = 0
             
             overall_stats[player] = {
@@ -1858,7 +1860,7 @@ with tab3:
                         stats_resp = (
                             supabase.table("player_stats")
                             .select("score, goals, assists, saves, shots, excuse_used, match_id")
-                            .eq("player_name", player)
+                            .ilike("player_name", f"%{player}%")
                             .in_("match_id", type_match_ids)
                             .execute()
                         )
@@ -1917,7 +1919,7 @@ with tab3:
                         stats_resp = (
                             supabase.table("player_stats")
                             .select("score, goals, assists, saves, shots, excuse_used, match_id")
-                            .eq("player_name", player)
+                            .ilike("player_name", f"%{player}%")
                             .in_("match_id", type_match_ids)
                             .execute()
                         )
@@ -2290,7 +2292,7 @@ with tab5:
                             g_resp = (
                                 supabase.table("player_stats")
                                 .select("match_id")
-                                .eq("player_name", player)
+                                .ilike("player_name", f"%{player}%")
                                 .execute()
                             )
                             row[player] = len(set(r["match_id"] for r in g_resp.data))
@@ -2327,7 +2329,7 @@ with tab5:
                             g_resp = (
                                 supabase.table("player_stats")
                                 .select("match_id")
-                                .eq("player_name", player)
+                                .ilike("player_name", f"%{player}%")
                                 .execute()
                             )
                             total = len(set(r["match_id"] for r in g_resp.data))
@@ -2340,7 +2342,7 @@ with tab5:
                             s_resp = (
                                 supabase.table("player_stats")
                                 .select("goals, match_id")
-                                .eq("player_name", player)
+                                .ilike("player_name", f"%{player}%")
                                 .execute()
                             )
                             goals = sum(r["goals"] or 0 for r in s_resp.data)
@@ -2354,7 +2356,7 @@ with tab5:
                             s_resp = (
                                 supabase.table("player_stats")
                                 .select("assists, match_id")
-                                .eq("player_name", player)
+                                .ilike("player_name", f"%{player}%")
                                 .execute()
                             )
                             assists = sum(r["assists"] or 0 for r in s_resp.data)
@@ -2368,7 +2370,7 @@ with tab5:
                             s_resp = (
                                 supabase.table("player_stats")
                                 .select("saves, match_id")
-                                .eq("player_name", player)
+                                .ilike("player_name", f"%{player}%")
                                 .execute()
                             )
                             saves = sum(r["saves"] or 0 for r in s_resp.data)
@@ -2382,7 +2384,7 @@ with tab5:
                             s_resp = (
                                 supabase.table("player_stats")
                                 .select("shots, match_id")
-                                .eq("player_name", player)
+                                .ilike("player_name", f"%{player}%")
                                 .execute()
                             )
                             shots = sum(r["shots"] or 0 for r in s_resp.data)
@@ -2424,7 +2426,7 @@ with tab5:
                 s_resp = (
                     supabase.table("player_stats")
                     .select("goals, assists, saves, shots, match_id")
-                    .eq("player_name", player)
+                    .ilike("player_name", f"%{player}%")
                     .execute()
                 )
                 if s_resp.data:
@@ -2535,7 +2537,7 @@ with tab5:
                             s_resp = (
                                 supabase.table("player_stats")
                                 .select("goals, assists, saves, shots, match_id")
-                                .eq("player_name", player)
+                                .ilike("player_name", f"%{player}%")
                                 .in_("match_id", type_match_ids)
                                 .execute()
                             )
