@@ -2653,7 +2653,9 @@ with tab6:
                         m["id"] for m in all_matches
                         if m.get("team1_players") and (m["team1_players"].count(",") == comma_count)
                     ]
-                except Exception:
+                    st.write(f"DEBUG {match_type}: Found {len(type_match_ids)} matches of this type")
+                except Exception as e:
+                    st.write(f"DEBUG ERROR: {e}")
                     type_match_ids = []
                 
                 col1, col2 = st.columns(2)
@@ -2670,11 +2672,13 @@ with tab6:
                                 .limit(1)
                                 .execute()
                             )
+                            st.write(f"DEBUG Goals Query: type_match_ids={type_match_ids[:3]}..., returned: {stats.data}")
                             if stats.data:
-                                display_stat_card(stats.data[0]["player_name"], stats.data[0]["goals"], "🎯 Most Goals", colors[color_idx % 2])
+                                display_stat_card(stats.data[0]["player_name"], stats.data[0]["goals"], "⚽ Most Goals", colors[color_idx % 2])
                             else:
                                 st.info("No data")
-                        except Exception:
+                        except Exception as e:
+                            st.write(f"DEBUG ERROR: {e}")
                             st.info("No data")
                     else:
                         st.info("No data")
