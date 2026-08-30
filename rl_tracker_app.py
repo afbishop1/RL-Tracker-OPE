@@ -2610,268 +2610,79 @@ This shows you're better than wins alone, because you're performing well across 
             """)
 
 # ============================================================
+
 # TAB 6 - RECORDS
 # ============================================================
 with tab6:
-    if st.button(
-        "🔄 Refresh Data",
-        use_container_width=True,
-        key="refresh_tab6"
-    ):
+    if st.button("🔄 Refresh Data", use_container_width=True, key="refresh_tab6"):
         st.rerun()
     st.divider()
     
     try:
-        all_players = sorted(list(set(
-            row["player_name"] for row in
-            supabase.table("player_stats").select("player_name").execute().data
-        )))
+        all_players = sorted(list(set(row["player_name"] for row in supabase.table("player_stats").select("player_name").execute().data)))
     except Exception:
         all_players = []
     
     if not all_players:
         st.info("📭 No records yet - start logging matches!")
     else:
-        # ====================================================
-        # INDIVIDUAL RECORDS
-        # ====================================================
+        # Fetch all data once for Records
+        try:
+            rec_all_matches = supabase.table("matches").select("id, team1_players").execute().data or []
+            rec_all_stats = supabase.table("player_stats").select("*").execute().data or []
+        except Exception:
+            rec_all_matches = []
+            rec_all_stats = []
+        
+        # Build match_id -> match_type map
+        rec_match_type_map = {}
+        for m in rec_all_matches:
+            if m.get("team1_players"):
+                comma_count = m["team1_players"].count(",")
+                if comma_count == 0:
+                    rec_match_type_map[m["id"]] = "1v1"
+                elif comma_count == 1:
+                    rec_match_type_map[m["id"]] = "2v2"
+                elif comma_count == 2:
+                    rec_match_type_map[m["id"]] = "3v3"
+        
         st.markdown("## 🎮 Individual Records")
         
         for match_type in ["1v1", "2v2", "3v3"]:
             with st.expander(f"{match_type} Records", expanded=True):
-                comma_count = get_comma_count_for_type(match_type)
+                # Filter stats by match type
+                type_stats = [s for s in rec_all_stats if rec_match_type_map.get(s.get("match_id")) == match_type]
                 
-                # Determine starting color to alternate between match types
-                start_color = "orange" if match_type == "1v1" else "blue"
-                colors = ["orange", "blue"] if start_color == "orange" else ["blue", "orange"]
-                color_idx = 0
-                
-                # Get match IDs of this type once
-                try:
-                    all_matches = supabase.table("matches").select("id, team1_players").execute().data
-                    type_match_ids = [
-                        m["id"] for m in all_matches
-                        if m.get("team1_players") and (m["team1_players"].count(",") == comma_count)
-                    ]
-                    st.write(f"DEBUG {match_type}: Found {len(type_match_ids)} matches of this type")
-                except Exception as e:
-                    st.write(f"DEBUG ERROR: {e}")
-                    type_match_ids = []
+                if not type_stats:
+                    st.info(f"No {match_type} games yet")
+                    continue
                 
                 col1, col2 = st.columns(2)
                 
-                # Most Goals in a Game
                 with col1:
-                    if type_match_ids:
-                        try:
-                            stats = (
-                                supabase.table("player_stats")
-                                .select("player_name, goals")
-                                .in_("match_id", type_match_ids)
-                                .order("goals", desc=True)
-                                .limit(1)
-                                .execute()
-                            )
-                            st.write(f"DEBUG Goals Query: type_match_ids={type_match_ids[:3]}..., returned: {stats.data}")
-                            if stats.data:
-                                display_stat_card(stats.data[0]["player_name"], stats.data[0]["goals"], "⚽ Most Goals", colors[color_idx % 2])
-                            else:
-                                st.info("No data")
-                        except Exception as e:
-                            st.write(f"DEBUG ERROR: {e}")
-                            st.info("No data")
-                    else:
-                        st.info("No data")
-                    color_idx += 1
+                    top_goals = max(type_stats, key=lambda x: int(x.get("goals") or 0))
+                    display_stat_card(top_goals["player_name"], top_goals["goals"], "⚽ Most Goals", "blue")
                 
-                # Most Assists in a Game
                 with col2:
-                    if type_match_ids:
-                        try:
-                            stats = (
-                                supabase.table("player_stats")
-                                .select("player_name, assists")
-                                .in_("match_id", type_match_ids)
-                                .order("assists", desc=True)
-                                .limit(1)
-                                .execute()
-                            )
-                            if stats.data:
-                                display_stat_card(stats.data[0]["player_name"], stats.data[0]["assists"], "🎁 Most Assists", colors[color_idx % 2])
-                            else:
-                                st.info("No data")
-                        except Exception:
-                            st.info("No data")
-                    else:
-                        st.info("No data")
-                    color_idx += 1
+                    top_assists = max(type_stats, key=lambda x: int(x.get("assists") or 0))
+                    display_stat_card(top_assists["player_name"], top_assists["assists"], "🎁 Most Assists", "orange")
                 
-                col1, col2 = st.columns(2)
+                col3, col4 = st.columns(2)
                 
-                # Most Saves in a Game
-                with col1:
-                    if type_match_ids:
-                        try:
-                            stats = (
-                                supabase.table("player_stats")
-                                .select("player_name, saves")
-                                .in_("match_id", type_match_ids)
-                                .order("saves", desc=True)
-                                .limit(1)
-                                .execute()
-                            )
-                            if stats.data:
-                                display_stat_card(stats.data[0]["player_name"], stats.data[0]["saves"], "🛡️ Most Saves", colors[color_idx % 2])
-                            else:
-                                st.info("No data")
-                        except Exception:
-                            st.info("No data")
-                    else:
-                        st.info("No data")
-                    color_idx += 1
+                with col3:
+                    top_saves = max(type_stats, key=lambda x: int(x.get("saves") or 0))
+                    display_stat_card(top_saves["player_name"], top_saves["saves"], "🛡️ Most Saves", "blue")
                 
-                # Most Shots in a Game
-                with col2:
-                    if type_match_ids:
-                        try:
-                            stats = (
-                                supabase.table("player_stats")
-                                .select("player_name, shots")
-                                .in_("match_id", type_match_ids)
-                                .order("shots", desc=True)
-                                .limit(1)
-                                .execute()
-                            )
-                            if stats.data:
-                                display_stat_card(stats.data[0]["player_name"], stats.data[0]["shots"], "🔫 Most Shots", colors[color_idx % 2])
-                            else:
-                                st.info("No data")
-                        except Exception:
-                            st.info("No data")
-                    else:
-                        st.info("No data")
-                    color_idx += 1
+                with col4:
+                    top_shots = max(type_stats, key=lambda x: int(x.get("shots") or 0))
+                    display_stat_card(top_shots["player_name"], top_shots["shots"], "🔫 Most Shots", "orange")
                 
-                col1, col2 = st.columns(2)
+                col5, col6 = st.columns(2)
                 
-                # Highest Score in a Game
-                with col1:
-                    if type_match_ids:
-                        try:
-                            stats = (
-                                supabase.table("player_stats")
-                                .select("player_name, score")
-                                .in_("match_id", type_match_ids)
-                                .order("score", desc=True)
-                                .limit(1)
-                                .execute()
-                            )
-                            if stats.data:
-                                display_stat_card(stats.data[0]["player_name"], stats.data[0]["score"], "⚡ Highest Score", colors[color_idx % 2])
-                            else:
-                                st.info("No data")
-                        except Exception:
-                            st.info("No data")
-                    else:
-                        st.info("No data")
-                    color_idx += 1
+                with col5:
+                    top_score = max(type_stats, key=lambda x: int(x.get("score") or 0))
+                    display_stat_card(top_score["player_name"], top_score["score"], "🎯 Highest Score", "blue")
                 
-                # Most Games Played
-                with col2:
-                    if type_match_ids:
-                        try:
-                            stats = (
-                                supabase.table("player_stats")
-                                .select("player_name, match_id")
-                                .in_("match_id", type_match_ids)
-                                .execute()
-                            )
-                            if stats.data:
-                                from collections import Counter
-                                counts = Counter(r["player_name"] for r in stats.data)
-                                top = counts.most_common(1)[0]
-                                display_stat_card(top[0], top[1], "📊 Most Games", colors[color_idx % 2])
-                            else:
-                                st.info("No data")
-                        except Exception:
-                            st.info("No data")
-                    else:
-                        st.info("No data")
-                    color_idx += 1
-                
-                col1, col2 = st.columns(2)
-                
-                # Best Win %
-                with col1:
-                    best_win_pct = 0
-                    best_player = None
-                    for player in all_players:
-                        try:
-                            all_m = supabase.table("matches").select("id, team1_players, team2_players, winner").execute().data
-                            type_matches = [
-                                m for m in all_m
-                                if m["team1_players"].count(",") == comma_count
-                            ]
-                            wins = sum(
-                                1 for m in type_matches
-                                if (player in m["team1_players"] and m["winner"] == 1) or
-                                   (player in m["team2_players"] and m["winner"] == 2)
-                            )
-                            total = sum(
-                                1 for m in type_matches
-                                if player in m["team1_players"] or player in m["team2_players"]
-                            )
-                            if total >= 5:
-                                pct = (wins / total * 100) if total > 0 else 0
-                                if pct > best_win_pct:
-                                    best_win_pct = pct
-                                    best_player = player
-                        except Exception:
-                            pass
-                    
-                    if best_player:
-                        display_stat_card(best_player, f"{best_win_pct:.1f}%", "🏆 Best Win %", colors[color_idx % 2])
-                    else:
-                        st.info("Need 5+ games")
-                    color_idx += 1
-                
-                # Win Streak (simplified - current consecutive wins from most recent)
-                with col2:
-                    best_streak = 0
-                    streak_player = None
-                    
-                    for player in all_players:
-                        try:
-                            # Get matches involving player of this type, ordered by id desc
-                            all_m = (
-                                supabase.table("matches")
-                                .select("id, team1_players, team2_players, winner")
-                                .order("id", desc=True)
-                                .execute()
-                            ).data
-                            
-                            type_matches = [
-                                m for m in all_m
-                                if m["team1_players"].count(",") == comma_count and
-                                   (player in m["team1_players"] or player in m["team2_players"])
-                            ]
-                            
-                            current_streak = 0
-                            for m in type_matches:
-                                won = (player in m["team1_players"] and m["winner"] == 1) or \
-                                      (player in m["team2_players"] and m["winner"] == 2)
-                                if won:
-                                    current_streak += 1
-                                else:
-                                    break
-                            
-                            if current_streak > best_streak:
-                                best_streak = current_streak
-                                streak_player = player
-                        except Exception:
-                            pass
-                    
-                    if streak_player and best_streak > 0:
-                        display_stat_card(streak_player, best_streak, "🔥 Win Streak", "orange")
-                    else:
-                        st.info("No wins yet")
+                with col6:
+                    top_excuses = max(type_stats, key=lambda x: int(x.get("excuse_used") or 0))
+                    display_stat_card(top_excuses["player_name"], top_excuses["excuse_used"], "🤥 Most Excuses", "orange")
